@@ -14,8 +14,10 @@ export function Heart(props: IconProps) { return <IconBase {...props}><path d="M
 export function Minus(props: IconProps) { return <IconBase {...props}><path d="M5 12h14" /></IconBase> }
 export function Moon(props: IconProps) { return <IconBase {...props}><path d="M20 15.7A8.2 8.2 0 0 1 8.3 4 8.2 8.2 0 1 0 20 15.7Z" /></IconBase> }
 export function Plus(props: IconProps) { return <IconBase {...props}><path d="M12 5v14M5 12h14" /></IconBase> }
+export function Pencil(props: IconProps) { return <IconBase {...props}><path d="m4 16.5-.8 3.8 3.8-.8L18.5 8a2.7 2.7 0 0 0-3.8-3.8Z" /><path d="m13.5 5.5 3 3" /></IconBase> }
 export function Search(props: IconProps) { return <IconBase {...props}><circle cx="10.8" cy="10.8" r="6.5" /><path d="m16 16 4 4" /></IconBase> }
 export function Sparkles(props: IconProps) { return <IconBase {...props}><path d="m12 3-1.1 3.9L7 8l3.9 1.1L12 13l1.1-3.9L17 8l-3.9-1.1Z" /><path d="m19 14-.6 2.4L16 17l2.4.6L19 20l.6-2.4L22 17l-2.4-.6Z" /><path d="m5 14-.5 1.5L3 16l1.5.5L5 18l.5-1.5L7 16l-1.5-.5Z" /></IconBase> }
 export function Sun(props: IconProps) { return <IconBase {...props}><circle cx="12" cy="12" r="3.5" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></IconBase> }
 export function Utensils(props: IconProps) { return <IconBase {...props}><path d="M7 3v7M4.5 3v4.5a2.5 2.5 0 0 0 5 0V3M7 10v11" /><path d="M16 3v18M16 3c2.5 1.1 3 3.8 3 6v2h-3" /></IconBase> }
+export function Trash2(props: IconProps) { return <IconBase {...props}><path d="M4 7h16M10 11v5M14 11v5M6 7l1 14h10l1-14M9 7V4h6v3" /></IconBase> }
 export function X(props: IconProps) { return <IconBase {...props}><path d="m6 6 12 12M18 6 6 18" /></IconBase> }

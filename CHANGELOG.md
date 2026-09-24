@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — M3 tartós étkezési napló — 2026-09-25
+
+- Az Alembic `0002_meal_log_snapshot` migráció létrehozza a profil- és naplósémát PostgreSQL-en; a `/api/meals` létrehozás, listázás, módosítás, törlés és napi összesítés végpontjai szerveroldali validációval működnek.
+- A mentés UTC időpontot, rögzített helyi napot/IANA-zónát, mennyiséget, `other` étkezési kulcsot, idempotencia-kulcsot, determinisztikus CH-t és teljes nutrient snapshotot őriz. Cache-frissítés vagy Food-törlés nem módosítja a korábbi bejegyzést.
+- A frontend a mock lista helyett a valódi napló API-t használja, hiba/üres állapotot jelez, mentés után frissít, és szerkesztést/megerősített törlést biztosít; a korábbi fix 160 g cél nem jelenik meg valós adatként.
+- A valódi `chill_test` PostgreSQL integráció, 66 backend teszt, frontend typecheck/lint/7 unit teszt/build és 390/360 px mobil QA sikeres.
+
 ## 0.2.9 — M2 teljes CH-kalkulátor — 2026-09-25
 
 - A backend megkapta a `POST /api/carbs/calculate` determinisztikus számítási végpontot és a pozitív, véges gramm-/CH-validációt; a 0 CH érvényes, a hiányzó CH és hibás mennyiség nem menthető számítás.

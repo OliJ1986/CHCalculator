@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a valódi PostgreSQL- és kalkulátor-kapu sikeres. M3 és M4: **TODO**, a sorrend nem lett megkerülve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a valódi PostgreSQL-, kalkulátor- és snapshot-napló kapu sikeres. M4: **TODO**, a sorrend nem lett megkerülve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -85,3 +85,10 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - D22: A M2 számítási endpoint (`POST /api/carbs/calculate`) nem tartós napló; M3 felelőssége lesz a szerveroldali snapshot és mentés. A prototípus napi lista továbbra sem tekinthető tartós felhasználói adatnak.
 
 A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött történeti állapotok; az M1.2.3 lezárás nem kerül visszavonásra pusztán a dokumentáció újratervezése miatt.
+
+## 2026-09-25 — M3 megvalósítási döntések
+
+- D23: A tartós napló külön `MealEntry` snapshotot tárol. A `Food` kapcsolat opcionális és `SET NULL`, ezért cache-frissítés vagy törlés nem írhatja át a korábban számolt CH-t és eredeti neveket.
+- D24: A profil az M3–M4 scope-ban szerver által kiválasztott `default-profile`; kliens nem adhat meg tetszőleges profilazonosítót. Nyilvános, többfelhasználós kiadás előtt külön auth-döntés szükséges.
+- D25: A kliens előnézeti CH-ja csak konzisztencia-ellenőrzésre szolgál. A mentett értéket a szerver a snapshotból számolja, az idempotencia-kulcs pedig ugyanazon kérés ismétlését egyetlen rekordra korlátozza.
+- D26: Az explicit offset nélküli `consumed_at` érték elutasított. A UTC pillanat, a rögzített IANA-zóna és a helyi nap együtt kezeli a DST/éjfél eseteket és megőrzi a történeti napbesorolást.

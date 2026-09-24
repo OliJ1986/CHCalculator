@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a PostgreSQL- és kalkulátor-kapuk bizonyítottak. M3 és M4: **TODO**; a sorrend szerint az M3 következik. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4: **TODO**, ez a következő sorrendi mérföldkő. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -42,13 +42,13 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
   - A `POST /api/carbs/calculate` endpoint kerekítés nélküli eredményt ad; a frontend vesszős/pontos inputot, gyorsgombokat, +/- lépést, hiányzó CH-t és hibás mennyiséget kezel.
   - Mobil UI ellenőrzés 390 és 360 px szélességen sikeres, vízszintes túlcsordulás nélkül; 55 g × 11,4 g/100 g = 6,27 g, 12,5 g × 21 g/100 g = 2,625 g → 2,6 g kijelzés.
   - Backend 62 teszt, frontend 7 unit teszt, typecheck, lint és production build sikeres.
-- [TODO] M3 — Napi étkezési napló
+- [DONE] M3 — Napi étkezési napló
 - [TODO] M4 — CH célok és étkezések
 - [TODO] M5 — Saját ételek, kedvencek és receptek
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1, M1.2, M1.3 és M2 lezárva; M3–M4 még nem indult el. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
+M0, M1.1, M1.2, M1.3, M2 és M3 lezárva; M4 következik. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
 
 ## Közös teljesítési kapu
 
@@ -102,7 +102,14 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 - [x] Azonos magyar nevű eltérő forrásrekordok azonosíthatók; relevancia/ranking és banánpaprika-regresszió változatlanul sikeres.
 - [x] Mobilon teljes keresés → kiválasztás → mennyiség → eredmény flow működik; közös teljesítési kapu teljesült.
 
-## M3 — Tartós étkezési napló, tápanyag-pillanatképpel [TODO]
+## M3 — Tartós étkezési napló, tápanyag-pillanatképpel [DONE]
+
+### Elkészült és ellenőrzött M3-kapu
+
+- `0002_meal_log_snapshot` létrehozza a profil- és naplótáblát; a FastAPI `/api/meals` CRUD-ot és napi, helyi dátum szerinti kerekítetlen összesítést ad.
+- A szerver UTC-ben tárolja az időpontot, rögzíti az IANA-zónát és a helyi napot, explicit offset nélküli időpontot elutasít; a snapshot a nevet, eredeti nevet, forrást, source_id-t, márkát, CH/rost/tápanyag-provenance adatokat és verziókat őrzi.
+- A kliens CH-értéke csak ellenőrzött előnézet; a szerver számol. Idempotencia-kulcs, snapshotból történő mennyiségszerkesztés, explicit ételcsere, hibatartó UI, valódi lista és megerősített törlés elkészült.
+- Valódi `chill_test` PostgreSQL-en a CRUD, idempotencia, DST/napváltás és üres nap tesztje sikeres; a teljes backend regresszió 66 tesztje zöld. Frontend typecheck, lint, 7 unit teszt és build zöld; böngészős QA 390/360 px-en túlcsordulás nélkül sikeres.
 
 ### Megvalósítás
 
@@ -116,13 +123,13 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 
 ### Elfogadás
 
-- [ ] Hozzáadás, listázás, dátumváltás, mennyiség/étel/időpont szerkesztése és törlés integrációs tesztje valódi test PostgreSQL-en sikeres.
-- [ ] Oldalfrissítés és backend-újraindítás után minden mentett bejegyzés és összeg visszaolvasható; üres nap összege 0.
-- [ ] Cache nutrient/name változtatása vagy cache-rekord törlése után a meglévő bejegyzés snapshotja és CH-ja változatlan. 55 g × 11,4/100 = 6,27; későbbi cache=20 mellett 100 g-ra szerkesztve a régi snapshotból 11,4 g marad.
-- [ ] Napi összeg kerekítetlen bejegyzésértékek összege; csak a végső kijelzés kerekített. Éjfél, napváltás, Europe/Budapest nyári/téli időszámítás és időzónaváltás tesztelt; kétértelmű helyi időhöz offset szükséges, nem létező idő elutasítandó.
-- [ ] Dupla küldés/timeout utáni retry nem hoz létre két sort; sikertelen mentés nem módosítja a tartós összesítőt. Szerver elutasít hamis CH-t és nem megengedett profilhoz tartozó műveletet.
-- [ ] Offline/szerverhiba érthetően jelzett, nincs hamis „mentve” állapot. PWA nem cache-el privát napló API-választ általános cache-first szabállyal; teljes offline szinkron nem része M3-nak.
-- [ ] Közös teljesítési kapu teljesül, a 84/160 mock állapot nem látszik valós adatként.
+- [x] Hozzáadás, listázás, dátumváltás, mennyiség/étel/időpont szerkesztése és törlés integrációs tesztje valódi test PostgreSQL-en sikeres.
+- [x] Oldalfrissítés és backend-újraindítás után minden mentett bejegyzés és összeg visszaolvasható; üres nap összege 0.
+- [x] Cache nutrient/name változtatása vagy cache-rekord törlése után a meglévő bejegyzés snapshotja és CH-ja változatlan. 55 g × 11,4/100 = 6,27; későbbi cache=20 mellett 100 g-ra szerkesztve a régi snapshotból 11,4 g marad.
+- [x] Napi összeg kerekítetlen bejegyzésértékek összege; csak a végső kijelzés kerekített. Éjfél, napváltás, Europe/Budapest nyári/téli időszámítás és időzónaváltás tesztelt; kétértelmű helyi időhöz offset szükséges, nem létező idő elutasítandó.
+- [x] Dupla küldés/timeout utáni retry nem hoz létre két sort; sikertelen mentés nem módosítja a tartós összesítőt. Szerver elutasít hamis CH-t és nem megengedett profilhoz tartozó műveletet.
+- [x] Offline/szerverhiba érthetően jelzett, nincs hamis „mentve” állapot. PWA nem cache-el privát napló API-választ általános cache-first szabállyal; teljes offline szinkron nem része M3-nak.
+- [x] Közös teljesítési kapu teljesül, a korábbi 84/160 mock állapot nem látszik valós adatként.
 
 ## M4 — Felhasználói CH-célok és étkezések [TODO]
 

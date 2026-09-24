@@ -1,4 +1,6 @@
 import logging
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,8 +19,22 @@ from .schemas import (
     CarbohydrateCalculationResponse,
     FoodResponse,
     FoodSearchResponse,
+    MealCreateRequest,
+    MealListResponse,
+    MealResponse,
+    MealUpdateRequest,
 )
 from .services.foods import FoodService
+from .services.meals import (
+    DEFAULT_TIMEZONE,
+    MealConflictError,
+    MealError,
+    MealNotFoundError,
+    create_meal,
+    delete_meal,
+    list_meals,
+    update_meal,
+)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -33,7 +49,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -54,6 +70,51 @@ def calculate_carbs(payload: CarbohydrateCalculationRequest) -> CarbohydrateCalc
         available_carbs_100g=payload.available_carbs_100g,
         carbs_g=carbs,
     )
+
+
+def _meal_error(exc: MealError) -> HTTPException:
+    if isinstance(exc, MealNotFoundError):
+        return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, MealConflictError):
+        return HTTPException(status_code=409, detail=str(exc))
+    return HTTPException(status_code=422, detail=str(exc))
+
+
+@app.get("/api/meals", response_model=MealListResponse)
+def get_meals(
+    local_date: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> MealListResponse:
+    target_date = local_date or datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
+    try:
+        items, total = list_meals(db, target_date)
+    except MealError as exc:
+        raise _meal_error(exc) from exc
+    return MealListResponse(items=items, total_carbs_g=total)
+
+
+@app.post("/api/meals", response_model=MealResponse, status_code=201)
+def post_meal(payload: MealCreateRequest, db: Session = Depends(get_db)) -> MealResponse:
+    try:
+        return create_meal(db, payload)
+    except MealError as exc:
+        raise _meal_error(exc) from exc
+
+
+@app.patch("/api/meals/{meal_id}", response_model=MealResponse)
+def patch_meal(meal_id: str, payload: MealUpdateRequest, db: Session = Depends(get_db)) -> MealResponse:
+    try:
+        return update_meal(db, meal_id, payload)
+    except MealError as exc:
+        raise _meal_error(exc) from exc
+
+
+@app.delete("/api/meals/{meal_id}", status_code=204)
+def remove_meal(meal_id: str, db: Session = Depends(get_db)) -> None:
+    try:
+        delete_meal(db, meal_id)
+    except MealError as exc:
+        raise _meal_error(exc) from exc
 
 
 def _food_response(food: Food) -> FoodResponse:

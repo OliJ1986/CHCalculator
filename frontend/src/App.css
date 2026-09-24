@@ -29,6 +29,7 @@
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 @keyframes number-pop { 0% { opacity: .35; transform: translateY(4px) scale(.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+.meal-actions { display: flex; gap: 3px; margin-left: 4px; }.meal-actions button { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: transparent; color: var(--muted); }.meal-actions button:hover, .meal-actions button:focus-visible { background: var(--paper); color: var(--coral); }
 @keyframes sheet-in { from { transform: translateY(22px); opacity: .82; } to { transform: translateY(0); opacity: 1; } }
 .food-media { position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; overflow: hidden; border-radius: 14px; }.food-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; border-radius: 14px; background: #f8dfc7; color: #a76242; }.food-media .food-icon { position: absolute; inset: 0; }
 .food-image { position: absolute; z-index: 1; width: 100%; height: 100%; object-fit: cover; }

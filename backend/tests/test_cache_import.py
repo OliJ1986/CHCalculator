@@ -7,13 +7,16 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from app.models import Base, Food
+from app.models import Food
 from app.tools.cache_import import CacheImportError, ImportConflictError, _compare_record, import_sqlite_cache
 
 
 def _make_database(path, *, changed: bool = False):
     engine = create_engine(f"sqlite:///{path}", future=True)
-    Base.metadata.create_all(engine)
+    # A cache-import source is intentionally foods-only.  Creating all ORM
+    # tables here would add the meal-log tables introduced in M3 and make the
+    # fixture an invalid SQLite cache source.
+    Food.__table__.create(engine, checkfirst=True)
     now = datetime(2026, 9, 24, 12, 0, tzinfo=UTC)
     with Session(engine) as db:
         db.add_all(
@@ -66,7 +69,7 @@ def _make_database(path, *, changed: bool = False):
 
 def _make_empty_database(path):
     engine = create_engine(f"sqlite:///{path}", future=True)
-    Base.metadata.create_all(engine)
+    Food.__table__.create(engine, checkfirst=True)
     engine.dispose()
 
 

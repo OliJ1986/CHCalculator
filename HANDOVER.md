@@ -1,8 +1,8 @@
-# Handover — M1.3 PostgreSQL-kapu lezárva, M1.2 lezárt története megőrizve
+# Handover — M3 snapshot-napló lezárva, M1.2 lezárt története megőrizve
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, mert a helyi PostgreSQL- és kalkulátor-kapuk sikeresen lefutottak; M3 és M4 még nem indult el. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, mert a helyi PostgreSQL-, kalkulátor- és snapshot-napló kapuk sikeresen lefutottak; M4 következik. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -10,7 +10,7 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 Az M0, M0.1, M0.2, M1.1 és M1.2 lezárult. Az M1.2.3 stabilizálása elkészült, a konfiguráció betöltése kulcsérték megjelenítése nélkül igazolt, és a combined USDA/OFF integráció élő ellenőrzése sikeres: működő React/Vite frontend, CHill vizuális identitás, PWA build-infrastruktúra, Food domain, Open Food Facts + USDA provider, SQLite cache és FastAPI backend.
 
-M0 státusz: DONE. M1.1 státusz: DONE. M1.2 státusz: DONE. M1.3 státusz: DONE. M2 státusz: DONE. M3–M4 még nem indult el.
+M0 státusz: DONE. M1.1 státusz: DONE. M1.2 státusz: DONE. M1.3 státusz: DONE. M2 státusz: DONE. M3 státusz: DONE. M4 következő.
 
 ## Elkészült funkciók
 
@@ -176,3 +176,11 @@ Minden fejlesztési kör végén töltsd ki: aktuális mérföldkő/státusz; me
 - M2 mobil UI: 390×844 és 360×800 viewporton keresés → kiválasztás → mennyiség → eredmény működött; `12,5` g banánnál 2,6 g CH látszott, 0 g-nál hiba és tiltott mentés jelent meg. A 360 px nézet `scrollWidth == clientWidth`.
 - Ellenőrzések: backend `62 passed, 2 warnings`; frontend typecheck, lint, `7 passed` unit teszt és production build sikeres. A warningok a korábbi Starlette/httpx és Alembic deprecation jelzések.
 - M2 státusz: **DONE**. M3 következő lépése a TASKS.md szerinti PostgreSQL-alapú tartós étkezési napló és nutrient-snapshot; a prototípus lista továbbra sem tartós adat.
+
+## M3 átadás — lezárva 2026-09-25
+
+Az M3 implementációja a `0002_meal_log_snapshot` Alembic-migrációval, a `profiles`/`meal_entries` modellekkel, a szerveroldali snapshot- és idempotencia-service-szel, valamint a `/api/meals` létrehozás/listázás/módosítás/törlés végpontokkal készült el. A napló UTC időpontot, rögzített helyi napot és IANA-zónát tárol; mennyiségmódosítás a régi snapshotból számol, explicit ételcsere új snapshotot készít. A frontend már nem használ mock listát vagy fix napi célt: a valódi szerverlistát, üres/hiba állapotot, szerkesztést és megerősített törlést mutatja.
+
+Ellenőrzés: `chill_test` valódi PostgreSQL-en az API CRUD, idempotencia, snapshot-megőrzés és napváltás sikeres; teljes backend `66 passed, 2 warnings`. Frontend `typecheck`, `lint`, `7` unit teszt és production build sikeres. Böngészős ellenőrzés 390 és 360 px-en, add/edit/delete flow-val és vízszintes túlcsordulás nélkül sikeres. A korábbi M1.2/M1.3/M2 történetet nem írtam át.
+
+Korlát: az M3 profilja szándékosan egy szerveroldali `default-profile`; auth, többfelhasználós hozzáférés és teljes offline szinkron nem része ennek a scope-nak. A következő lépés az M4 felhasználói célok, hatálynapok és étkezési kategóriák megvalósítása.

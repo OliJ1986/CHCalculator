@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a PostgreSQL-integráció és a CH-kalkulátor ellenőrzött. M3 és M4 még **TODO**, a sorrend megmarad.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk ellenőrzöttek. M4 még **TODO**, a sorrend megmarad.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -90,3 +90,7 @@ Az import csak PostgreSQL dev/test célba írhat; a `DATABASE_URL` értéke nem 
 Railway-re külön backend és PostgreSQL szolgáltatás készül elő, dokumentált pre-deploy migrációval, PORT/healthcheck/CORS és frontend API-címmel. Valós deploy és éles adatátvitel külön feladat. Auth nélküli étkezési napló nem tehető nyilvánossá.
 
 Az M3 tartós snapshot-napló és M4 hatálynapos saját célok részletes követelménye a TASKS.md-ben van. A nyolc dokumentum mellé adott CODEX_PROMPT.md indítja az autonóm megvalósítást; ez a csomag dokumentáció, nem már elkészült alkalmazásfrissítés.
+
+## M3 ellenőrzött állapot
+
+Az M3 a mock napi listát valódi `/api/meals` CRUD-ra cseréli. Az Alembic `0002_meal_log_snapshot` profil- és naplósémát ad; a szerver UTC időpontot, rögzített helyi napot és IANA-zónát tárol, a tápanyag-pillanatképből számol, és idempotencia-kulccsal védi az ismételt küldést. A cache későbbi módosítása nem változtatja meg a mentett snapshotot. A `chill_test` PostgreSQL-integráció és a 66 backend teszt sikeres; a frontend mobil QA 390 és 360 px-en túlcsordulás nélkül zöld.
