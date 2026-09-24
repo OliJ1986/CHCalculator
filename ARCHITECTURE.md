@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-24
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a feltöltött dokumentáció szerinti lezárt történet. M1.3, M2, M3 és M4: **TODO**, ebben a dokumentációs munkában implementáció és új alkalmazásteszt nem történt. Következő feladat: **M1.3**, majd M2 → M3 → M4. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, nem a mostani kód független ellenőrzései.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, az előkészítés kész, de valódi PostgreSQL-környezet nélkül a kötelező integrációs kapu nem bizonyítható. M2, M3 és M4: **TODO**, ezekre nem léptem tovább.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -12,7 +12,7 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 ## Backend
 
-`backend/app/` egy FastAPI alkalmazás. A konfiguráció `config.py`, az SQLAlchemy engine és session `db.py`, a Food ORM modell a `models.py`, a HTTP belépési pont `main.py`. Az adatbázis URL környezeti változóval állítható; SQLite fejlesztéshez alapértelmezett, PostgreSQL-re az architektúra újratervezése nélkül váltható.
+`backend/app/` egy FastAPI alkalmazás. A konfiguráció `config.py`, az SQLAlchemy engine és session `db.py`, a Food ORM modell a `models.py`, a HTTP belépési pont `main.py`. Az explicit `DATABASE_URL` választja ki a külön dev/test/prod adatbázist; prodban hiányzó URL hibát ad. A lokális SQLite fallback csak dev/test kompatibilitási út, PostgreSQL esetén az alkalmazás nem végez `create_all` vagy ad hoc DDL-t.
 
 ## Food domain és provider réteg
 
@@ -25,6 +25,10 @@ Az USDA keresés POST JSON törzsben küldi a tömbös `dataType` szűrőt, mert
 
 Kereséskor a `FoodService` először normalizált név/brand alapján SQLite cache-ben keres, majd combined módban a cache méretétől függetlenül párhuzamosan meghívja az összes providert, hogy a USDA generikus találatai ne vesszenek el OFF/cache eredmények miatt. A válaszok belső `FoodCandidate` objektumokra mapelődnek, source/source_id alapján upsertelődnek, majd a cache és az új eredmények egységes listaként mennek vissza. A `source_payload` minimális OFF/USDA forrásmetaadatot őriz diagnosztikához. Induláskor a `USDA_MAPPING_VERSION` alapján célzott migráció frissíti a régi USDA-megjelenítési metaadatot rekordtörlés nélkül. A barcode flow ugyanezt a cache-first logikát használja.
 Az összesítő log külön jelzi a cache-ből, friss USDA-ból és friss OFF-ból származó elemszámot. Provider-hiba esetén a már meglévő cache találatai továbbra is visszaadhatók, miközben a hibás friss lekérés diagnosztikai eseményként megmarad.
+
+## Adatbázis-séma és cache-import
+
+PostgreSQL-ben az Alembic az egyetlen sémavezető (`backend/alembic/versions/0001_initial_foods.py`); alkalmazásindulás nem módosít PostgreSQL-sémát. A `backend/app/tools/cache_import.py` kézi, explicit dev/test importot biztosít SQLite → PostgreSQL irányban. A forrás read-only, a backup SQLite backup API-val készül, és az import csak teljes canonical rekordegyezés, source/source_id-egyediség és visszaolvasási ellenőrzés után commitol. Konfliktus, eltérés, prod-cél vagy ismeretlen forrástábla esetén a művelet elutasított és nem ír.
 
 ## Frontend/backend határ
 

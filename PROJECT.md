@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-24
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a feltöltött dokumentáció szerinti lezárt történet. M1.3, M2, M3 és M4: **TODO**, ebben a dokumentációs munkában implementáció és új alkalmazásteszt nem történt. Következő feladat: **M1.3**, majd M2 → M3 → M4. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, nem a mostani kód független ellenőrzései.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, az előkészítő implementáció kész, de a valódi PostgreSQL-kapuhoz nincs helyi szerver vagy kijelölt test adatbázis. M2, M3 és M4 még **TODO**; a mérföldkő-sorrendet nem léptem át.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -45,6 +45,14 @@ A diagnosztikai események forrást, request type-ot, HTTP metódust, keresési 
 
 Az élő ellenőrzés a `banán`, `alma`, `rizs`, `csirkemell`, `banánpaprika` és `Activia banán` kereséseket futtatta le. Mind a hat combined endpoint 200-as választ adott; az USDA és OFF friss számlálói, a magyar és eredeti nevek, a CH-értékek, a kategóriák és az FDC/source deduplikáció ellenőrizve lettek. Az OFF időszakos 503 válaszai a retry-keretben több alkalommal helyreálltak; végső provider-hiba nem maradt a lezáró futásban. A rizs- és csirkemell-találatoknál az első helyezések szolgáltatói adat- és kategóriafüggő feldolgozott rekordok lehetnek, miközben az eredeti angol név megmarad a megkülönböztetéshez.
 A külön provider smoke az USDA hat keresését és az OFF által elérhető öt keresését külön is ellenőrizte; a banánpaprika egyik szolgáltatónál sem adott új OFF rekordot, ezért a combined eredményben a meglévő USDA/cache sorok maradtak.
+
+## M1.3 — PostgreSQL / Alembic / biztonságos cache-import — előkészítve, PostgreSQL-kapu blokkolva
+
+Az alkalmazás most explicit `DATABASE_URL`-t használ, és a PostgreSQL-séma forrása az Alembic. Prod környezetben hiányzó adatbázis-url egyértelmű hibát ad; a lokális SQLite fallback csak dev/test fejlesztési kompatibilitás, nem rejtett prod-visszaesés. Elkészült az `0001_initial_foods` Alembic-revízió, a dev/test/prod példakonfiguráció és a Railway pre-deploy `alembic upgrade head`/healthcheck előkészítése.
+
+Az import eszköz csak explicit dev/test célba enged, a SQLite-forrást read-only módban auditálja, backup API-val konzisztens másolatot készít, SHA-256 és canonical rekord-digestet ellenőriz, alapértelmezésben dry-run, és csak teljes rekord-, nutrient-, JSON-, NULL/0- és source/source_id egyezés után ír. Azonos tartalom idempotensen kihagyható; eltérő tartalom konfliktus és tranzakciós rollback. A tényleges `backend/chill.db` 341 rekordos és a létrehozott backup canonical digestje megegyezik.
+
+A lokális offline migrációs SQL-generálás és 46 backend-teszt sikeres, a frontend teljes ellenőrzése is sikeres. A valódi PostgreSQL-integrációs teszt skipped maradt, mert ezen a gépen nincs PostgreSQL-szerver, Docker, `psql` vagy `CHILL_TEST_DATABASE_URL`. Emiatt M1.3 nem DONE, és M2–M4 nem kezdődött el.
 
 ## M0 scope
 

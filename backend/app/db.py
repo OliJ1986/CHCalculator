@@ -14,8 +14,9 @@ from .domain.usda import (
 from .models import Base, Food
 
 settings = get_settings()
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, connect_args=connect_args, future=True)
+database_url = settings.effective_database_url
+connect_args = {"check_same_thread": False} if settings.is_sqlite else {}
+engine = create_engine(database_url, connect_args=connect_args, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 
@@ -63,10 +64,14 @@ def migrate_usda_cache(db: Session) -> int:
 
 
 def create_tables() -> None:
+    if not settings.is_sqlite:
+        if "foods" not in inspect(engine).get_table_names():
+            raise RuntimeError("PostgreSQL séma hiányzik; futtasd az alembic upgrade head parancsot")
+        return
     Base.metadata.create_all(bind=engine)
     # The project uses a small SQLite cache without a migration dependency yet.
     # Additive columns keep an existing development cache usable after upgrades.
-    if settings.database_url.startswith("sqlite"):
+    if settings.is_sqlite:
         existing = {column["name"] for column in inspect(engine).get_columns("foods")}
         with engine.begin() as connection:
             if "original_name" not in existing:

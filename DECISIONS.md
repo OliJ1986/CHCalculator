@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-24
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a feltöltött dokumentáció szerinti lezárt történet. M1.3, M2, M3 és M4: **TODO**, ebben a dokumentációs munkában implementáció és új alkalmazásteszt nem történt. Következő feladat: **M1.3**, majd M2 → M3 → M4. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, nem a mostani kód független ellenőrzései.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, az előkészítés elkészült, de valódi PostgreSQL-kapu hiányzik. M2, M3 és M4: **TODO**, a sorrend nem lett megkerülve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -63,5 +63,13 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - D9: M4 céljai kizárólag felhasználói értékek, hatálynap szerint verziózva. Nincs automatikus 160 g cél. Nincs cél ≠ nulla; a rész-célok eltérhetnek a napi céltól, jelzéssel, automatikus átírás nélkül.
 - D10: étkezési kategória külön domain a Food kategóriától. Meglévő naplósorok other/egyéb értékre kerülnek, nem találgatott étkezésre.
 - D11: autonóm sorrend M1.3 → M2 → M3 → M4; kötelező tesztkapuk és helyi commitok. M5–M7, teljes offline szinkron, új katalógus nem része. Az apró technikai döntéseket az agent önállóan hozza és dokumentálja.
+
+## 2026-09-24 — M1.3 megvalósítási állapot
+
+- D12: a `DATABASE_URL` explicit környezetválasztó. Dev/test esetén a történeti backend SQLite cache csak lokális kompatibilitási fallback; prodban hiányzó URL hibát ad, és PostgreSQL-környezetben az alkalmazás nem futtat `create_all`/ad hoc DDL-t.
+- D13: az Alembic `0001_initial_foods` az első PostgreSQL-sémaforrás. A `mapping_version` továbbra is adatleképezési verzió, nem Alembic-revízió; az alkalmazásindítás és a migráció szétválasztott.
+- D14: a SQLite-import kizárólag explicit dev/test célba írhat. A forrás read-only, backup API-s másolatból auditálható, alapértelmezett dry-run, teljes canonical rekord- és nutrient-egyezés szükséges, konfliktus esetén nincs felülírás és tranzakciós rollback történik.
+- D15: Railway csak konfigurációs/pre-deploy előkészítés (`railway.toml`, Alembic upgrade head, healthcheck); valódi szolgáltatás, fizetős erőforrás, prod adatbázis vagy deploy nem készül.
+- D16: M1.3 státusza BLOCKED marad, amíg nincs izolált, valódi PostgreSQL test DB. A helyi gépen nincs PostgreSQL-szerver, Docker, `psql` vagy `CHILL_TEST_DATABASE_URL`; az offline Alembic és SQLite-fixture tesztek nem helyettesítik ezt a kaput.
 
 A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött történeti állapotok; az M1.2.3 lezárás nem kerül visszavonásra pusztán a dokumentáció újratervezése miatt.

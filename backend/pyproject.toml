@@ -1,6 +1,9 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+    "postgresql: requires an isolated PostgreSQL test database",
+]
 
 [tool.ruff]
 line-length = 100

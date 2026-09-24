@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,7 +9,8 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 class Settings(BaseSettings):
     app_name: str = "CHill API"
-    database_url: str = "sqlite:///./chill.db"
+    app_env: Literal["dev", "test", "prod"] = "dev"
+    database_url: str | None = None
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     usda_api_key: str = ""
     usda_base_url: str = "https://api.nal.usda.gov/fdc/v1"
@@ -22,6 +24,23 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def effective_database_url(self) -> str:
+        if self.database_url and self.database_url.strip():
+            return self.database_url.strip()
+        if self.app_env == "prod":
+            raise RuntimeError("DATABASE_URL kötelező prod környezetben")
+        # A meglévő fejlesztési cache csak explicit, lokális dev/test fallback.
+        return f"sqlite:///{(BACKEND_DIR / 'chill.db').as_posix()}"
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.effective_database_url.startswith("sqlite")
+
+    @property
+    def is_postgresql(self) -> bool:
+        return self.effective_database_url.startswith(("postgresql", "postgres"))
 
 
 @lru_cache

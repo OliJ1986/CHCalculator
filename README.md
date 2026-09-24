@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-24
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a feltöltött dokumentáció szerinti lezárt történet. M1.3, M2, M3 és M4: **TODO**, ebben a dokumentációs munkában implementáció és új alkalmazásteszt nem történt. Következő feladat: **M1.3**, majd M2 → M3 → M4. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, nem a mostani kód független ellenőrzései.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, az előkészítő implementáció elkészült, de a valódi PostgreSQL-integrációhoz nincs helyi szerver vagy kijelölt test DB. M2, M3 és M4 még **TODO**, a sorrend nem lett megkerülve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -73,9 +73,19 @@ AGENTS.md  jövőbeni coding agent szabályok
 
 ## Következő fejlesztés és konfiguráció [terv]
 
-A fenti futtatóparancsok a feltöltött M1.2.3 állapothoz tartoznak. M1.3 még nincs implementálva: PostgreSQL-, Alembic- és importparancsot csak a tényleges eszközök elkészítése után szabad működőként dokumentálni.
+A fenti futtatóparancsok az M1.2.3 alap flow-ját mutatják. M1.3 előkészítő eszközei elkészültek, de a PostgreSQL-kapu helyi szerver nélkül nyitott marad.
 
 M1.3 lezárásakor ez a README kapja meg az ellenőrzött lépéseket: helyi PostgreSQL indítása → külön dev/test DB létrehozása → helyi, titkos DATABASE_URL konfigurálása → Alembic upgrade head → SQLite backup/dry-run/import/ellenőrzés → backend indítása → integrációs tesztek. Ne írd felül a meglévő .env-et; a példában csak helyőrzők legyenek. A prod Railway DB nem helyi fejlesztési cél.
+
+Az elkészült import eszköz alapértelmezésben dry-run:
+
+```powershell
+cd backend
+python -m app.tools.cache_import --source chill.db --target-env DATABASE_URL --environment dev
+python -m app.tools.cache_import --source chill.db --target-env DATABASE_URL --environment dev --write
+```
+
+Az import csak PostgreSQL dev/test célba írhat; a `DATABASE_URL` értéke nem kerül naplózásra. A tényleges PostgreSQL-kapuhoz külön `chill_test` adatbázis és `CHILL_TEST_DATABASE_URL` szükséges.
 
 Railway-re külön backend és PostgreSQL szolgáltatás készül elő, dokumentált pre-deploy migrációval, PORT/healthcheck/CORS és frontend API-címmel. Valós deploy és éles adatátvitel külön feladat. Auth nélküli étkezési napló nem tehető nyilvánossá.
 

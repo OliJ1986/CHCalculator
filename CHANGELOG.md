@@ -5,13 +5,19 @@
 - Összehangolt M1.3 PostgreSQL/Alembic/cache-import/Railway-előkészítési terv, külön dev/test/prod adatbázissal.
 - Részletes M2 kalkulátor, M3 snapshot-napló és M4 felhasználói célok/étkezések, elfogadási feltételekkel és autonóm fejlesztési határokkal.
 - Az M1.2.3 és minden korábbi kiadás történeti bejegyzése megmaradt. Az alábbi IN PROGRESS megjegyzések az adott korábbi kiadás állapotai.
-- M1.3–M4 implementáció nem történt, státuszuk TODO; nincs új alkalmazásteszteredmény vagy új kiadás.
+- M1.3 előkészítő implementáció elkészült, de a valódi PostgreSQL-kapu hiánya miatt BLOCKED; M2–M4 implementáció nem történt.
 
 ## Aktuális tervezési állapot — 2026-09-24
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a feltöltött dokumentáció szerinti lezárt történet. M1.3, M2, M3 és M4: **TODO**, ebben a dokumentációs munkában implementáció és új alkalmazásteszt nem történt. Következő feladat: **M1.3**, majd M2 → M3 → M4. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, nem a mostani kód független ellenőrzései.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, a biztonságos előkészítés elkészült, de valódi PostgreSQL-kapu hiányzik. M2, M3 és M4: **TODO**, a sorrend nem lett megkerülve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
+
+## 0.2.7 — M1.3 PostgreSQL/Alembic előkészítés
+
+- Elkészült a `DATABASE_URL`-alapú adatbázis-konfiguráció, az Alembic `0001_initial_foods` revízió, a külön dev/test/prod példakonfiguráció és a Railway pre-deploy/healthcheck előkészítés.
+- Elkészült a biztonságos SQLite cache-import eszköz read-only forrással, konzisztens backup API-val, dry-run móddal, canonical rekord- és nutrient-egyezéssel, idempotenciával, konfliktusvédelemmel és rollbackkel.
+- Az M1.3 offline ellenőrzései és 46 backend-tesztje sikeresek, de a valódi PostgreSQL-integrációs teszt a hiányzó helyi PostgreSQL-környezet miatt skipped; M1.3 ezért `BLOCKED`, M2–M4 nem indult el.
 
 ## 0.2.6 — M1.2.3 USDA és Open Food Facts integráció stabilizálása
 

@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-24
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a feltöltött dokumentáció szerinti lezárt történet. M1.3, M2, M3 és M4: **TODO**, ebben a dokumentációs munkában implementáció és új alkalmazásteszt nem történt. Következő feladat: **M1.3**, majd M2 → M3 → M4. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, nem a mostani kód független ellenőrzései.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, a biztonságos előkészítés elkészült, de valódi PostgreSQL-szerver hiányában a kötelező integrációs kapu nem futtatható. M2, M3 és M4: **TODO**; a sorrendet nem léptem át. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -29,7 +29,12 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
   - Az OFF összetett keresés normalizált provider-queryt használ; a 429/5xx, timeout és hálózati hibák korlátozott exponenciális retry-t kapnak, 400-as és hitelesítési hibák változatlanul nem ismétlődnek.
   - A diagnosztikai log forrás, request type, HTTP metódus, keresés, státusz, hibatípus, válaszidő és retry állapotot rögzít, URL és titkos paraméterek nélkül; a provider hibák egymástól izoláltak.
   - Az élő hat-query combined smoke minden kérése 200-as választ adott; a cache/friss provider számlálók és az eredeti nevek ellenőrizve lettek. Backend 40 teszt, frontend typecheck/lint/unit teszt és production build sikeres.
-- [TODO] M1.3 — PostgreSQL, Alembic, biztonságos cache-adatátvitel és Railway-előkészítés
+- [BLOCKED] M1.3 — PostgreSQL, Alembic, biztonságos cache-adatátvitel és Railway-előkészítés
+  - Elkészült a PostgreSQL-kompatibilis SQLAlchemy-konfiguráció, a tiszta Alembic-alaprevízió, külön dev/test/prod példakonfiguráció és Railway pre-deploy/healthcheck előkészítés; éles deploy nem történt.
+  - Elkészült a read-only SQLite audit és import CLI: alapértelmezett dry-run, backup API, SHA-256 leltár, teljes rekord- és strukturált nutrient-egyezés, NULL/0 megőrzés, idempotencia, konfliktusnál tranzakciós rollback és prod-cél tiltás.
+  - A tényleges `backend/chill.db` 341 rekordos, integritásellenőrzött backupja megmaradt; a forrás és backup canonical rekord-digestje egyezik. A backup és az adatbázis Gitből kizárt.
+  - Offline Alembic SQL-generálás, 46 backend-teszt és frontend typecheck/lint/unit/build sikeres. A valódi PostgreSQL-integrációs teszt környezeti okból skipped: nincs helyi PostgreSQL, Docker, `psql` vagy kijelölt `CHILL_TEST_DATABASE_URL`.
+  - M1.3 nem jelölhető DONE-ként, amíg tiszta dev/test PostgreSQL-en az Alembic, CRUD, import, rollback és visszaolvasási egyezés ténylegesen le nem fut.
 - [TODO] M2 — CH kalkulátor
 - [TODO] M3 — Napi étkezési napló
 - [TODO] M4 — CH célok és étkezések
@@ -37,7 +42,7 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1 és M1.2 lezárva; M2 nem indult el. Az M1.2 élő USDA/OFF combined smoke-ja sikeres, a korlátozott retry és cache-fallback mellett a külső átmeneti hibák diagnosztizálhatók és izoláltan kezelhetők.
+M0, M1.1 és M1.2 lezárva; M1.3 BLOCKED a hiányzó valódi PostgreSQL-környezet miatt; M2–M4 nem indult el. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
 
 ## Közös teljesítési kapu
 
@@ -48,7 +53,7 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 - [ ] Módosított UI: legalább 360 és 390 px szélességen, világos/sötét témában használható; billentyűzetfókusz, feliratok, hibák, érintési célok és vízszintes túlcsordulás ellenőrizve. Ha nincs böngészős QA, ez nyitott ellenőrzés marad.
 - [ ] TASKS, HANDOVER, CHANGELOG és érintett architektúra/döntések frissítve; csak az adott munkához tartozó fájlokból érthető helyi commit. A commit hash és a tényleges teszteredmény az átadásban szerepel.
 
-## M1.3 — PostgreSQL / Alembic / Railway-előkészítés [TODO]
+## M1.3 — PostgreSQL / Alembic / Railway-előkészítés [BLOCKED]
 
 ### Megvalósítás
 

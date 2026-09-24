@@ -1,8 +1,8 @@
-# Handover — M1.2 lezárva, M1.2.3 stabilizálás átadva
+# Handover — M1.3 PostgreSQL-kapu blokkolva, M1.2 lezárt története megőrizve
 
 ## Aktuális tervezési állapot — 2026-09-24
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a feltöltött dokumentáció szerinti lezárt történet. M1.3, M2, M3 és M4: **TODO**, ebben a dokumentációs munkában implementáció és új alkalmazásteszt nem történt. Következő feladat: **M1.3**, majd M2 → M3 → M4. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, nem a mostani kód független ellenőrzései.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, mert nincs helyi valódi PostgreSQL test-környezet; M2, M3 és M4 nem indult el. A korábbi tesztszámok és élő eredmények mellett az új M1.3 ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -10,7 +10,7 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 Az M0, M0.1, M0.2, M1.1 és M1.2 lezárult. Az M1.2.3 stabilizálása elkészült, a konfiguráció betöltése kulcsérték megjelenítése nélkül igazolt, és a combined USDA/OFF integráció élő ellenőrzése sikeres: működő React/Vite frontend, CHill vizuális identitás, PWA build-infrastruktúra, Food domain, Open Food Facts + USDA provider, SQLite cache és FastAPI backend.
 
-M0 státusz: DONE. M1.1 státusz: DONE. M1.2 státusz: DONE. M2 még nem indult el.
+M0 státusz: DONE. M1.1 státusz: DONE. M1.2 státusz: DONE. M1.3 státusz: BLOCKED. M2–M4 még nem indult el.
 
 ## Elkészült funkciók
 
@@ -129,10 +129,23 @@ Elkészült ebben a körben: a nyolc feltöltött MD összehangolt fejlesztési 
 Indulási sorrend:
 
 1. Olvasd a nyolc MD-t és a jelenlegi repót; ellenőrizd az időközben keletkezett változtatásokat, ne írj felül újabb történetet.
-2. Futtass alapellenőrzést, mérd fel az aktuális SQLite-sémát/adatokat és a PostgreSQL-környezetet. M1.3 még TODO.
+2. Futtass alapellenőrzést, mérd fel az aktuális SQLite-sémát/adatokat és a PostgreSQL-környezetet. (A dokumentációs átadás pillanatában M1.3 még TODO volt.)
 3. Készítsd el és igazold M1.3 összes kapuját, majd M2 → M3 → M4; tesztelt helyi commitokkal, folyamatos átadási jegyzettel.
 4. Valódi Railway-deploy nincs engedélyezve ebben a scope-ban. A felhős hozzáférés hiánya nem akadálya az előkészítésnek; a helyi PostgreSQL-tesztek és valódi cache-import hiánya viszont nyitott M1.3 kapu.
 
 Tervezési alapértékek: egy privát profil, Europe/Budapest időzóna rögzített helyi nappal; múltmegőrző nutrient-snapshot és hatálynapos cél; nincs kiosztott CH-keret. Ezek követelmények, nem meglévő funkciók. Részletes kapuk és kockázatok: TASKS.md, AGENTS.md, ARCHITECTURE.md.
 
 Minden fejlesztési kör végén töltsd ki: aktuális mérföldkő/státusz; megvalósított változás; tényleges tesztparancsok/eredmények; importleltár és eltérések titokmentesen; commit hash; nyitott ellenőrzések; következő konkrét lépés. Ha elakadtál, pontosan mi hiányzik, és mi készült el ettől függetlenül.
+
+## Aktuális átadás — M1.3 előkészítve, PostgreSQL-kapu blokkolva
+
+- Elkészült a `DATABASE_URL`-alapú dev/test/prod konfiguráció. Prod környezetben hiányzó URL hibát ad; PostgreSQL esetén az alkalmazásindítás nem futtat `create_all` vagy ad hoc DDL-t.
+- Elkészült az Alembic `0001_initial_foods` alaprevízió, a `backend/.env.example`, `.env.test.example`, `.env.prod.example` példakonfiguráció, valamint a Railway pre-deploy migráció és healthcheck előkészítése. Valós Railway-szolgáltatás, prod DB vagy deploy nem történt.
+- Elkészült a `python -m app.tools.cache_import` eszköz. A forrás read-only; backup API, integritás- és SHA-256/canonical digest ellenőrzés, default dry-run, explicit dev/test cél, teljes rekord/nutrient/JSON/NULL/0 egyezés, idempotencia és konfliktusos tranzakciós rollback működik.
+- A tényleges `backend/chill.db` leltára: egy `foods` tábla, 341 rekord, 123 USDA-rekord, `mapping_version=4`. A `backend/backups/chill.db.pre-m1.3-20260924.sqlite` backup canonical rekord-digestje egyezik a forrással; eredeti SQLite és backup megmaradt, egyik sem kerül Gitbe.
+- Ellenőrzések: offline Alembic SQL-generálás sikeres; backend `46 passed, 1 skipped, 1 warning`; frontend typecheck, lint, 4 unit teszt és production build sikeres. A skipped teszt a valódi PostgreSQL-integráció.
+- A tényleges 341 rekordos SQLite-forrás teljes dry-run + write importja izolált SQLite-surrogate célon 341/341 rekorddal, azonos digesttel és visszaolvasással sikeres lett; ez az adatút ellenőrzése, nem PostgreSQL-kapunyitás.
+- Blokkoló ok: nincs telepített/futó PostgreSQL-szerver, Docker, `psql` vagy `CHILL_TEST_DATABASE_URL`. Emiatt nem bizonyított a valódi Alembic upgrade, PostgreSQL CRUD/upsert, cache-import, teljes rollback és visszaolvasási egyezés. M1.3 nem DONE, M2–M4 nem kezdődött el.
+- Git-korlát: a repó `main` ága commit nélküli, minden korábbi projektfájl untracked; ezért nem készült olyan commit, amely a felhasználói előzményt tévesen saját változtatásként rögzítené. A munkafa módosításai elkülöníthetők, de biztonságos saját-only commit a hiányzó baseline nélkül nem bizonyítható.
+- Dokumentációs eltérés: az IDE-ben megnyitott `ELLENORZES.md` és `CSOMAG_UTMUTATO.md` fájlok a repó gyökerében nem voltak jelen; a ténylegesen elérhető projekt-MD-ket, köztük az `AGENTS.md`, `PROJECT.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TASKS.md`, `HANDOVER.md`, `CHANGELOG.md`, `README.md` és `CODEX_PROMPT.md` fájlokat elolvastam.
+- Következő konkrét lépés: hozz létre egy kizárólagos `chill_test` PostgreSQL adatbázist és állítsd be a `CHILL_TEST_DATABASE_URL` értéket; ezután futtasd a PostgreSQL integrációt, a teljes importkaput és csak siker esetén folytasd M2-vel.
