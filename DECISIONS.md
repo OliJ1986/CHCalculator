@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a valódi PostgreSQL-kapu sikeres. M2, M3 és M4: **TODO**, a sorrend nem lett megkerülve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a valódi PostgreSQL- és kalkulátor-kapu sikeres. M3 és M4: **TODO**, a sorrend nem lett megkerülve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -77,5 +77,11 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - D17: A megőrzött SQLite cache timezone nélküli időbélyegeit UTC-ként kell értelmezni az importban, mert a korábbi alkalmazási írás UTC-ben készült. Az import ezt UTC-aware értékként adja át PostgreSQL-nek, a teljes rekord-összehasonlítás pedig UTC-re normalizálja a timezone-ábrázolást; a forrás canonical digest-formátuma változatlan marad.
 - D18: Az Alembic `fileConfig` hívása `disable_existing_loggers=False` beállítással fut. Az integrációs migráció nem tilthatja le az alkalmazási/provider diagnosztikai loggereket, mert azok a migrációt követő folyamatban is szükségesek.
 - D19: M1.3 csak a külön `chill_dev` és `chill_test` helyi PostgreSQL-kapuk sikeres bizonyítása után zárható le. A `chill_dev` kapja a 341 rekordos importot; a `chill_test` kizárólag izolált CRUD, dry-run és rollback ellenőrzések célja marad.
+
+## 2026-09-25 — M2 kalkulátor döntései
+
+- D20: A CH-kalkulátor érvényes mennyisége 0-nál nagyobb, véges és legfeljebb 100 000 g; az elérhető CH 0 és 100 g/100 g közötti véges érték, a hiányzó CH nem számolható. A backend és frontend ugyanazt a szabályt alkalmazza.
+- D21: A belső CH-számítás kerekítés nélkül az `amount_g × available_carbs_100g / 100` képlettel történik; egy tizedesre kerekítés kizárólag megjelenítési művelet. A valid 0 CH megmarad 0-ként.
+- D22: A M2 számítási endpoint (`POST /api/carbs/calculate`) nem tartós napló; M3 felelőssége lesz a szerveroldali snapshot és mentés. A prototípus napi lista továbbra sem tekinthető tartós felhasználói adatnak.
 
 A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött történeti állapotok; az M1.2.3 lezárás nem kerül visszavonásra pusztán a dokumentáció újratervezése miatt.

@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-integráció és cache-import ellenőrzött. M2, M3 és M4 még **TODO**, a sorrend megmarad.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a PostgreSQL-integráció és a CH-kalkulátor ellenőrzött. M3 és M4 még **TODO**, a sorrend megmarad.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -75,7 +75,7 @@ AGENTS.md  jövőbeni coding agent szabályok
 
 A fenti futtatóparancsok az M1.2.3 alap flow-ját mutatják. M1.3 helyi PostgreSQL-kapui lezárultak: `chill_dev` és `chill_test` külön cél, Alembic migráció, 341 rekordos import, teljes visszaolvasási egyezés, idempotencia és rollback sikeres.
 
-Az ellenőrzött M1.3 lépések: helyi PostgreSQL indítása → külön dev/test DB létrehozása → helyi, titkos `DATABASE_URL` és `CHILL_TEST_DATABASE_URL` konfigurálása → Alembic `upgrade head` → SQLite backup/dry-run/import/ellenőrzés → backend regresszió. Ne írd felül a meglévő `.env`-et; a példában csak helyőrzők legyenek. A prod Railway DB nem helyi fejlesztési cél. A következő mérföldkő az M2 kalkulátor.
+Az ellenőrzött M1.3 lépések: helyi PostgreSQL indítása → külön dev/test DB létrehozása → helyi, titkos `DATABASE_URL` és `CHILL_TEST_DATABASE_URL` konfigurálása → Alembic `upgrade head` → SQLite backup/dry-run/import/ellenőrzés → backend regresszió. Az M2 kalkulátor ezután bevezette a közös mennyiség- és CH-validációt, a `POST /api/carbs/calculate` végpontot és a mobil mennyiségi flow-t. Ne írd felül a meglévő `.env`-et; a példában csak helyőrzők legyenek. A prod Railway DB nem helyi fejlesztési cél. A következő mérföldkő az M3 tartós napló.
 
 Az elkészült import eszköz alapértelmezésben dry-run:
 
@@ -89,4 +89,4 @@ Az import csak PostgreSQL dev/test célba írhat; a `DATABASE_URL` értéke nem 
 
 Railway-re külön backend és PostgreSQL szolgáltatás készül elő, dokumentált pre-deploy migrációval, PORT/healthcheck/CORS és frontend API-címmel. Valós deploy és éles adatátvitel külön feladat. Auth nélküli étkezési napló nem tehető nyilvánossá.
 
-Az M2 kalkulátor, M3 tartós snapshot-napló és M4 hatálynapos saját célok részletes követelménye a TASKS.md-ben van. A nyolc dokumentum mellé adott CODEX_PROMPT.md indítja az autonóm megvalósítást; ez a csomag dokumentáció, nem már elkészült alkalmazásfrissítés.
+Az M3 tartós snapshot-napló és M4 hatálynapos saját célok részletes követelménye a TASKS.md-ben van. A nyolc dokumentum mellé adott CODEX_PROMPT.md indítja az autonóm megvalósítást; ez a csomag dokumentáció, nem már elkészült alkalmazásfrissítés.

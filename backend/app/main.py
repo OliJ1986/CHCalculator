@@ -6,12 +6,18 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .db import create_tables, get_db
+from .domain.carbs import CarbohydrateInputError, calculate_carbohydrate
 from .domain.foods import CATEGORY_OTHER, category_label, normalize_query
 from .models import Food
 from .providers.base import FoodProviderError
 from .providers.open_food_facts import OpenFoodFactsProvider
 from .providers.usda import USDAProvider
-from .schemas import FoodResponse, FoodSearchResponse
+from .schemas import (
+    CarbohydrateCalculationRequest,
+    CarbohydrateCalculationResponse,
+    FoodResponse,
+    FoodSearchResponse,
+)
 from .services.foods import FoodService
 
 logger = logging.getLogger(__name__)
@@ -35,6 +41,19 @@ app.add_middleware(
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/api/carbs/calculate", response_model=CarbohydrateCalculationResponse)
+def calculate_carbs(payload: CarbohydrateCalculationRequest) -> CarbohydrateCalculationResponse:
+    try:
+        carbs = calculate_carbohydrate(payload.amount_g, payload.available_carbs_100g)
+    except CarbohydrateInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return CarbohydrateCalculationResponse(
+        amount_g=payload.amount_g,
+        available_carbs_100g=payload.available_carbs_100g,
+        carbs_g=carbs,
+    )
 
 
 def _food_response(food: Food) -> FoodResponse:

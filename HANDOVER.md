@@ -1,8 +1,8 @@
 # Handover — M1.3 PostgreSQL-kapu lezárva, M1.2 lezárt története megőrizve
 
-## Aktuális tervezési állapot — 2026-09-24
+## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, mert a helyi valódi PostgreSQL test-környezet kapui sikeresen lefutottak; M2, M3 és M4 még nem indult el. A korábbi blokkolt állapot története megmarad, az új M1.3 ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, mert a helyi PostgreSQL- és kalkulátor-kapuk sikeresen lefutottak; M3 és M4 még nem indult el. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -10,7 +10,7 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 Az M0, M0.1, M0.2, M1.1 és M1.2 lezárult. Az M1.2.3 stabilizálása elkészült, a konfiguráció betöltése kulcsérték megjelenítése nélkül igazolt, és a combined USDA/OFF integráció élő ellenőrzése sikeres: működő React/Vite frontend, CHill vizuális identitás, PWA build-infrastruktúra, Food domain, Open Food Facts + USDA provider, SQLite cache és FastAPI backend.
 
-M0 státusz: DONE. M1.1 státusz: DONE. M1.2 státusz: DONE. M1.3 státusz: DONE. M2–M4 még nem indult el.
+M0 státusz: DONE. M1.1 státusz: DONE. M1.2 státusz: DONE. M1.3 státusz: DONE. M2 státusz: DONE. M3–M4 még nem indult el.
 
 ## Elkészült funkciók
 
@@ -168,3 +168,11 @@ Minden fejlesztési kör végén töltsd ki: aktuális mérföldkő/státusz; me
 - A teljes backend regresszió `48 passed, 2 warnings`; a frontend typecheck, lint, 4 unit teszt és production build sikeres. A két warning meglévő Starlette/httpx és Alembic konfigurációs deprecation figyelmeztetés.
 - Kódmódosítások: `backend/app/tools/cache_import.py` (UTC-időbélyeg/import-összehasonlítás), `backend/alembic/env.py` (loggerek megőrzése), `backend/tests/test_cache_import.py` (timezone-regresszió), valamint a státusz- és átadási dokumentációk. A M1.3 saját commitja a dokumentáció frissítése és ellenőrzés után készül.
 - M1.3 státusz: **DONE**. M2 következő lépése a TASKS.md szerinti determinisztikus CH-kalkulátor; M3 és M4 csak a sorrendben követi.
+
+## 2026-09-25 — M2 lezárva
+
+- Elkészült a `backend/app/domain/carbs.py` validált, determinisztikus CH-számítása és a `POST /api/carbs/calculate` endpoint. A backend 0-nál nagyobb, véges, legfeljebb 100 000 g mennyiséget és 0–100 g/100 g közötti véges CH-t fogad el; hiányzó CH és hibás mennyiség 422.
+- A frontend `src/lib/carbs.ts` ugyanazokat a numerikus korlátokat használja, a `12,5` és `12.5` formátumot egyformán kezeli, a valid 0 CH-t megtartja, a hibás inputot nem menti. A hozzáadási UI gyorsgombjai és +/- vezérlői ugyanazt a számítási függvényt használják.
+- M2 mobil UI: 390×844 és 360×800 viewporton keresés → kiválasztás → mennyiség → eredmény működött; `12,5` g banánnál 2,6 g CH látszott, 0 g-nál hiba és tiltott mentés jelent meg. A 360 px nézet `scrollWidth == clientWidth`.
+- Ellenőrzések: backend `62 passed, 2 warnings`; frontend typecheck, lint, `7 passed` unit teszt és production build sikeres. A warningok a korábbi Starlette/httpx és Alembic deprecation jelzések.
+- M2 státusz: **DONE**. M3 következő lépése a TASKS.md szerinti PostgreSQL-alapú tartós étkezési napló és nutrient-snapshot; a prototípus lista továbbra sem tartós adat.

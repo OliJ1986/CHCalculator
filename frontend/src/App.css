@@ -35,6 +35,7 @@
 .food-icon.banana { background: #f5e5a7; color: #9b7924; }.food-icon.bread { background: #e9c19a; color: #986038; }.food-icon.oat { background: #ded5c1; color: #81725b; }.food-icon.rice { background: #d6e1ef; color: #5b7397; }
 .food-option { transition: background .2s ease, padding-left .2s ease; }.food-option:hover { padding-left: 8px; background: rgba(233,114,87,.05); }.food-option:active { background: rgba(233,114,87,.11); }
 .food-option:disabled { cursor: not-allowed; opacity: .68; }.food-option:disabled:hover { padding-left: 4px; background: transparent; }.food-copy .unavailable { color: var(--coral); font-weight: 600; }.search-state { margin: 0; padding: 24px 4px 12px; color: var(--muted); font-size: 13px; line-height: 1.45; }.search-state.error { color: var(--coral); }
+.input-error, .calculation-error { margin: 10px 2px 0; color: var(--coral); font-size: 12px; line-height: 1.4; }.calculation-error { padding: 16px; border-radius: 15px; background: rgba(233,114,87,.09); }
 .close-button { transition: background .2s ease, transform .2s ease; }.close-button:active { transform: scale(.94); }
 .amount-control > button { transition: background .2s ease, transform .2s ease; }.amount-control > button:active { transform: scale(.94); background: var(--lime); }
 .hero-total { display: inline-block; animation: number-pop .28s ease; }

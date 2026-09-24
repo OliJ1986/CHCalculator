@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-, migrációs-, import- és rollback-kapu bizonyított. M2, M3 és M4: **TODO**, ezek a következő sorrendben készülnek.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a PostgreSQL- és kalkulátor-kapu bizonyított. M3 és M4: **TODO**, ezek a következő sorrendben készülnek.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -32,7 +32,7 @@ PostgreSQL-ben az Alembic az egyetlen sémavezető (`backend/alembic/versions/00
 
 ## Frontend/backend határ
 
-Az `/api/foods/search?q=` backend egységes Food DTO-t ad, az `/api/foods/barcode/{barcode}` pedig előkészíti a barcode lookupot kamera nélkül. A `FoodService` cache-first módon, párhuzamos USDA/OFF provider hívásokkal, provider hibaizolációval, source/source_id deduplikációval és szándékfüggő, determinisztikus rankinggel aggregál. Az egyszerű ismert alapanyagoknál az alapanyagkategória és a pontos névegyezés előnyt kap; összetett lekérdezésnél minden token és a márka relevanciája számít. A frontend `src/api/foods.ts` rétege a snake_case API választ belső camelCase modellre alakítja; az App nem ismeri az OFF vagy USDA JSON-t. Fordított magyar megjelenítési név esetén az eredeti forrásnév másodlagos szövegként is megjelenik, hogy a hasonló találatok megkülönböztethetők maradjanak. A keresés TanStack Query-vel, minimum két karakterrel és 300 ms debounce-zal működik.
+Az `/api/foods/search?q=` backend egységes Food DTO-t ad, az `/api/foods/barcode/{barcode}` pedig előkészíti a barcode lookupot kamera nélkül. A `POST /api/carbs/calculate` ugyanazt a determinisztikus, pozitív gramm- és 0–100 g/100 g CH-validációt adja, mint a frontend `src/lib/carbs.ts`; a szerver kerekítés nélkül számol. A `FoodService` cache-first módon, párhuzamos USDA/OFF provider hívásokkal, provider hibaizolációval, source/source_id deduplikációval és szándékfüggő, determinisztikus rankinggel aggregál. Az egyszerű ismert alapanyagoknál az alapanyagkategória és a pontos névegyezés előnyt kap; összetett lekérdezésnél minden token és a márka relevanciája számít. A frontend `src/api/foods.ts` rétege a snake_case API választ belső camelCase modellre alakítja; az App nem ismeri az OFF vagy USDA JSON-t. Fordított magyar megjelenítési név esetén az eredeti forrásnév másodlagos szövegként is megjelenik, hogy a hasonló találatok megkülönböztethetők maradjanak. A keresés TanStack Query-vel, minimum két karakterrel és 300 ms debounce-zal működik.
 
 ## PWA
 

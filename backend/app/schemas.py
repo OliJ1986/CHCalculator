@@ -31,3 +31,14 @@ class FoodResponse(BaseModel):
 
 class FoodSearchResponse(BaseModel):
     items: list[FoodResponse]
+
+
+class CarbohydrateCalculationRequest(BaseModel):
+    amount_g: float
+    available_carbs_100g: float | None = None
+
+
+class CarbohydrateCalculationResponse(BaseModel):
+    amount_g: float
+    available_carbs_100g: float
+    carbs_g: float

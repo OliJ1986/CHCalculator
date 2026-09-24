@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-migrációs, CRUD-, import- és rollback-kapuk bizonyítottak. M2, M3 és M4: **TODO**; az M1.3 lezárása után indulhatnak. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a PostgreSQL- és kalkulátor-kapuk bizonyítottak. M3 és M4: **TODO**; a sorrend szerint az M3 következik. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -37,14 +37,18 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
   - A 341 rekordos SQLite-forrás dry-runja nem írt; a `chill_dev` import 341/341 rekorddal, teljes mező- és nutrient-egyezéssel, azonos digesttel sikeres. Az ismételt import 341 azonos és 0 új rekordot adott.
   - Valódi PostgreSQL-en CRUD, source/source_id egyediség, konfliktusos import és tranzakciós rollback sikeres; a `chill_test` fixture-takarítása után nem maradt próbarekord. A SQLite-forrás és backup változatlan maradt.
   - A PostgreSQL timezone-os visszaolvasás miatt szükséges UTC-normalizálás bekerült az importba; az Alembic in-process futtatása megőrzi az alkalmazási/provider loggereket. Backend: 48 teszt sikeres, frontend: typecheck, lint, 4 unit teszt és production build sikeres.
-- [TODO] M2 — CH kalkulátor
+- [DONE] M2 — CH kalkulátor
+  - A backend és frontend ugyanazt a pozitív, véges gramm- és 0–100 g/100 g CH-tartományt ellenőrzi; a technikai felső mennyiséghatár 100 000 g.
+  - A `POST /api/carbs/calculate` endpoint kerekítés nélküli eredményt ad; a frontend vesszős/pontos inputot, gyorsgombokat, +/- lépést, hiányzó CH-t és hibás mennyiséget kezel.
+  - Mobil UI ellenőrzés 390 és 360 px szélességen sikeres, vízszintes túlcsordulás nélkül; 55 g × 11,4 g/100 g = 6,27 g, 12,5 g × 21 g/100 g = 2,625 g → 2,6 g kijelzés.
+  - Backend 62 teszt, frontend 7 unit teszt, typecheck, lint és production build sikeres.
 - [TODO] M3 — Napi étkezési napló
 - [TODO] M4 — CH célok és étkezések
 - [TODO] M5 — Saját ételek, kedvencek és receptek
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1, M1.2 és M1.3 lezárva; M2–M4 még nem indult el. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
+M0, M1.1, M1.2, M1.3 és M2 lezárva; M3–M4 még nem indult el. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
 
 ## Közös teljesítési kapu
 
@@ -80,7 +84,7 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 - [x] Railway-előkészítés és helyi indítás ellenőrzött; a valós Railway-deploy külön, nem végrehajtott lépésként szerepel. Hiánya önmagában nem akadálya az előkészítési mérföldkő lezárásának.
 - [x] M1.2.3 regressziók megmaradtak; a korábbi élő USDA/OFF smoke eredménye külön történeti bizonyíték, cache-es HTTP 200-at nem használtunk új élő bizonyítékként.
 
-## M2 — Teljes CH-kalkulátor [TODO]
+## M2 — Teljes CH-kalkulátor [DONE]
 
 ### Megvalósítás
 
@@ -92,11 +96,11 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 
 ### Elfogadás
 
-- [ ] 55 g és 11,4 g/100 g → 6,27 g belső érték, 6,3 g kijelzés; 100 g → a forrásérték; valid 0 CH → 0; törtmennyiség és vesszős input helyes.
-- [ ] Negatív/0/üres/NaN/végtelen mennyiség és hiányzó CH esetén nincs érvényes eredményként mentés; a hiba kijavítása után helyreáll a flow.
-- [ ] Gyorsgomb, kézi bevitel és ételváltás ugyanazt a determinisztikus számítást használja; nincs elavult eredmény vagy dupla rostlevonás.
-- [ ] Azonos magyar nevű eltérő forrásrekordok azonosíthatók; relevancia/ranking és banánpaprika-regresszió változatlanul sikeres.
-- [ ] Mobilon teljes keresés → kiválasztás → mennyiség → eredmény flow működik; közös teljesítési kapu teljesül.
+- [x] 55 g és 11,4 g/100 g → 6,27 g belső érték, 6,3 g kijelzés; 100 g → a forrásérték; valid 0 CH → 0; törtmennyiség és vesszős input helyes.
+- [x] Negatív/0/üres/NaN/végtelen mennyiség és hiányzó CH esetén nincs érvényes eredményként mentés; a hiba kijavítása után helyreáll a flow.
+- [x] Gyorsgomb, kézi bevitel és ételváltás ugyanazt a determinisztikus számítást használja; nincs elavult eredmény vagy dupla rostlevonás.
+- [x] Azonos magyar nevű eltérő forrásrekordok azonosíthatók; relevancia/ranking és banánpaprika-regresszió változatlanul sikeres.
+- [x] Mobilon teljes keresés → kiválasztás → mennyiség → eredmény flow működik; közös teljesítési kapu teljesült.
 
 ## M3 — Tartós étkezési napló, tápanyag-pillanatképpel [TODO]
 

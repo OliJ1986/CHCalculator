@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.9 — M2 teljes CH-kalkulátor — 2026-09-25
+
+- A backend megkapta a `POST /api/carbs/calculate` determinisztikus számítási végpontot és a pozitív, véges gramm-/CH-validációt; a 0 CH érvényes, a hiányzó CH és hibás mennyiség nem menthető számítás.
+- A frontend kalkulátor elfogadja a magyar tizedesvesszőt és pontot, gyorsgombokat és +/- lépést ad, az eredményt kerekítetlen belső értékből egy tizedesre jeleníti meg, és hibás inputnál letiltja a mentést.
+- M2 mobil ellenőrzés 390 és 360 px szélességen sikeres, vízszintes túlcsordulás nélkül. Backend 62 teszt, frontend 7 unit teszt, typecheck, lint és production build sikeres.
+
 ## 0.2.8 — M1.3 PostgreSQL-integráció lezárása — 2026-09-25
 
 - A helyi PostgreSQL 18 `chill_dev` és `chill_test` adatbázisokon az Alembic migráció, ismételt migráció, ORM CRUD, import dry-run, 341 rekordos éles dev-import, teljes visszaolvasás, idempotencia és konfliktusos rollback ellenőrzése sikeres.

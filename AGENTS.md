@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-kapcsolat, migráció, CRUD, import és rollback kapu bizonyított. M2, M3 és M4: **TODO**, a sorrendet nem lehet megkerülni.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a PostgreSQL- és determinisztikus kalkulátor-kapu bizonyított. M3 és M4: **TODO**, a sorrendet nem lehet megkerülni.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 

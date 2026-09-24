@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-kapuk bizonyítottak. M2, M3 és M4 még **TODO**; a következő fejlesztés az M2.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3 és M2: **DONE**, a PostgreSQL- és kalkulátor-kapuk bizonyítottak. M3 és M4 még **TODO**; a következő fejlesztés az M3.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -53,6 +53,10 @@ Az alkalmazás most explicit `DATABASE_URL`-t használ, és a PostgreSQL-séma f
 Az import eszköz csak explicit dev/test célba enged, a SQLite-forrást read-only módban auditálja, backup API-val konzisztens másolatot készít, SHA-256 és canonical rekord-digestet ellenőriz, alapértelmezésben dry-run, és csak teljes rekord-, nutrient-, JSON-, NULL/0- és source/source_id egyezés után ír. Azonos tartalom idempotensen kihagyható; eltérő tartalom konfliktus és tranzakciós rollback. A tényleges `backend/chill.db` 341 rekordos és a létrehozott backup canonical digestje megegyezik.
 
 Két külön helyi PostgreSQL 18 adatbázison (`chill_dev`, `chill_test`) az Alembic `upgrade head` és az ismételt futás sikeres. A tényleges 341 rekordos SQLite-cache dry-runja nem írt; a `chill_dev` import teljes rekord-, nutrient-, JSON-, NULL/0- és source/source_id egyezéssel, azonos canonical digesttel sikeres. A PostgreSQL CRUD, idempotencia, konfliktusos import és rollback ellenőrzése sikeres, a forrás és backup változatlan maradt. A regresszió 48 backend tesztből, frontend typecheckből, lintből, 4 unit tesztből és production buildből állt.
+
+## M2 — Teljes CH-kalkulátor — lezárva
+
+A CH-számítás backend- és frontend-oldalon determinisztikus, kerekítés nélküli értékből indul, a megjelenítés egy tizedesre formáz. A mennyiség 0-nál nagyobb, véges és legfeljebb 100 000 g lehet; a 0–100 g/100 g közötti CH-adat, beleértve a valid 0-t, számolható. A hiányzó vagy érvénytelen CH és minden hibás mennyiség tiltja a mentést. A frontend elfogadja a magyar tizedesvesszőt és a pontot, és a `POST /api/carbs/calculate` szerződés ugyanezt a numerikus szabályt ellenőrzi. A mobil keresés–kiválasztás–mennyiség–eredmény flow 390 és 360 px szélességen túlcsordulás nélkül működik.
 
 ## M0 scope
 
