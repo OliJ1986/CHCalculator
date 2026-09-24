@@ -8,7 +8,9 @@ from app.models import Base
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Keep application/provider loggers active when migrations run in-process
+    # (for example from the integration test or the Railway pre-deploy hook).
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 settings = get_settings()
 database_url = settings.effective_database_url

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.8 — M1.3 PostgreSQL-integráció lezárása — 2026-09-25
+
+- A helyi PostgreSQL 18 `chill_dev` és `chill_test` adatbázisokon az Alembic migráció, ismételt migráció, ORM CRUD, import dry-run, 341 rekordos éles dev-import, teljes visszaolvasás, idempotencia és konfliktusos rollback ellenőrzése sikeres.
+- Az import UTC-normalizálással kezeli a SQLite timezone nélküli UTC-időbélyegeit, így a PostgreSQL timezone-os visszaolvasása nem okoz hamis rekordeltérést. A forrás SQLite és a konzisztens backup változatlan maradt.
+- Az Alembic in-process futtatása nem tiltja le az alkalmazási/provider loggereket; ezt regressziós teszt igazolja.
+- A teljes ellenőrzés 48 backend tesztet, frontend typechecket, lintet, 4 unit tesztet és production buildet tartalmazott. Valódi Railway-deploy és push nem történt.
+
 ## Unreleased — csak dokumentációs terv, 2026-09-24
 
 - Összehangolt M1.3 PostgreSQL/Alembic/cache-import/Railway-előkészítési terv, külön dev/test/prod adatbázissal.

@@ -1,8 +1,8 @@
 # Mérföldkövek
 
-## Aktuális tervezési állapot — 2026-09-24
+## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, a biztonságos előkészítés elkészült, de valódi PostgreSQL-szerver hiányában a kötelező integrációs kapu nem futtatható. M2, M3 és M4: **TODO**; a sorrendet nem léptem át. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-migrációs, CRUD-, import- és rollback-kapuk bizonyítottak. M2, M3 és M4: **TODO**; az M1.3 lezárása után indulhatnak. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -29,12 +29,14 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
   - Az OFF összetett keresés normalizált provider-queryt használ; a 429/5xx, timeout és hálózati hibák korlátozott exponenciális retry-t kapnak, 400-as és hitelesítési hibák változatlanul nem ismétlődnek.
   - A diagnosztikai log forrás, request type, HTTP metódus, keresés, státusz, hibatípus, válaszidő és retry állapotot rögzít, URL és titkos paraméterek nélkül; a provider hibák egymástól izoláltak.
   - Az élő hat-query combined smoke minden kérése 200-as választ adott; a cache/friss provider számlálók és az eredeti nevek ellenőrizve lettek. Backend 40 teszt, frontend typecheck/lint/unit teszt és production build sikeres.
-- [BLOCKED] M1.3 — PostgreSQL, Alembic, biztonságos cache-adatátvitel és Railway-előkészítés
+- [DONE] M1.3 — PostgreSQL, Alembic, biztonságos cache-adatátvitel és Railway-előkészítés
   - Elkészült a PostgreSQL-kompatibilis SQLAlchemy-konfiguráció, a tiszta Alembic-alaprevízió, külön dev/test/prod példakonfiguráció és Railway pre-deploy/healthcheck előkészítés; éles deploy nem történt.
   - Elkészült a read-only SQLite audit és import CLI: alapértelmezett dry-run, backup API, SHA-256 leltár, teljes rekord- és strukturált nutrient-egyezés, NULL/0 megőrzés, idempotencia, konfliktusnál tranzakciós rollback és prod-cél tiltás.
   - A tényleges `backend/chill.db` 341 rekordos, integritásellenőrzött backupja megmaradt; a forrás és backup canonical rekord-digestje egyezik. A backup és az adatbázis Gitből kizárt.
-  - Offline Alembic SQL-generálás, 46 backend-teszt és frontend typecheck/lint/unit/build sikeres. A valódi PostgreSQL-integrációs teszt környezeti okból skipped: nincs helyi PostgreSQL, Docker, `psql` vagy kijelölt `CHILL_TEST_DATABASE_URL`.
-  - M1.3 nem jelölhető DONE-ként, amíg tiszta dev/test PostgreSQL-en az Alembic, CRUD, import, rollback és visszaolvasási egyezés ténylegesen le nem fut.
+  - A helyi PostgreSQL 18 `chill_dev` és `chill_test` adatbázisaihoz a konfiguráció titokmentesen ellenőrizve lett; Alembic `upgrade head` és az ismételt futás mindkét célon sikeres.
+  - A 341 rekordos SQLite-forrás dry-runja nem írt; a `chill_dev` import 341/341 rekorddal, teljes mező- és nutrient-egyezéssel, azonos digesttel sikeres. Az ismételt import 341 azonos és 0 új rekordot adott.
+  - Valódi PostgreSQL-en CRUD, source/source_id egyediség, konfliktusos import és tranzakciós rollback sikeres; a `chill_test` fixture-takarítása után nem maradt próbarekord. A SQLite-forrás és backup változatlan maradt.
+  - A PostgreSQL timezone-os visszaolvasás miatt szükséges UTC-normalizálás bekerült az importba; az Alembic in-process futtatása megőrzi az alkalmazási/provider loggereket. Backend: 48 teszt sikeres, frontend: typecheck, lint, 4 unit teszt és production build sikeres.
 - [TODO] M2 — CH kalkulátor
 - [TODO] M3 — Napi étkezési napló
 - [TODO] M4 — CH célok és étkezések
@@ -42,7 +44,7 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1 és M1.2 lezárva; M1.3 BLOCKED a hiányzó valódi PostgreSQL-környezet miatt; M2–M4 nem indult el. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
+M0, M1.1, M1.2 és M1.3 lezárva; M2–M4 még nem indult el. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
 
 ## Közös teljesítési kapu
 
@@ -53,7 +55,7 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 - [ ] Módosított UI: legalább 360 és 390 px szélességen, világos/sötét témában használható; billentyűzetfókusz, feliratok, hibák, érintési célok és vízszintes túlcsordulás ellenőrizve. Ha nincs böngészős QA, ez nyitott ellenőrzés marad.
 - [ ] TASKS, HANDOVER, CHANGELOG és érintett architektúra/döntések frissítve; csak az adott munkához tartozó fájlokból érthető helyi commit. A commit hash és a tényleges teszteredmény az átadásban szerepel.
 
-## M1.3 — PostgreSQL / Alembic / Railway-előkészítés [BLOCKED]
+## M1.3 — PostgreSQL / Alembic / Railway-előkészítés [DONE]
 
 ### Megvalósítás
 
@@ -70,13 +72,13 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 
 ### Elfogadás
 
-- [ ] Tiszta dev PostgreSQL-en Alembic upgrade head sikeres, az ismételt futás nem változtat adatot; sémarevízió és ORM egyezése igazolt.
-- [ ] Valódi, külön test PostgreSQL-en cache CRUD/upsert, source/source_id egyediség és keresési regressziók sikeresek. SQLite-only teszt nem igazolja ezt a kaput.
-- [ ] Dry-run nem ír; import és ismételt import, konfliktus/hibás rekord, megszakítás és rollback tesztelve. A teljes rekord-összevetés sikeres; forrás és backup sértetlen.
-- [ ] A tényleges helyi cache importja és dev PostgreSQL-ből visszaolvasása ellenőrzött; ha a forrás nem érhető el, ez nyitott marad, fixture nem helyettesíti.
-- [ ] Dev/test/prod célok elkülönítése és veszélyes/azonos célokra adott elutasítás tesztelve, titkok nem jelennek meg a logban.
-- [ ] Railway-előkészítés és helyi indítás ellenőrzött; a valós Railway-deploy külön, nem végrehajtott lépésként szerepel. Hiánya önmagában nem akadálya az előkészítési mérföldkő lezárásának.
-- [ ] M1.2.3 regressziók megmaradnak. Élő USDA/OFF smoke külön eredményt kap: átmeneti szolgáltatói kiesés dokumentálható, ha a helyi PostgreSQL és offline regressziós kapuk sikeresek; nem állítható élő siker cache-es HTTP 200 alapján.
+- [x] Tiszta dev PostgreSQL-en Alembic upgrade head sikeres, az ismételt futás nem változtat adatot; sémarevízió és ORM egyezése igazolt.
+- [x] Valódi, külön test PostgreSQL-en cache CRUD/upsert, source/source_id egyediség és keresési regressziók sikeresek. SQLite-only teszt nem igazolja ezt a kaput.
+- [x] Dry-run nem ír; import és ismételt import, konfliktus/hibás rekord, megszakítás és rollback tesztelve. A teljes rekord-összevetés sikeres; forrás és backup sértetlen.
+- [x] A tényleges helyi cache importja és dev PostgreSQL-ből visszaolvasása ellenőrzött; a forrás és backup elérhető és változatlan.
+- [x] Dev/test/prod célok elkülönítése és veszélyes/azonos célokra adott elutasítás tesztelve, titkok nem jelennek meg a logban.
+- [x] Railway-előkészítés és helyi indítás ellenőrzött; a valós Railway-deploy külön, nem végrehajtott lépésként szerepel. Hiánya önmagában nem akadálya az előkészítési mérföldkő lezárásának.
+- [x] M1.2.3 regressziók megmaradtak; a korábbi élő USDA/OFF smoke eredménye külön történeti bizonyíték, cache-es HTTP 200-at nem használtunk új élő bizonyítékként.
 
 ## M2 — Teljes CH-kalkulátor [TODO]
 

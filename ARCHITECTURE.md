@@ -1,8 +1,8 @@
 # Architektúra
 
-## Aktuális tervezési állapot — 2026-09-24
+## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, az előkészítés kész, de valódi PostgreSQL-környezet nélkül a kötelező integrációs kapu nem bizonyítható. M2, M3 és M4: **TODO**, ezekre nem léptem tovább.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-, migrációs-, import- és rollback-kapu bizonyított. M2, M3 és M4: **TODO**, ezek a következő sorrendben készülnek.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -42,7 +42,7 @@ Az alkalmazás a `public/manifest.webmanifest` manifestet és a `public/sw.js` e
 
 Étel keresése → query normalizálás/alias → lokális Food cache → USDA + OFF provider → mapping/upsert → deduplikáció/ranking → backend Food DTO → frontend kiválasztás → gramm bevitele → `calculateCarbohydrate` → kerekített UI érték → frontend state-ben új napi bejegyzés.
 
-## M1.3–M4 célarchitektúra [TODO; nem jelenlegi implementáció]
+## M1.3–M4 célarchitektúra [M1.3 kész; M2–M4 tervezett]
 
 ### Adatbázis és migráció
 
@@ -50,7 +50,7 @@ A React/Vite és FastAPI/SQLAlchemy stack marad. Az M1.3 utáni alkalmazás Post
 
 Alembic kezeli a sémát: M1.3 Food/cache alap, M3 napló/profil, M4 célverziók. Az upgrade ne fusson minden worker indulásakor. Az autogenerate eredménye ellenőrizendő; schema-migráció és mapping_version alapú cache-adatfrissítés külön felelősség. Meglévő adatbázist ellenőrzés nélkül nem szabad head-re stampelni. Destruktív downgrade helyett dokumentált, kipróbált backup/restore vagy előre javítás; downgrade-teszt csak eldobható DB-n.
 
-Az importeszköz az alkalmazásindítástól és deploytól külön működik: konzisztens SQLite-backup → dry-run/leltár → tranzakciós import → teljes mező- és kulcsellenőrzés → commit → visszaolvasás. A source/source_id egyedi kulcs megmarad. Konfliktus nem automatikus upsert-felülírás. A teljes algoritmus és tesztkapu a TASKS M1.3 része.
+Az importeszköz az alkalmazásindítástól és deploytól külön működik: konzisztens SQLite-backup → dry-run/leltár → tranzakciós import → teljes mező- és kulcsellenőrzés → commit → visszaolvasás. A source/source_id egyedi kulcs megmarad. Konfliktus nem automatikus upsert-felülírás. A SQLite-ból érkező timezone nélküli UTC-időbélyegek importkor UTC-ként kerülnek PostgreSQL-be, összehasonlításkor pedig az eltérő timezone-ábrázolások UTC-re normalizálódnak. A teljes algoritmus és tesztkapu a TASKS M1.3 része.
 
 ### Napló és célok tervezett modellje
 

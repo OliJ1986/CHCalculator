@@ -9,7 +9,7 @@ import os
 import pathlib
 import sqlite3
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -89,6 +89,22 @@ def _canonical_json(value: Any) -> str:
     return json.dumps(_canonical_value(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def _comparison_value(value: Any) -> Any:
+    """Normalize database round-trips without changing the source digest format."""
+    if isinstance(value, datetime):
+        normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        return normalized.astimezone(UTC).isoformat()
+    if isinstance(value, dict):
+        return {str(key): _comparison_value(item) for key, item in sorted(value.items())}
+    if isinstance(value, (list, tuple)):
+        return [_comparison_value(item) for item in value]
+    return value
+
+
+def _comparison_json(value: Any) -> str:
+    return json.dumps(_comparison_value(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
 def _parse_datetime(value: Any) -> Any:
     if isinstance(value, str):
         try:
@@ -116,7 +132,7 @@ def _record_key(record: dict[str, Any]) -> tuple[str, str]:
 
 
 def _compare_record(source: dict[str, Any], target: dict[str, Any]) -> bool:
-    return _canonical_json({field: source.get(field) for field in COMPARE_FIELDS}) == _canonical_json(
+    return _comparison_json({field: source.get(field) for field in COMPARE_FIELDS}) == _comparison_json(
         {field: target.get(field) for field in COMPARE_FIELDS}
     )
 
@@ -207,7 +223,12 @@ def _target_records(connection: Connection, table: Table) -> dict[tuple[str, str
 
 
 def _insert_values(record: dict[str, Any], table: Table) -> dict[str, Any]:
-    return {field: record.get(field) for field in FOOD_FIELDS if field in table.c}
+    values = {field: record.get(field) for field in FOOD_FIELDS if field in table.c}
+    for field in ("created_at", "updated_at"):
+        value = values.get(field)
+        if isinstance(value, datetime) and value.tzinfo is None:
+            values[field] = value.replace(tzinfo=UTC)
+    return values
 
 
 def import_sqlite_cache(

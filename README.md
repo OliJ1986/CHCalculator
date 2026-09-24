@@ -1,8 +1,8 @@
 # CHill
 
-## Aktuális tervezési állapot — 2026-09-24
+## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **BLOCKED**, az előkészítő implementáció elkészült, de a valódi PostgreSQL-integrációhoz nincs helyi szerver vagy kijelölt test DB. M2, M3 és M4 még **TODO**, a sorrend nem lett megkerülve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3: **DONE**, a helyi PostgreSQL-integráció és cache-import ellenőrzött. M2, M3 és M4 még **TODO**, a sorrend megmarad.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -10,7 +10,7 @@ Mobil-first szénhidrátszámláló PWA prototípus. A CHill célja egy gyors, e
 
 ## Stack
 
-React, TypeScript, Vite, TanStack Query, React Router, CSS transitionök, saját manifest/service worker PWA-alap; backendként FastAPI, SQLAlchemy 2.x, Pydantic Settings és SQLite.
+React, TypeScript, Vite, TanStack Query, React Router, CSS transitionök, saját manifest/service worker PWA-alap; backendként FastAPI, SQLAlchemy 2.x, Pydantic Settings és PostgreSQL. A megőrzött SQLite csak az M1.3 cache-import forrása.
 
 ## Előfeltételek
 
@@ -71,11 +71,11 @@ CHANGELOG.md  user-visible változások
 AGENTS.md  jövőbeni coding agent szabályok
 ```
 
-## Következő fejlesztés és konfiguráció [terv]
+## M1.3 ellenőrzött állapot és következő fejlesztés
 
-A fenti futtatóparancsok az M1.2.3 alap flow-ját mutatják. M1.3 előkészítő eszközei elkészültek, de a PostgreSQL-kapu helyi szerver nélkül nyitott marad.
+A fenti futtatóparancsok az M1.2.3 alap flow-ját mutatják. M1.3 helyi PostgreSQL-kapui lezárultak: `chill_dev` és `chill_test` külön cél, Alembic migráció, 341 rekordos import, teljes visszaolvasási egyezés, idempotencia és rollback sikeres.
 
-M1.3 lezárásakor ez a README kapja meg az ellenőrzött lépéseket: helyi PostgreSQL indítása → külön dev/test DB létrehozása → helyi, titkos DATABASE_URL konfigurálása → Alembic upgrade head → SQLite backup/dry-run/import/ellenőrzés → backend indítása → integrációs tesztek. Ne írd felül a meglévő .env-et; a példában csak helyőrzők legyenek. A prod Railway DB nem helyi fejlesztési cél.
+Az ellenőrzött M1.3 lépések: helyi PostgreSQL indítása → külön dev/test DB létrehozása → helyi, titkos `DATABASE_URL` és `CHILL_TEST_DATABASE_URL` konfigurálása → Alembic `upgrade head` → SQLite backup/dry-run/import/ellenőrzés → backend regresszió. Ne írd felül a meglévő `.env`-et; a példában csak helyőrzők legyenek. A prod Railway DB nem helyi fejlesztési cél. A következő mérföldkő az M2 kalkulátor.
 
 Az elkészült import eszköz alapértelmezésben dry-run:
 

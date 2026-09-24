@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app.models import Base, Food
-from app.tools.cache_import import CacheImportError, ImportConflictError, import_sqlite_cache
+from app.tools.cache_import import CacheImportError, ImportConflictError, _compare_record, import_sqlite_cache
 
 
 def _make_database(path, *, changed: bool = False):
@@ -150,3 +150,11 @@ def test_cache_import_rejects_prod_and_non_postgresql_targets(tmp_path) -> None:
             target_url="sqlite:///target.sqlite",
             environment="test",
         )
+
+
+def test_cache_import_compares_sqlite_utc_and_postgresql_timezone_values() -> None:
+    source = {"created_at": datetime(2026, 9, 24, 18, 39, 38, 288449)}
+    target = {
+        "created_at": datetime(2026, 9, 24, 20, 39, 38, 288449, tzinfo=timezone(timedelta(hours=2)))
+    }
+    assert _compare_record(source, target)
