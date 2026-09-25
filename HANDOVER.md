@@ -12,11 +12,11 @@ Elkészült a profilhoz kötött saját étel- és receptkatalógus, a determini
 
 Az új Alembic lánc `0006_custom_foods`–`0009_shopping_list`; a helyi `chill_dev` és izolált `chill_test` adatbázis headre migrálva lett. A saját étel CH-validációja 0–100 g/100 g, a recept össz- és adagonkénti CH-ja snapshotból készül, tervmódosításkor újraszámolódik, a bevásárlólista csak azonos név és kompatibilis egység szerint aggregál.
 
-Ellenőrzések: `test_catalog.py` 3 passed; valódi PostgreSQL katalógus API 1 passed; teljes backend regresszió izolált `chill_test` környezettel `83 passed`; frontend typecheck, 9 unit teszt és production build sikeres; lintben csak a korábbi React effect figyelmeztetések maradtak. A teljes csomag emelt helyi jogosultsággal futott a Windows pytest-temp ACL miatt, külső deploy nélkül.
+Ellenőrzések: `test_catalog.py` 4 passed; valódi PostgreSQL katalógus API 1 passed; teljes backend regresszió izolált `chill_test` környezettel `84 passed`; frontend typecheck, 9 unit teszt és production build sikeres; lintben csak a korábbi React effect figyelmeztetések maradtak. A teljes csomag emelt helyi jogosultsággal futott a Windows pytest-temp ACL miatt, külső deploy nélkül.
 
 Nyitott korlát: a browser-control környezet nem biztosít böngészőt, ezért a 360/390 px vizuális mobil QA, fókusz/túlcsordulás-ellenőrzés és PWA telepítés nem futott le. Következő lépés egy valódi telefonon vagy elérhető böngészős runnerben a `/`, `/receptek`, `/kedvencek` vendég és bejelentkezett flow ellenőrzése, majd csak sikeres kapu után lehet M5/M8–M11 státuszt DONE-ra váltani.
 
-További technikai tartozás: a regisztrációs vendégimport jelenleg a naplókat, célokat és saját ételeket viszi át idempotensen; a vendég receptek, tervek és bevásárlótételek továbbra is helyi IndexedDB-adatok, ezekhez külön későbbi import-szerződés szükséges. Ez nem törli és nem módosítja a helyi adatokat.
+A regisztrációs vendégimport a naplókat, célokat, saját ételeket, recepteket, terveket és bevásárlótételeket is explicit megerősítéssel, idempotensen viszi át. A forrás IndexedDB rekordjai csak sikeres válasz után törlődnek a kliensből; hibánál helyben megmaradnak.
 
 ## Jelenlegi állapot
 
