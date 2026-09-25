@@ -8,7 +8,7 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 ## M8–M11 átadás — 2026-09-25
 
-Elkészült a profilhoz kötött saját étel- és receptkatalógus, a determinisztikus hozzávaló- és receptnapló-snapshot, a napi étkezéstervező és a bevásárlólista. A vendég mód IndexedDB-je a korábbi `chill-guest-v1` adatokat megtartva új, 2-es sémaverzióban additive módon kezeli ezeket a rekordokat; regisztrált módban az API-k PostgreSQL profilra szűrnek.
+Elkészült a profilhoz kötött saját étel- és receptkatalógus, a determinisztikus hozzávaló- és receptnapló-snapshot, a napi étkezéstervező és a bevásárlólista. A vendég mód IndexedDB-je a korábbi `chill-guest-v1` adatokat megtartva új, 2-es sémaverzióban additive módon kezeli ezeket a rekordokat; regisztrált módban az API-k PostgreSQL profilra szűrnek. A vendég saját ételek explicit, idempotens importtal átvihetők a regisztrált profilba, a tervezett étkezés pedig külön művelettel naplózható.
 
 Az új Alembic lánc `0006_custom_foods`–`0009_shopping_list`; a helyi `chill_dev` és izolált `chill_test` adatbázis headre migrálva lett. A saját étel CH-validációja 0–100 g/100 g, a recept össz- és adagonkénti CH-ja snapshotból készül, tervmódosításkor újraszámolódik, a bevásárlólista csak azonos név és kompatibilis egység szerint aggregál.
 

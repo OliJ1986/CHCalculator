@@ -7,6 +7,7 @@
 - Napi étkezéstervező és bevásárlólista API készült, a tervből generált tételek csak azonos név és kompatibilis egység esetén aggregálódnak.
 - Az Alembic `0006`–`0009` migrációk és a lokális SQLite additive kompatibilitás elkészült; dev/test PostgreSQL head ellenőrizve.
 - A vendég IndexedDB 2-es verziója additive módon tárol saját ételeket, recepteket, terveket és bevásárlótételeket; a korábbi napló/cél adatok megmaradnak.
+- A vendég saját ételek regisztráció után explicit megerősítéssel, idempotens szerveroldali importtal átvihetők; a tervezett étkezés külön művelettel kerülhet a naplóba.
 - Ellenőrzés: teljes backend `78 passed, 3 skipped`, PostgreSQL integráció 3 passed, frontend 9 unit teszt, typecheck és build sikeres. A lint csak a korábbi React effect figyelmeztetéseit jelzi; browseres mobil QA nem futott böngésző hiányában.
 
 ## Unreleased — Railway staging előkészítés — 2026-09-25

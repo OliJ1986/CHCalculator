@@ -55,6 +55,7 @@ M0, M1.1, M1.2, M1.3, M2, M3 és M4 lezárva; M5 kódja elkészült, a módosít
 - [x] Profilhoz kötött saját étel CRUD, kedvenc kapcsoló és CH/100 g validáció.
 - [x] Saját ételek meal-snapshot forrásként használhatók; más profil rekordja nem olvasható.
 - [x] Vendég saját ételek IndexedDB-ben, additive adatbázis-verziófrissítéssel.
+- [x] Regisztrációkor a vendég saját ételek explicit megerősítéssel, idempotens importtal átvihetők a profilba.
 - [x] Backend unit/regresszió és frontend persistence teszt sikeres.
 
 ## M9 — Receptek és receptnapló [AUTOMATIZÁLT KAPUK TELJESÜLTEK]
@@ -68,6 +69,7 @@ M0, M1.1, M1.2, M1.3, M2, M3 és M4 lezárva; M5 kódja elkészült, a módosít
 
 - [x] Profilhoz kötött napi terv saját ételhez vagy recepthez, kategóriával és CH-snapshot-tal.
 - [x] Terv CRUD és mennyiségmódosítás újraszámítással; a terv nem írja át a naplót.
+- [x] A kiválasztott terv egy művelettel tényleges naplóbejegyzéssé tehető; vendégként a művelet IndexedDB-snapshotot készít.
 - [x] Vendég tervek IndexedDB-ben, mobil tervezőnézetben kezelhetők.
 
 ## M11 — Bevásárlólista [AUTOMATIZÁLT KAPUK TELJESÜLTEK]
