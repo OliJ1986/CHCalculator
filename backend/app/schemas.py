@@ -118,3 +118,72 @@ class GoalSummaryResponse(BaseModel):
     progress_ratio: float | None
     progress_percent: float | None
     categories: list[GoalCategorySummary]
+
+
+class RegisterRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=12, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=512)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=512)
+    password: str = Field(min_length=12, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+
+class AuthResponse(BaseModel):
+    status: str
+    authenticated: bool = False
+    role: str = "guest"
+    email: str | None = None
+    email_verified: bool = False
+    verification_token: str | None = None
+    reset_token: str | None = None
+    csrf_token: str | None = None
+
+
+class GuestMealImport(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    consumed_at: datetime
+    local_date: date
+    timezone: str = Field(min_length=1, max_length=64)
+    amount_g: float
+    meal_category: MealCategory = "other"
+    snapshot: dict
+
+
+class GuestGoalImport(BaseModel):
+    effective_date: date
+    daily_target_g: float | None = None
+    meal_targets: dict[str, float] = Field(default_factory=dict)
+    allow_past: bool = True
+
+
+class GuestImportRequest(BaseModel):
+    meals: list[GuestMealImport] = Field(default_factory=list, max_length=2000)
+    goals: list[GuestGoalImport] = Field(default_factory=list, max_length=500)
+    overwrite_existing: bool = False
+
+
+class GuestImportResponse(BaseModel):
+    imported_meals: int
+    skipped_meals: int
+    imported_goals: int
+    skipped_goals: int

@@ -10,11 +10,30 @@ from sqlalchemy.orm import Session
 
 from app.main import app
 from app.db import get_db
-from app.models import Food, GoalVersion, MealEntry
+from app.models import Food, GoalVersion, MealEntry, User
 
 
 POSTGRES_TEST_URL = os.environ.get("CHILL_TEST_DATABASE_URL", "")
 pytestmark = pytest.mark.postgresql
+
+
+def _authenticate(client: TestClient, email: str) -> str:
+    registration = client.post(
+        "/api/auth/register",
+        json={"email": email, "password": "Correct Horse Battery 1!"},
+    )
+    assert registration.status_code == 202, registration.text
+    verification = registration.json().get("verification_token")
+    assert verification
+    assert client.post("/api/auth/verify-email", json={"token": verification}).status_code == 200
+    login = client.post(
+        "/api/auth/login",
+        json={"email": email, "password": "Correct Horse Battery 1!"},
+    )
+    assert login.status_code == 200, login.text
+    csrf = client.cookies.get("chill_csrf")
+    assert csrf
+    return csrf
 
 
 @pytest.mark.skipif(
@@ -34,6 +53,7 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
             yield db
 
     app.dependency_overrides[get_db] = override_get_db
+    email = "m5-pg-meals@example.test"
     try:
         with Session(engine) as db:
             db.execute(delete(MealEntry).where(MealEntry.food_id == food_id))
@@ -63,6 +83,7 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
             db.commit()
 
         with TestClient(app) as client:
+            csrf = _authenticate(client, email)
             response = client.post(
                 "/api/meals",
                 json={
@@ -73,6 +94,7 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
                     "meal_category": "other",
                     "idempotency_key": "m3-pg-idempotency-1",
                 },
+                headers={"X-CSRF-Token": csrf},
             )
             assert response.status_code == 201, response.text
             created = response.json()
@@ -91,6 +113,7 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
                     "meal_category": "other",
                     "idempotency_key": "m3-pg-idempotency-1",
                 },
+                headers={"X-CSRF-Token": csrf},
             )
             assert retry.status_code == 201
             assert retry.json()["id"] == meal_id
@@ -103,6 +126,7 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
             patched = client.patch(
                 f"/api/meals/{meal_id}",
                 json={"amount_g": 100, "consumed_at": "2026-03-30T01:30:00+02:00"},
+                headers={"X-CSRF-Token": csrf},
             )
             assert patched.status_code == 200, patched.text
             assert patched.json()["local_date"] == "2026-03-30"
@@ -112,7 +136,7 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
             assert empty.status_code == 200
             assert empty.json() == {"items": [], "total_carbs_g": 0.0}
 
-            deleted = client.delete(f"/api/meals/{meal_id}")
+            deleted = client.delete(f"/api/meals/{meal_id}", headers={"X-CSRF-Token": csrf})
             assert deleted.status_code == 204
             assert client.get("/api/meals", params={"local_date": "2026-03-30"}).json() == {
                 "items": [],
@@ -123,6 +147,7 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
         with Session(engine) as db:
             db.execute(delete(MealEntry).where(MealEntry.food_id == food_id))
             db.execute(delete(Food).where(Food.id == food_id))
+            db.execute(delete(User).where(User.email == email))
             db.commit()
         engine.dispose()
 
@@ -142,11 +167,14 @@ def test_goal_versions_and_categories_on_real_postgresql() -> None:
             yield db
 
     app.dependency_overrides[get_db] = override_get_db
+    email = "m5-pg-goals@example.test"
     try:
         with TestClient(app) as client:
+            csrf = _authenticate(client, email)
             denied = client.put(
                 "/api/goals",
                 json={"effective_date": "2020-01-01", "daily_target_g": 120, "meal_targets": {}},
+                headers={"X-CSRF-Token": csrf},
             )
             assert denied.status_code == 422
             first = client.put(
@@ -156,12 +184,14 @@ def test_goal_versions_and_categories_on_real_postgresql() -> None:
                     "daily_target_g": 160,
                     "meal_targets": {"breakfast": 50, "lunch": 40},
                 },
+                headers={"X-CSRF-Token": csrf},
             )
             assert first.status_code == 200, first.text
             assert first.json()["has_goal"] is True
             second = client.put(
                 "/api/goals",
                 json={"effective_date": "2099-01-02", "daily_target_g": 175, "meal_targets": {}},
+                headers={"X-CSRF-Token": csrf},
             )
             assert second.status_code == 200
             old = client.get("/api/goals/summary", params={"local_date": "2099-01-01"})
@@ -175,11 +205,13 @@ def test_goal_versions_and_categories_on_real_postgresql() -> None:
             past = client.put(
                 "/api/goals",
                 json={"effective_date": "2020-01-01", "daily_target_g": 120, "meal_targets": {}, "allow_past": True},
+                headers={"X-CSRF-Token": csrf},
             )
             assert past.status_code == 200
             cleared = client.put(
                 "/api/goals",
                 json={"effective_date": "2099-01-02", "daily_target_g": None, "meal_targets": {}},
+                headers={"X-CSRF-Token": csrf},
             )
             assert cleared.status_code == 200
             assert cleared.json()["has_goal"] is False
@@ -187,5 +219,6 @@ def test_goal_versions_and_categories_on_real_postgresql() -> None:
         app.dependency_overrides.pop(get_db, None)
         with Session(engine) as db:
             db.query(GoalVersion).filter(GoalVersion.effective_date.in_(effective_dates)).delete(synchronize_session=False)
+            db.execute(delete(User).where(User.email == email))
             db.commit()
         engine.dispose()

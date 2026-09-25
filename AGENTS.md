@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, determinisztikus kalkulátor- és snapshot-napló kapu bizonyított. M4: **DONE**, minden kötelező kapu teljesült; M5–M7 nem része ennek a munkának.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**, M5: **DONE** a vendég/felhasználói auth kapukkal; M6–M7 további scope.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -16,10 +16,10 @@ Módosítás előtt kötelező elolvasni: `PROJECT.md`, `ARCHITECTURE.md`, `DECI
 - A vizuális minőség és a mobil használhatóság nem opcionális.
 - A CH-számítás maradjon determinisztikus és tesztelt.
 
-## Autonóm fejlesztés M1.3-tól M4-ig
+## Autonóm fejlesztés M1.3-tól M5-ig
 
 1. Olvasd el mind a nyolc dokumentumot, majd ellenőrizd a kódot, Git-státuszt és rendelkezésre álló futtatókörnyezetet. A TASKS részletes kapui az aktuális terv; lezárt M1.2.3 történetet ne írj át és ne futtasd újra fejlesztési feladatként. Valós regressziót természetesen javíts és dokumentálj.
-2. Haladj M1.3 → M2 → M3 → M4 sorrendben; ne állj meg pusztán egy részfeladat vagy mérföldkő végén. Rutin kódmódosításhoz, új releváns teszthez, helyi fejlesztési migrációhoz és commitokhoz nem kell ismételt engedély. A scope-on belüli technikai döntéseket önállóan, kis változtatásokkal hozd meg.
+2. Haladj M1.3 → M2 → M3 → M4 → M5 sorrendben; ne állj meg pusztán egy részfeladat vagy mérföldkő végén. Rutin kódmódosításhoz, új releváns teszthez, helyi fejlesztési migrációhoz és commitokhoz nem kell ismételt engedély. A scope-on belüli technikai döntéseket önállóan, kis változtatásokkal hozd meg.
 3. Először ellenőrizd a meglévő változtatásokat. Ne töröld, reseteld vagy commitold más munkáját; dirty fájlnál őrizd meg a felhasználói részeket. Destruktív Git reset/clean, force push és előzményátírás tilos. Logikus, tesztelt egységenként készíts helyi commitot explicit fájllistával; push/merge/release nincs a feladatban. Git-identitást ne találj ki.
 4. A SQLite-forrás és backup sérthetetlen. Migrációt csak ellenőrzött dev/test célon futtass a TASKS szerint. Tesztből soha ne legyen prod/dev adatbázis-takarítás. Éles adatírás, forrástörlés, destruktív sémamódosítás, valós Railway-deploy és fizetős infrastruktúra külön döntést igényel; az előkészítő kódot és teszteket addig készítsd el.
 5. Titok nem kerülhet Gitbe, terminálkimenetbe, logba vagy átadásba. .env tartalmát ne jelenítsd meg és ne írd felül; szükséges konfigurációt célzottan, értékkiírás nélkül ellenőrizz. Példakonfigurációba csak helyőrző kerüljön. Adatbázisdump, valódi naplóadat és cache-backup ne kerüljön commitba.
@@ -31,7 +31,7 @@ Módosítás előtt kötelező elolvasni: `PROJECT.md`, `ARCHITECTURE.md`, `DECI
 
 ### Leállási feltételek
 
-- M4 minden kötelező kapuja sikeres: végső átadás, teszteredmények, commitok, korlátozások; M5-be ne kezdj.
+- M5 minden kötelező kapuja sikeres: végső átadás, teszteredmények, commitok, korlátozások; M6-ba ne kezdj.
 - Adatvesztés veszélye, importeltérés, ismeretlen megőrzendő adat, prod cél vagy nem engedélyezett külső/fizetős művelet: az érintett művelet előtt állj meg; biztonságos előkészítés folytatható.
 - Feloldhatatlan környezeti/jogosultsági hiba vagy termékscope-ot megváltoztató döntés: ne találgass, kérj konkrét feloldást az elvégzett munka átadásával.
 - Munkamenet/erőforrás korlát: hagyj pontos HANDOVER-t a félkész állapotról és folytatási parancsokról; nem kész funkciót ne jelölj késznek és hibás munkát ne minősíts tesztelt commitnak.

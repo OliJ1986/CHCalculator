@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4: **DONE**; a hatálynapos célok és étkezési kategóriák lezárultak.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4 és M5: **DONE**; a hatálynapos célok és étkezési kategóriák lezárultak.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -99,3 +99,9 @@ A `GoalVersion` modell és az `0003_goal_versions` migráció profilhoz kötött
 Az étkezési napló PostgreSQL/Alembic alapon perzisztens. A `/api/meals` létrehoz, listáz helyi nap szerint, módosít és töröl; a mentéskor szerveroldali tápanyag-snapshot és determinisztikus CH kerül az adatbázisba. Egy rögzített, szerver által kiválasztott profil használható; auth és teljes offline szinkron továbbra sem része a scope-nak. Az M4 célok és kategóriák elkészültek.
 
 Az M0 Non-goals kizárólag M0-ra vonatkozik. M5–M7, receptek, OCR, AI, új katalógus és új autentikációs termék nem része az autonóm megvalósításnak. Részletes viselkedés, bemeneti szabályok, időzóna- és célkezelés: `TASKS.md`.
+
+
+
+## M5 megvalósult állapot
+
+Az M5 vendég IndexedDB naplót és regisztrált user réteget ad. A meal/goal API hitelesített user profile-t használ, a vendégimport explicit, idempotens és megőrzi a snapshotot, időzónát, helyi napot és célverziót. Email-delivery adapter és valós Railway deploy nyitott üzemeltetési lépés.

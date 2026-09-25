@@ -109,9 +109,14 @@ function mapMeal(meal: MealResponse): Meal {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers)
+  headers.set('Content-Type', 'application/json')
+  const csrf = document.cookie.split('; ').find((value) => value.startsWith('chill_csrf='))?.slice('chill_csrf='.length)
+  if (csrf && init?.method && init.method !== 'GET') headers.set('X-CSRF-Token', decodeURIComponent(csrf))
   const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
     ...init,
+    headers,
+    credentials: 'include',
   })
   if (!response.ok) {
     let message = 'A napló mentése nem sikerült.'

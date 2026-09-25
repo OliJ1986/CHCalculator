@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapu bizonyított. M4: **DONE**, a célverziózás és kategóriás napló lezárva.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapu bizonyított. M4 és M5: **DONE**, a célverziózás és kategóriás napló lezárva.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -94,3 +94,11 @@ A staging három elkülönített Railway-szolgáltatásból áll: PostgreSQL, pr
 Stagingben a backend middleware a `/api/ready` kivételével minden kérést `STAGING_PROXY_TOKEN` fejléc-ellenőrzéshez köt. A frontend runtime gateway nem teszi a tokent `VITE_*` változóba: Basic Auth után a privát `BACKEND_URL`-re proxyz, és csak szerveroldalon adja hozzá a tokent. A publikus backend domain szándékosan nincs létrehozva, így a default-profile adatai nem kerülnek közvetlenül internetre. A service worker `/api/` útvonalat nem cache-el, csak statikus erőforrásokat tárol.
 
 A teljes Railway felületi eljárás, változólista, ellenőrzőlista és visszavonási lépések a `RAILWAY_STAGING.md` fájlban találhatók. A staging konfiguráció előkészített, de tényleges Railway-projekt, hozzáférés, titkos értékek és deploy nélkül marad.
+
+
+
+## M5 architektúra — vendég és felhasználói réteg
+
+A User és Profile.user_id köti a meal/goal adatot tulajdonoshoz; a régi default-profile user nélkül megmarad. A UserSession, verification/reset token és LoginAttempt migrációval készül. A session cookie HttpOnly/SameSite, a DB csak digestet tárol, külön CSRF-cookie/header ellenőrzött, staging/prod módban Secure. A jelszó szabványos hashlib.scrypt.
+
+A vendég data layer az IndexedDB chill-guest-v1 tárban dolgozik: a lekérdezés három napra korlátozott, exportkor minden rekord megmarad. A /api/auth/import-guest szerveroldali CH-számolással és guest:<id> idempotenciakulccsal tranzakciós; helyi törlés csak siker után.

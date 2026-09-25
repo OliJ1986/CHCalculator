@@ -113,3 +113,13 @@ A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött 
 - D38: EBUSY esetén a Railway frontend service-en egyszeri `NO_CACHE=1` tiszta build szükséges; `.dockerignore`/`.railwayignore` nem kerül be, mert a `.gitignore` már kizárja a függőségeket, build-outputot és titkokat.
 - D39: A Railway TOML `preDeployCommand` értéke tömb legyen, például `["alembic upgrade head"]`. A staging napló migráció nélküli indulása megmutatta, hogy a stringes forma nem biztosította a pre-deploy lépés tényleges végrehajtását; az alkalmazás szándékosan fail-closed marad hiányzó PostgreSQL-séma esetén.
 - D40: A backend start-parancsa a pre-deploy mellett idempotensen lefuttatja az Alembic `upgrade head` lépést. Ez csak védelmi tartalék konfigurációs hibás Railway-indulásra; a séma forrása továbbra is kizárólag Alembic, a helyi cache-import nem deploy-hook.
+
+
+
+## 2026-09-25 — M5 felhasználói réteg döntései
+
+- D41: A vendég nem kap szerveroldali profilt; IndexedDB háromnapos nézet, régi rekord exportkor megmarad, default-profile API vendégként tiltott.
+- D42: User → Profile a tulajdonosi kapcsolat; meglévő default-adatot nem rendelünk automatikusan userhez.
+- D43: Opaque session-token digesttel, HttpOnly/SameSite/Secure cookie, CSRF-token, origin-ellenőrzés, lejárat/visszavonás; jelszó scrypt KDF.
+- D44: Verification/reset token egyszer használatos, lejáró digest; staging/prod token csak email-delivery adapteren keresztül mehet ki.
+- D45: Vendégimport szerveroldali CH-újraszámítás, azonos rekord kihagyás, eltérés rollback; eltérő cél explicit overwrite_existing megerősítés.

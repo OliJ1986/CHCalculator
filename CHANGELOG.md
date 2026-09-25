@@ -137,3 +137,12 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Hozzáadás után frissül a napi összesítő és visszajelzés jelenik meg.
 - Elkészült a light/dark téma, bottom navigation és PWA infrastruktúra.
 - Elkészült a minimális FastAPI health endpoint és projektmemória.
+
+
+
+## 0.5.0 — Vendég mód és felhasználói rendszer — 2026-09-25
+
+- IndexedDB vendég napló/cél, háromnapos látható ablak, automatikus törlés nélkül.
+- Regisztráció, email-megerősítés/reset terv, scrypt jelszóhash, session, CSRF, rate limit és user-owned profile.
+- Hitelesített meal/goal API, explicit idempotens vendégimport CH-újraszámolással, snapshot/célverzió-megőrzéssel és rollbackkel.
+- Email-delivery adapter és Railway deploy nincs végrehajtva.

@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     usda_api_key: str = ""
     usda_base_url: str = "https://api.nal.usda.gov/fdc/v1"
     staging_proxy_token: str = ""
+    auth_session_ttl_hours: int = 720
+    auth_verification_ttl_hours: int = 24
+    auth_reset_ttl_minutes: int = 30
+    auth_cookie_name: str = "chill_session"
+    auth_csrf_cookie_name: str = "chill_csrf"
+    auth_email_delivery_url: str = ""
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

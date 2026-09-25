@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk ellenőrzöttek. M4: **DONE**, a célverziózás és étkezési kategóriák elkészültek.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk ellenőrzöttek. M4 és M5: **DONE**, a célverziózás és étkezési kategóriák elkészültek.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -109,3 +109,13 @@ A repó külön Railway-konfigurációt tartalmaz a backendhez (`backend/railway
 A felületi létrehozási és ellenőrzési lépések a [RAILWAY_STAGING.md](RAILWAY_STAGING.md) fájlban vannak. A staging külön adatbázissal indul, helyi PostgreSQL- vagy SQLite-adatot nem másol át automatikusan. Valós Railway-projekt létrehozása, domain-kiadás és deploy ebben a munkamenetben nem történt.
 
 Staging buildnél a backend Nixpacks Python 3.12-t és a `requirements.txt` telepítőt használ; a frontend Node 22.12.0-ra van rögzítve. A frontend Railway build parancsa csak `npm run build`, mert a Nixpacks install fázisa már elvégzi az `npm ci` lépést.
+
+
+
+## M5 — Vendég és felhasználói mód
+
+Vendégként a napló IndexedDB-ben, háromnapos nézettel működik; régi rekord importig megmarad. A személyes API sessiont és íráskor CSRF-tokent kér.
+
+Ellenőrzés: cd backend; ..\.venv\Scripts\python.exe -m pytest -q; cd frontend; npm.cmd run typecheck; npm.cmd run lint; npm.cmd run test -- --run; npm.cmd run build. Migráció: cd backend; ..\.venv\Scripts\python.exe -m alembic upgrade head.
+
+Staging/prod email-delivery adapter és valós deploy nincs végrehajtva.

@@ -2,7 +2,7 @@ import logging
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -10,10 +10,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .auth import current_user, enforce_same_origin, require_csrf, require_user
 from .db import create_tables, get_db
 from .domain.carbs import CarbohydrateInputError, calculate_carbohydrate
 from .domain.foods import CATEGORY_OTHER, category_label, normalize_query
-from .models import Food
+from .models import Food, User
 from .providers.base import FoodProviderError
 from .providers.open_food_facts import OpenFoodFactsProvider
 from .providers.usda import USDAProvider
@@ -29,6 +30,15 @@ from .schemas import (
     MealListResponse,
     MealResponse,
     MealUpdateRequest,
+    AuthResponse,
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    VerifyEmailRequest,
+    GuestImportRequest,
+    GuestImportResponse,
 )
 from .services.foods import FoodService
 from .services.meals import (
@@ -42,6 +52,24 @@ from .services.meals import (
     update_meal,
 )
 from .services.goals import GoalError, goal_response, summary as goal_summary, upsert_goal
+from .services.auth import (
+    AccountNotVerified,
+    AuthError,
+    InvalidCredentials,
+    LoginRateLimited,
+    authenticate,
+    create_password_reset,
+    create_session,
+    create_user,
+    hash_password,
+    profile_for_user,
+    reset_password,
+    revoke_all_sessions,
+    revoke_session,
+    validate_password,
+    verify_email,
+)
+from .services.guest_import import GuestImportError, import_guest_data
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -99,6 +127,152 @@ def calculate_carbs(payload: CarbohydrateCalculationRequest) -> CarbohydrateCalc
     )
 
 
+def _set_auth_cookies(response: Response, session_token: str, csrf_token: str) -> None:
+    secure = settings.app_env in ("staging", "prod")
+    response.set_cookie(
+        settings.auth_cookie_name,
+        session_token,
+        httponly=True,
+        secure=secure,
+        samesite="lax",
+        max_age=settings.auth_session_ttl_hours * 3600,
+        path="/",
+    )
+    response.set_cookie(
+        settings.auth_csrf_cookie_name,
+        csrf_token,
+        httponly=False,
+        secure=secure,
+        samesite="lax",
+        max_age=settings.auth_session_ttl_hours * 3600,
+        path="/",
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    response.delete_cookie(settings.auth_cookie_name, path="/")
+    response.delete_cookie(settings.auth_csrf_cookie_name, path="/")
+
+
+@app.post("/api/auth/register", response_model=AuthResponse, status_code=202)
+def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthResponse:
+    enforce_same_origin(request)
+    try:
+        user, verification_token = create_user(db, payload.email, payload.password, settings)
+    except AuthError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    # The response is intentionally generic for existing addresses. In local
+    # test/dev mode a token is returned so the email-delivery adapter can be
+    # exercised without a real provider; staging/prod never expose it.
+    return AuthResponse(
+        status="verification_required",
+        verification_token=verification_token if settings.app_env in ("dev", "test") else None,
+        email=user.email if user is not None and settings.app_env in ("dev", "test") else None,
+    )
+
+
+@app.post("/api/auth/verify-email", response_model=AuthResponse)
+def verify_registered_email(request: Request, payload: VerifyEmailRequest, db: Session = Depends(get_db)) -> AuthResponse:
+    enforce_same_origin(request)
+    user = verify_email(db, payload.token)
+    if user is None:
+        raise HTTPException(status_code=400, detail="A megerősítő hivatkozás érvénytelen vagy lejárt")
+    return AuthResponse(status="verified", authenticated=False, role="registered", email=user.email, email_verified=True)
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+def login(request: Request, response: Response, payload: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
+    enforce_same_origin(request)
+    ip = request.client.host if request.client else None
+    try:
+        user = authenticate(db, payload.email, payload.password, ip)
+    except LoginRateLimited as exc:
+        raise HTTPException(status_code=429, detail=str(exc), headers={"Retry-After": "900"}) from exc
+    except AccountNotVerified as exc:
+        # Keep unverified and unknown accounts indistinguishable to callers.
+        raise HTTPException(status_code=401, detail="Hibás email vagy jelszó") from exc
+    except (InvalidCredentials, AuthError) as exc:
+        raise HTTPException(status_code=401, detail="Hibás email vagy jelszó") from exc
+    _session, raw, csrf = create_session(db, user, settings)
+    _set_auth_cookies(response, raw, csrf)
+    return AuthResponse(status="authenticated", authenticated=True, role=user.role, email=user.email, email_verified=True, csrf_token=csrf)
+
+
+@app.get("/api/auth/me", response_model=AuthResponse)
+def me(user: User | None = Depends(current_user)) -> AuthResponse:
+    if user is None:
+        return AuthResponse(status="guest", authenticated=False)
+    return AuthResponse(status="authenticated", authenticated=True, role=user.role, email=user.email, email_verified=user.email_verified_at is not None)
+
+
+@app.post("/api/auth/logout", response_model=AuthResponse)
+def logout(request: Request, response: Response, db: Session = Depends(get_db)) -> AuthResponse:
+    raw = request.cookies.get(settings.auth_cookie_name)
+    if raw:
+        require_csrf(request, db)
+        revoke_session(db, raw)
+    _clear_auth_cookies(response)
+    return AuthResponse(status="logged_out")
+
+
+@app.post("/api/auth/forgot-password", response_model=AuthResponse, status_code=202)
+def forgot_password(request: Request, payload: ForgotPasswordRequest, db: Session = Depends(get_db)) -> AuthResponse:
+    enforce_same_origin(request)
+    try:
+        token = create_password_reset(db, payload.email, settings)
+    except AuthError:
+        token = None
+    return AuthResponse(
+        status="reset_requested",
+        reset_token=token if settings.app_env in ("dev", "test") else None,
+    )
+
+
+@app.post("/api/auth/reset-password", response_model=AuthResponse)
+def reset_registered_password(request: Request, payload: ResetPasswordRequest, db: Session = Depends(get_db)) -> AuthResponse:
+    enforce_same_origin(request)
+    try:
+        success = reset_password(db, payload.token, payload.password)
+    except AuthError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not success:
+        raise HTTPException(status_code=400, detail="A jelszó-visszaállító hivatkozás érvénytelen vagy lejárt")
+    return AuthResponse(status="password_reset")
+
+
+@app.post("/api/auth/change-password", response_model=AuthResponse)
+def change_password(request: Request, response: Response, payload: ChangePasswordRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> AuthResponse:
+    require_csrf(request, db)
+    ip = request.client.host if request.client else None
+    try:
+        authenticate(db, user.email, payload.current_password, ip)
+        validate_password(payload.new_password)
+    except (AuthError, InvalidCredentials) as exc:
+        raise HTTPException(status_code=422 if not isinstance(exc, InvalidCredentials) else 401, detail=str(exc)) from exc
+    user.password_hash = hash_password(payload.new_password)
+    revoke_all_sessions(db, user.id)
+    _session, raw, csrf = create_session(db, user, settings)
+    _set_auth_cookies(response, raw, csrf)
+    return AuthResponse(status="password_changed", authenticated=True, role=user.role, email=user.email, email_verified=True, csrf_token=csrf)
+
+
+@app.post("/api/auth/import-guest", response_model=GuestImportResponse)
+def import_guest(request: Request, payload: GuestImportRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> GuestImportResponse:
+    require_csrf(request, db)
+    try:
+        imported_meals, skipped_meals, imported_goals, skipped_goals = import_guest_data(
+            db, profile_for_user(db, user), payload
+        )
+    except GuestImportError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return GuestImportResponse(
+        imported_meals=imported_meals,
+        skipped_meals=skipped_meals,
+        imported_goals=imported_goals,
+        skipped_goals=skipped_goals,
+    )
+
+
 def _meal_error(exc: MealError) -> HTTPException:
     if isinstance(exc, MealNotFoundError):
         return HTTPException(status_code=404, detail=str(exc))
@@ -115,35 +289,39 @@ def _goal_error(exc: GoalError) -> HTTPException:
 def get_meals(
     local_date: date | None = Query(default=None),
     db: Session = Depends(get_db),
+    user: User = Depends(require_user),
 ) -> MealListResponse:
     target_date = local_date or datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
     try:
-        items, total = list_meals(db, target_date)
+        items, total = list_meals(db, target_date, profile_for_user(db, user).id)
     except MealError as exc:
         raise _meal_error(exc) from exc
     return MealListResponse(items=items, total_carbs_g=total)
 
 
 @app.post("/api/meals", response_model=MealResponse, status_code=201)
-def post_meal(payload: MealCreateRequest, db: Session = Depends(get_db)) -> MealResponse:
+def post_meal(request: Request, payload: MealCreateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealResponse:
+    require_csrf(request, db)
     try:
-        return create_meal(db, payload)
+        return create_meal(db, payload, profile_for_user(db, user).id)
     except MealError as exc:
         raise _meal_error(exc) from exc
 
 
 @app.patch("/api/meals/{meal_id}", response_model=MealResponse)
-def patch_meal(meal_id: str, payload: MealUpdateRequest, db: Session = Depends(get_db)) -> MealResponse:
+def patch_meal(request: Request, meal_id: str, payload: MealUpdateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealResponse:
+    require_csrf(request, db)
     try:
-        return update_meal(db, meal_id, payload)
+        return update_meal(db, meal_id, payload, profile_for_user(db, user).id)
     except MealError as exc:
         raise _meal_error(exc) from exc
 
 
 @app.delete("/api/meals/{meal_id}", status_code=204)
-def remove_meal(meal_id: str, db: Session = Depends(get_db)) -> None:
+def remove_meal(request: Request, meal_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> None:
+    require_csrf(request, db)
     try:
-        delete_meal(db, meal_id)
+        delete_meal(db, meal_id, profile_for_user(db, user).id)
     except MealError as exc:
         raise _meal_error(exc) from exc
 
@@ -152,18 +330,20 @@ def remove_meal(meal_id: str, db: Session = Depends(get_db)) -> None:
 def get_goals(
     local_date: date | None = Query(default=None),
     db: Session = Depends(get_db),
+    user: User = Depends(require_user),
 ) -> GoalResponse:
     target_date = local_date or datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
     try:
-        return goal_response(db, target_date)
+        return goal_response(db, target_date, profile_for_user(db, user).id)
     except GoalError as exc:
         raise _goal_error(exc) from exc
 
 
 @app.put("/api/goals", response_model=GoalResponse)
-def put_goal(payload: GoalUpsertRequest, db: Session = Depends(get_db)) -> GoalResponse:
+def put_goal(request: Request, payload: GoalUpsertRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> GoalResponse:
+    require_csrf(request, db)
     try:
-        return upsert_goal(db, payload)
+        return upsert_goal(db, payload, profile_for_user(db, user).id)
     except GoalError as exc:
         raise _goal_error(exc) from exc
 
@@ -172,10 +352,11 @@ def put_goal(payload: GoalUpsertRequest, db: Session = Depends(get_db)) -> GoalR
 def get_goal_summary(
     local_date: date | None = Query(default=None),
     db: Session = Depends(get_db),
+    user: User = Depends(require_user),
 ) -> GoalSummaryResponse:
     target_date = local_date or datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
     try:
-        return goal_summary(db, target_date)
+        return goal_summary(db, target_date, profile_for_user(db, user).id)
     except GoalError as exc:
         raise _goal_error(exc) from exc
 

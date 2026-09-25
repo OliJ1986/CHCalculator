@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, mert a helyi PostgreSQL-, kalkulátor- és snapshot-napló kapuk sikeresen lefutottak; M4: **DONE**; a célverziózás és mobilos célkezelés lezárult. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, mert a helyi PostgreSQL-, kalkulátor- és snapshot-napló kapuk sikeresen lefutottak; M4 és M5: **DONE**; a célverziózás és mobilos célkezelés lezárult. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -229,3 +229,13 @@ A csatolt Railway napló build utáni futási hibát mutatott: a konténer azonn
 A tényleges konfigurációs hiba a `preDeployCommand` stringes TOML-alakja volt. A `backend/railway.toml` és a repo-root fallback most tömböt használ (`["alembic upgrade head"]`, illetve `["cd backend && alembic upgrade head"]`), amely megfelel a Railway config-as-code jelenlegi példájának. Mivel az új napló továbbra sem mutatott pre-deploy futást, a backend start-parancsa is idempotensen lefuttatja az `alembic upgrade head` lépést, mielőtt az Uvicorn elindul. A konfigurációs regressziós teszt ezt a típust és a parancsokat is ellenőrzi.
 
 Nyitott külső lépés: a Railway Dashboardban deployáld az új commitot, és a Deployment Details nézetben ellenőrizd, hogy a pre-deploy parancs a `/backend/railway.toml` fájlból származik, sikeresen lefutott, és csak utána jelenik meg a `Starting Container` sor. A staging adatbázisba más műveletet nem kell végrehajtani; helyi titkokhoz nem nyúltam.
+
+
+
+## M5 átadás — vendég mód és felhasználói rendszer
+
+A vendég napló az IndexedDB chill-guest-v1 tárat használja, a látható ablak három nap; régebbi rekord importig megmarad. A személyes API-k user profile-t, sessiont és íráskor CSRF-t kérnek. A backend scrypt jelszóhash-t, lejáró tokeneket, HttpOnly/SameSite sessiont, rate limitet és user/registered role-t ad.
+
+A vendégimport szerveroldalon újraszámol, snapshotot/célverziót őriz, idempotens és konfliktusnál rollbackel; a kliens csak siker után töröl. Ellenőrzés: auth 15 passed, PostgreSQL meal/goal 2 passed, Alembic 0005 head dev/test, frontend typecheck/8 unit/build sikeres. A teljes backend futás 73 passed, 3 skipped, 3 Windows pytest-temp ACL error volt.
+
+Korlát: staging/prod email-delivery adapter és valós Railway deploy nincs bekötve.

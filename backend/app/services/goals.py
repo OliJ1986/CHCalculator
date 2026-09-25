@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.carbs import CarbohydrateInputError, validate_amount_g
-from ..models import GoalVersion, MealEntry
+from ..models import GoalVersion, MealEntry, Profile
 from ..schemas import (
     GoalCategorySummary,
     GoalResponse,
@@ -50,8 +50,10 @@ def _values(goal: GoalVersion | None) -> tuple[float | None, dict[str, float]]:
     return daily, {key: float(value) for key, value in targets.items()}
 
 
-def get_goal_for_date(db: Session, local_date: date) -> GoalVersion | None:
-    profile = get_default_profile(db)
+def get_goal_for_date(db: Session, local_date: date, profile_id: str | None = None) -> GoalVersion | None:
+    profile = get_default_profile(db) if profile_id is None else db.get(Profile, profile_id)
+    if profile is None:
+        raise GoalError("A profil nem található")
     return db.scalar(
         select(GoalVersion)
         .where(GoalVersion.profile_id == profile.id, GoalVersion.effective_date <= local_date)
@@ -60,8 +62,8 @@ def get_goal_for_date(db: Session, local_date: date) -> GoalVersion | None:
     )
 
 
-def goal_response(db: Session, local_date: date) -> GoalResponse:
-    goal = get_goal_for_date(db, local_date)
+def goal_response(db: Session, local_date: date, profile_id: str | None = None) -> GoalResponse:
+    goal = get_goal_for_date(db, local_date, profile_id)
     daily, targets = _values(goal)
     has_goal = goal is not None and (daily is not None or bool(targets))
     return GoalResponse(
@@ -73,7 +75,7 @@ def goal_response(db: Session, local_date: date) -> GoalResponse:
     )
 
 
-def upsert_goal(db: Session, request: GoalUpsertRequest) -> GoalResponse:
+def upsert_goal(db: Session, request: GoalUpsertRequest, profile_id: str | None = None) -> GoalResponse:
     today = datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
     if request.effective_date < today and not request.allow_past:
         raise GoalError("Múltbeli hatályhoz explicit megerősítés szükséges")
@@ -83,7 +85,9 @@ def upsert_goal(db: Session, request: GoalUpsertRequest) -> GoalResponse:
         if key not in CATEGORY_LABELS:
             raise GoalError("Ismeretlen étkezési kategória")
         targets[key] = float(_target(value, f"{key} cél"))
-    profile = get_default_profile(db)
+    profile = get_default_profile(db) if profile_id is None else db.get(Profile, profile_id)
+    if profile is None:
+        raise GoalError("A profil nem található")
     goal = db.scalar(
         select(GoalVersion).where(
             GoalVersion.profile_id == profile.id,
@@ -97,13 +101,15 @@ def upsert_goal(db: Session, request: GoalUpsertRequest) -> GoalResponse:
     goal.meal_targets = targets
     db.commit()
     db.refresh(goal)
-    return goal_response(db, request.effective_date)
+    return goal_response(db, request.effective_date, profile.id)
 
 
-def summary(db: Session, local_date: date) -> GoalSummaryResponse:
-    goal = get_goal_for_date(db, local_date)
+def summary(db: Session, local_date: date, profile_id: str | None = None) -> GoalSummaryResponse:
+    goal = get_goal_for_date(db, local_date, profile_id)
     daily_target, targets = _values(goal)
-    profile = get_default_profile(db)
+    profile = get_default_profile(db) if profile_id is None else db.get(Profile, profile_id)
+    if profile is None:
+        raise GoalError("A profil nem található")
     entries = list(
         db.scalars(
             select(MealEntry).where(

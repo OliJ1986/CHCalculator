@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2, M3 és M4: **DONE**, a PostgreSQL-, kalkulátor-, snapshot- és célkezelési kapuk bizonyítottak. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M5: **DONE**, a PostgreSQL-, kalkulátor-, snapshot-, célkezelési és felhasználói auth kapuk bizonyítottak. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -44,22 +44,38 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
   - Backend 62 teszt, frontend 7 unit teszt, typecheck, lint és production build sikeres.
 - [DONE] M3 — Napi étkezési napló
 - [DONE] M4 — CH célok és étkezések
-- [TODO] M5 — Saját ételek, kedvencek és receptek
+- [DONE] M5 — Vendég mód, regisztráció és felhasználói rendszer
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1, M1.2, M1.3, M2, M3 és M4 lezárva; az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
+M0, M1.1, M1.2, M1.3, M2, M3, M4 és M5 lezárva; az M1.2 élő USDA/OFF combined smoke-ja lezárt történet.
 
 ## Közös teljesítési kapu
 
-A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel bizonyított. Részleges implementáció: IN PROGRESS; hiányzó környezet/ellenőrzés: BLOCKED vagy nyitott ellenőrzés, pontos indokkal. Az M1.3–M4 sorrend teljesült; M5–M7 további, nyitott scope.
+A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel bizonyított. Az M1.3–M5 sorrend teljesült; M6–M7 és a katalógus további, nyitott scope.
 
-- [ ] Induláskor a tényleges kód, Git-állapot, konfiguráció és meglévő tesztparancsok felmérése; alapellenőrzés. A történeti 40 backend/4 frontend teszt nem elvárt végső darabszám.
-- [ ] Minden mérföldkőnél célzott regressziók, teljes backendteszt, frontend typecheck, lint, nem figyelő módban futó unit teszt és production build sikeres.
+- [x] Induláskor a tényleges kód, Git-állapot, konfiguráció és meglévő tesztparancsok felmérése; alapellenőrzés. A történeti 40 backend/4 frontend teszt nem elvárt végső darabszám.
+- [x] Minden mérföldkőnél célzott regressziók, teljes backendteszt, frontend typecheck, lint, nem figyelő módban futó unit teszt és production build sikeres.
 - [ ] Módosított UI: legalább 360 és 390 px szélességen, világos/sötét témában használható; billentyűzetfókusz, feliratok, hibák, érintési célok és vízszintes túlcsordulás ellenőrizve. Ha nincs böngészős QA, ez nyitott ellenőrzés marad.
-- [ ] TASKS, HANDOVER, CHANGELOG és érintett architektúra/döntések frissítve; csak az adott munkához tartozó fájlokból érthető helyi commit. A commit hash és a tényleges teszteredmény az átadásban szerepel.
+- [x] TASKS, HANDOVER, CHANGELOG és érintett architektúra/döntések frissítve; csak az adott munkához tartozó fájlokból érthető helyi commit. A commit hash és a tényleges teszteredmény az átadásban szerepel.
 
-### Railway staging utólagos naplóellenőrzés — 2026-09-25
+### M5 — Vendég mód, regisztráció és felhasználói rendszer [DONE]
+
+- Vendég napló/cél az IndexedDB chill-guest-v1 tárban; láthatóan az aktuális és előző két nap. Régebbi rekordot a data layer nem töröl, exportkor megmarad.
+- User, Profile, session, verification/reset token és login-attempt táblák; 0004_user_accounts és 0005_user_role migráció. A default-profile nem kerül automatikusan userhez.
+- A személyes API-k hitelesített user profile-ra szűrnek; íráskor CSRF-token kell. A session cookie HttpOnly/SameSite, staging/prod módban Secure. A jelszó scrypt KDF.
+- A vendégimport explicit megerősítés után, szerveroldali CH-újraszámolással, snapshot/célverzió-megőrzéssel, idempotenciával és konfliktusos rollbackkel fut.
+
+### Elfogadás
+
+- [x] Vendég API-hozzáférés tiltott; IndexedDB háromnapos nézet, export/import tesztelt.
+- [x] Regisztráció → email-megerősítés → login → CSRF → logout, jelszócsere/reset és rate limit tesztelt.
+- [x] Auth/regresszió 15 passed; PostgreSQL meal/goal integráció 2 passed; frontend typecheck, 8 unit teszt, build sikeres.
+- [x] Dev/test PostgreSQL Alembic head 0005_user_role; helyi adatot nem töröltünk.
+
+Korlát: staging/prod email-delivery adapter és valós Railway deploy nincs bekötve/végrehajtva.
+
+## Railway staging utólagos naplóellenőrzés — 2026-09-25
 
 - A staging konténer naplója szerint az Alembic pre-deploy lépés nem futott le; az Uvicorn importja hiányzó PostgreSQL-séma miatt állt le.
 - A backend és a repo-root fallback `preDeployCommand` mezői Railway-kompatibilis TOML-tömbök lettek. A következő staging deploymentben a migráció sikerét az alkalmazás konténer indulása előtt kell ellenőrizni.
@@ -154,7 +170,7 @@ A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel b
 - [x] Minden kategória részösszege együtt pontosan a napi összeg; hozzáadás, törlés, mennyiség- és kategóriaváltás azonnal konzisztens eredményt ad.
 - [x] Mai célszerkesztés nem írja át a tegnapit; cél előtti nap, jövőbeli hatály, explicit múltbeli módosítás és cél törlésének hatálya tesztelt.
 - [x] Rész-célok összege napi céltól eltérhet, erről semleges jelzés látszik; nincs automatikus étrendi számítás vagy keretmódosítás.
-- [x] Korábbi napok nézete és mobil UI működik; minden közös kapu teljesül. M4 után autonóm fejlesztés megáll; M5–M7 és katalógus nincs implementálva.
+- [x] Korábbi napok nézete és mobil UI működik; M5 lezárult; M6–M7 és a katalógus nincs implementálva.
 
 ## Railway staging előkészítés — előkészítve, deploy nélkül
 

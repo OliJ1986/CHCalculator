@@ -17,7 +17,11 @@ type GoalSummaryResponse = { local_date: string; consumed_carbs_g: number; daily
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(apiBaseUrl + path, { headers: { 'Content-Type': 'application/json' }, ...init })
+  const headers = new Headers(init?.headers)
+  headers.set('Content-Type', 'application/json')
+  const csrf = document.cookie.split('; ').find((value) => value.startsWith('chill_csrf='))?.slice('chill_csrf='.length)
+  if (csrf && init?.method && init.method !== 'GET') headers.set('X-CSRF-Token', decodeURIComponent(csrf))
+  const response = await fetch(apiBaseUrl + path, { ...init, headers, credentials: 'include' })
   if (!response.ok) {
     let message = 'A cél mentése nem sikerült.'
     try { const body = (await response.json()) as { detail?: string }; if (body.detail) message = body.detail } catch { /* generic fallback */ }

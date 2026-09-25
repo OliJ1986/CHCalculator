@@ -116,3 +116,9 @@ Railway dokumentáció: [monorepo root directory](https://docs.railway.com/deplo
 Ha a naplóban a `PostgreSQL séma hiányzik; futtasd az alembic upgrade head parancsot` hiba jelenik meg, miközben a konténer közvetlenül az Uvicornnal indul, akkor a pre-deploy migráció nem futott le. A backend konfigurációban a Railway jelenlegi TOML-sémájával összhangban a `preDeployCommand` tömb: `["alembic upgrade head"]`. A Dashboard Deployment Details nézetében ellenőrizd, hogy a pre-deploy parancs forrása a `/backend/railway.toml` legyen, majd új deploymentet indíts.
 
 A Railway pre-deploy parancs külön konténerben, az alkalmazás indítása előtt fut; sikertelen migráció esetén a deploymentnek meg kell állnia. A backend start-parancs elején ugyanez az idempotens Alembic-lépés védelmi tartalék, ezért egy hibásan kihagyott pre-deploy után sem indul migrálatlan séma mellett az Uvicorn. A logban a migráció sikerét jelző részt az alkalmazás konténer `Starting Container` sora előtt kell látni. Ne tedd a helyi cache-importot a deploy hookba.
+
+
+
+## M5 auth konfiguráció
+
+A privát backend + frontend Basic Auth gateway változatlan. A DATABASE_URL és STAGING_PROXY_TOKEN mellett az email delivery szerződéshez AUTH_EMAIL_DELIVERY_URL konfigurálható; staging/prod token nem jelenik meg API-válaszban. Deploy után ellenőrizd a ready, auth/me, register/verify/login, CSRF meal/goal és vendégimport flow-t. Külső email-szolgáltató és deploy ebben a munkamenetben nem történt.

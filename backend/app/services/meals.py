@@ -48,6 +48,13 @@ def get_default_profile(db: Session) -> Profile:
     return profile
 
 
+def get_profile(db: Session, profile_id: str) -> Profile:
+    profile = db.get(Profile, profile_id)
+    if profile is None:
+        raise MealError("A profil nem található")
+    return profile
+
+
 def _timezone(name: str) -> ZoneInfo:
     try:
         return ZoneInfo(name)
@@ -127,8 +134,8 @@ def _meal_response(entry: MealEntry) -> MealResponse:
     )
 
 
-def create_meal(db: Session, request: MealCreateRequest) -> MealResponse:
-    profile = get_default_profile(db)
+def create_meal(db: Session, request: MealCreateRequest, profile_id: str | None = None) -> MealResponse:
+    profile = get_default_profile(db) if profile_id is None else get_profile(db, profile_id)
     amount = _validate_amount(request.amount_g)
     zone_name = request.timezone or profile.timezone
     zone = _timezone(zone_name)
@@ -175,8 +182,8 @@ def create_meal(db: Session, request: MealCreateRequest) -> MealResponse:
     return _meal_response(entry)
 
 
-def list_meals(db: Session, local_date: date) -> tuple[list[MealResponse], float]:
-    profile = get_default_profile(db)
+def list_meals(db: Session, local_date: date, profile_id: str | None = None) -> tuple[list[MealResponse], float]:
+    profile = get_default_profile(db) if profile_id is None else get_profile(db, profile_id)
     entries = list(
         db.scalars(
             select(MealEntry)
@@ -188,8 +195,8 @@ def list_meals(db: Session, local_date: date) -> tuple[list[MealResponse], float
     return [_meal_response(entry) for entry in entries], float(total)
 
 
-def update_meal(db: Session, meal_id: str, request: MealUpdateRequest) -> MealResponse:
-    profile = get_default_profile(db)
+def update_meal(db: Session, meal_id: str, request: MealUpdateRequest, profile_id: str | None = None) -> MealResponse:
+    profile = get_default_profile(db) if profile_id is None else get_profile(db, profile_id)
     entry = db.scalar(select(MealEntry).where(MealEntry.id == meal_id, MealEntry.profile_id == profile.id))
     if entry is None:
         raise MealNotFoundError("A bejegyzés nem található")
@@ -225,8 +232,8 @@ def update_meal(db: Session, meal_id: str, request: MealUpdateRequest) -> MealRe
     return _meal_response(entry)
 
 
-def delete_meal(db: Session, meal_id: str) -> None:
-    profile = get_default_profile(db)
+def delete_meal(db: Session, meal_id: str, profile_id: str | None = None) -> None:
+    profile = get_default_profile(db) if profile_id is None else get_profile(db, profile_id)
     entry = db.scalar(select(MealEntry).where(MealEntry.id == meal_id, MealEntry.profile_id == profile.id))
     if entry is None:
         raise MealNotFoundError("A bejegyzés nem található")
