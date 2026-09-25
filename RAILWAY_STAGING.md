@@ -33,6 +33,10 @@ Ha stagingben USDA smoke tesztet futtatsz, a `USDA_API_KEY`-t ugyanitt, titkos v
 
 A Railway backend szolgáltatásának `preDeployCommand` értéke `alembic upgrade head`. Sikertelen migráció esetén az új kiadás nem indul el. A `/api/ready` útvonal kivételként elérhető a Railway healthcheck számára; minden más staging API-útvonal a proxy tokenét igényli.
 
+### Munkakönyvtár-szabály
+
+A `/backend` Root Directory miatt a backend build- és deploy-parancsai már a `backend` könyvtárból futnak. Ezért a `/backend/railway.toml` fájlban helyes az `alembic upgrade head` és az `uvicorn app.main:app ...` forma; ide nem szabad `cd backend` előtagot tenni. A repógyökerű `railway.toml` külön fallback konfiguráció `/` Root Directory esetére, abban a `cd backend` szándékosan marad.
+
 ## 3. Frontend szolgáltatás
 
 Adj hozzá második GitHub szolgáltatást ugyanabból a repóból:
@@ -55,6 +59,8 @@ VITE_API_BASE_URL=/api
 ```
 
 A `BACKEND_URL` és a token runtime változó. A `VITE_API_BASE_URL` buildkor bekerülhet a böngészőbe, ezért ide soha ne kerüljön titok. A frontend Node gateway Basic Auth-tal védi a staging domaint, a `/healthz` viszont hitelesítés nélkül válaszol a Railway healthchecknek. A `/api/*` kéréseket a gateway a backend privát címére továbbítja, és hozzáadja a token fejlécet.
+
+A `/frontend` Root Directory miatt a `frontend/railway.toml` parancsai közvetlenül `npm ci`, `npm run build` és `npm start` formában futnak; `cd frontend` előtag nem szükséges.
 
 Csak az elkészült Basic Auth változók után generálj egyetlen nyilvános frontend domaint. A backendhez ne generálj publikus domaint: a Railway privát hálózata nem böngészőből elérhető, ezért a böngésző kizárólag a frontend same-origin `/api` proxyját használja.
 

@@ -157,6 +157,7 @@ A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel b
 - [x] A frontend production buildje nem tartalmaz beégetett localhost API-címet; a `/api` kérések privát backend-proxyra mennek.
 - [x] A service worker személyes `/api` válaszokat nem cache-el.
 - [x] A részletes Railway UI telepítési útmutató a `RAILWAY_STAGING.md` fájlban van.
+- [x] A backend/frontend Root Directoryhoz igazított parancsok és a repo-root fallback külön regressziós teszttel ellenőrzöttek.
 - [ ] Valós Railway projekt létrehozása, titkos staging változók kitöltése és deploy. Ez külön, felhasználói hozzáférést és biztonsági döntést igénylő művelet; ebben a feladatban nem történt meg.
 
 

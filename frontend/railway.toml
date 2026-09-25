@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+# Railway runs the build from the /frontend Root Directory.
 buildCommand = "npm ci && npm run build"
 
 [deploy]

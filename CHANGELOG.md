@@ -8,6 +8,7 @@
 - A service worker cache-verziója frissült, és személyes `/api` válaszok többé nem kerülnek általános cache-first tárolóba.
 - A Railway felületi telepítési és ellenőrzési útmutató a `RAILWAY_STAGING.md` fájlban található. Valós projekt, domain, deploy és adatimport nem történt.
 - Ellenőrzés: backend `73 passed, 2 warnings`; frontend typecheck, lint, `7 passed` unit teszt, production build; helyi frontend- és FastAPI staging auth/readiness smoke sikeres.
+- A szolgáltatás-root munkakönyvtárakat külön TOML-regressziós teszt rögzíti: backend `/backend` alatt nincs `cd backend`, frontend `/frontend` alatt nincs `cd frontend`; a repo-root fallback előtagja megmarad.
 
 ## 0.4.0 — M4 saját CH-célok és étkezési kategóriák — 2026-09-25
 

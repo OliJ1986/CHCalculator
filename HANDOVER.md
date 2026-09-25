@@ -207,3 +207,9 @@ A service worker v2 már nem cache-el `/api/` válaszokat. A helyi SQLite/Postgr
 Nyitott lépés: Railway-fiókban a staging környezet, PostgreSQL, backend és frontend szolgáltatás létrehozása, majd a titkos Basic Auth/proxy/API értékek kitöltése. Push és deploy nem történt.
 
 Ellenőrzési bizonyíték: backend teljes regresszió `73 passed, 2 warnings` izolált PostgreSQL tesztkapcsolattal; frontend `typecheck`, `lint` (egy meglévő React warning), `7 passed` unit teszt és production build; `node --check` és Python compile ellenőrzés sikeres. A helyi frontend gateway smoke `/healthz=200`, auth nélkül frontend/API `401`, helyes Basic Auth-tal statikus app és proxyzott API `200` eredményt adott. A tényleges FastAPI staging smoke token nélkül `401`, proxy tokennel `/api/health=200`, `/api/ready=200` volt.
+
+## Railway munkakönyvtár-ellenőrzés — 2026-09-25
+
+A Railway monorepo működése alapján a szolgáltatás Root Directoryja határozza meg, honnan futnak a build/deploy parancsok; a config fájl ettől függetlenül abszolút útvonallal választható ki. Ezért `/backend` + `/backend/railway.toml` esetén nincs `cd backend`, és `/frontend` + `/frontend/railway.toml` esetén nincs `cd frontend`. A gyökér `railway.toml` megmaradt repo-root fallbackként, benne a szükséges `cd backend` előtaggal.
+
+Új regressziós teszt (`backend/tests/test_railway_config.py`) TOML-ből ellenőrzi mindhárom konfiguráció parancsait, így a szolgáltatás-root és a fallback formája nem keverhető össze.
