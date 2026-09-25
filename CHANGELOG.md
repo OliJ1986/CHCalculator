@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Railway staging előkészítés — 2026-09-25
+
+- Külön Railway build/deploy konfiguráció készült a backendhez és a frontendhez; a backend Alembic pre-deploy migrációt és adatbázis-readiness healthchecket használ.
+- Staging módban a backend PostgreSQL-t és proxy tokent követel, a frontend production Node gateway pedig Basic Auth-tal védi a domaint és privát backend-címre proxyz.
+- Megszűnt a runtime localhost API-fallback: a Vite fejlesztési proxy `VITE_DEV_API_URL` változóból olvas, a staging frontend `/api` same-origin útvonalat használ.
+- A service worker cache-verziója frissült, és személyes `/api` válaszok többé nem kerülnek általános cache-first tárolóba.
+- A Railway felületi telepítési és ellenőrzési útmutató a `RAILWAY_STAGING.md` fájlban található. Valós projekt, domain, deploy és adatimport nem történt.
+- Ellenőrzés: backend `73 passed, 2 warnings`; frontend typecheck, lint, `7 passed` unit teszt, production build; helyi frontend- és FastAPI staging auth/readiness smoke sikeres.
+
 ## 0.4.0 — M4 saját CH-célok és étkezési kategóriák — 2026-09-25
 
 - Az `0003_goal_versions` migráció napra hatályos, profilhoz kötött napi és opcionális étkezési célokat tárol; a célok módosítása és törlése idempotens, a múltbeli naphoz explicit megerősítés kell.

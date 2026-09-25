@@ -100,3 +100,10 @@ A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött 
 - D28: A hat étkezési kategória stabil angol kulcsot és magyar címkét kap, és független a Food domain-kategóriáitól. A korábbi M3 rekordok `other` értéke megmarad, automatikus átsorolás nincs.
 - D29: A cél nélküli és a nulla cél különbözik. Az üres PUT tombstone-verziót tárol; a rész-célok összege eltérhet a napi céltól, ezt a UI semleges tájékoztatással jelzi, automatikus újraosztás nélkül.
 - D30: A múltbeli napló CH-ja kizárólag a MealEntry snapshotból számítódik. A cél- és kategóriamutáció nem ír át korábbi étkezési snapshotot, csak az adott nap összesítő nézetét változtatja.
+
+## 2026-09-25 — Railway staging hozzáférési döntések
+
+- D31: A staging három külön Railway-szolgáltatás: saját PostgreSQL, privát backend és Basic Auth-tal védett frontend gateway. A helyi adatbázis importja és a backend publikus domainje tiltott; a staging üres sémával indul.
+- D32: A staging backend `/api/ready` útvonala nyitott healthcheck-kivétel, minden más útvonal `STAGING_PROXY_TOKEN` ellenőrzést kér. Ez a default-profile véletlen internetes kitettségét csökkenti, de nem váltja ki a későbbi felhasználói auth/SSO döntést.
+- D33: A frontend proxy tokenje runtime Railway változó, nem `VITE_*` buildváltozó. A böngésző same-origin `/api` útvonalat használ, a backend csak Railway privát DNS-en érhető el.
+- D34: A service worker kizárólag statikus erőforrásokat cache-el; személyes `/api` válasz nem kerül cache-first tárolóba. A tényleges Railway létrehozás és deploy külön, felhasználói hozzáférést igénylő lépés marad.

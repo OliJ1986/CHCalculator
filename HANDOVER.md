@@ -195,3 +195,15 @@ Az új API a `/api/goals`, `/api/goals/summary` és a kategóriás `/api/meals` 
 Ellenőrzés: Alembic `upgrade head` sikeres `chill_dev` és `chill_test` adatbázison; teljes backend `70 passed, 2 warnings` valódi PostgreSQL-lel; frontend typecheck, lint, `7 passed` unit teszt és build; 390×844 és 360×800 px helyi renderben nincs vízszintes túlcsordulás, a cél- és kategória-flow mentés/törlés működött. A lint egy nem blokkoló React `set-state-in-effect` figyelmeztetést jelez a cél-lap adatbetöltésénél.
 
 A M4 változásai külön helyi commitban kerültek rögzítésre. Push, deploy és éles adatbázis-írás nem történt.
+
+## Railway staging előkészítés — 2026-09-25
+
+A staging előkészítése elkészült, tényleges Railway-erőforrás létrehozása nélkül. Új fájlok: `backend/railway.toml`, `frontend/railway.toml`, `frontend/server.mjs`, `frontend/.env.example`, `frontend/.env.staging.example`, `RAILWAY_STAGING.md`. A meglévő root `railway.toml` readiness útvonala `/api/ready` lett.
+
+A backend `APP_ENV=staging` esetén fail-closed módon PostgreSQL `DATABASE_URL`-t és `STAGING_PROXY_TOKEN`-t követel; a middleware a readiness kivételével token nélkül 401-et ad. A frontend `npm start` production Node gateway: `/healthz` nyilvános healthcheck, minden más útvonal Basic Auth mögött van, az `/api/*` privát backend címre proxyz. A Vite fejlesztési proxyja kizárólag `VITE_DEV_API_URL` változóból olvas; runtime kódban nincs localhost.
+
+A service worker v2 már nem cache-el `/api/` válaszokat. A helyi SQLite/PostgreSQL adatbázisokat nem másoltuk stagingbe, `.env` és titkos érték nem került commitba. A Railway UI lépései és a változók teljes listája a `RAILWAY_STAGING.md`-ben vannak; a backend publikus domainjét nem szabad létrehozni.
+
+Nyitott lépés: Railway-fiókban a staging környezet, PostgreSQL, backend és frontend szolgáltatás létrehozása, majd a titkos Basic Auth/proxy/API értékek kitöltése. Push és deploy nem történt.
+
+Ellenőrzési bizonyíték: backend teljes regresszió `73 passed, 2 warnings` izolált PostgreSQL tesztkapcsolattal; frontend `typecheck`, `lint` (egy meglévő React warning), `7 passed` unit teszt és production build; `node --check` és Python compile ellenőrzés sikeres. A helyi frontend gateway smoke `/healthz=200`, auth nélkül frontend/API `401`, helyes Basic Auth-tal statikus app és proxyzott API `200` eredményt adott. A tényleges FastAPI staging smoke token nélkül `401`, proxy tokennel `/api/health=200`, `/api/ready=200` volt.

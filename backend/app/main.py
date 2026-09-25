@@ -4,6 +4,9 @@ from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .config import get_settings
@@ -42,6 +45,7 @@ from .services.goals import GoalError, goal_response, summary as goal_summary, u
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+settings.validate_runtime()
 logger.info("USDA configured: %s", bool(settings.usda_api_key.strip()))
 app = FastAPI(title=settings.app_name, version="0.1.0")
 food_service = FoodService(
@@ -53,13 +57,32 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
+@app.middleware("http")
+async def require_staging_gateway(request, call_next):
+    """Keep the default-profile API unusable if a staging service is exposed accidentally."""
+    if request.url.path == "/api/ready" or settings.staging_token_matches(
+        request.headers.get("x-chill-staging-gateway")
+    ):
+        return await call_next(request)
+    return JSONResponse(status_code=401, content={"detail": "Staging gateway authentication required"})
+
+
 @app.get("/api/health")
 def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/api/ready")
+def ready(db: Session = Depends(get_db)) -> dict[str, str]:
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Database is not ready") from exc
     return {"status": "ok"}
 
 

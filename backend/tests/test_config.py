@@ -17,6 +17,26 @@ def test_prod_without_database_url_fails_clearly() -> None:
         _ = settings.effective_database_url
 
 
+def test_staging_requires_database_and_proxy_token() -> None:
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        Settings(app_env="staging", database_url=None, staging_proxy_token="staging-token").validate_runtime()
+    with pytest.raises(RuntimeError, match="STAGING_PROXY_TOKEN"):
+        Settings(
+            app_env="staging",
+            database_url="postgresql+psycopg://user:placeholder@db:5432/chill_staging",
+        ).validate_runtime()
+
+
+def test_staging_proxy_token_is_compared_without_exposing_the_value() -> None:
+    settings = Settings(
+        app_env="staging",
+        database_url="postgresql+psycopg://user:placeholder@db:5432/chill_staging",
+        staging_proxy_token="staging-token",
+    )
+    assert settings.staging_token_matches("staging-token") is True
+    assert settings.staging_token_matches("wrong-token") is False
+
+
 def test_explicit_postgresql_url_is_not_replaced_by_sqlite() -> None:
     settings = Settings(
         app_env="test",

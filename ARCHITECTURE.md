@@ -86,3 +86,11 @@ Tervezett külön backend és PostgreSQL szolgáltatás, környezetenként kül�
 Privát, auth nélküli naplót nyilvánosan nem telepítünk. Az M1.3 csak előkészítést vállal, sem Railway-üzemelést, sem éles migrációt nem állít késznek.
 
 Hivatalos műszaki hivatkozások a terv ellenőrzéséhez: [Alembic tutorial](https://alembic.sqlalchemy.org/en/latest/tutorial.html), [autogenerate és kézi ellenőrzés](https://alembic.sqlalchemy.org/en/latest/autogenerate.html), [Railway PostgreSQL](https://docs.railway.com/databases/postgresql), [Railway pre-deploy](https://docs.railway.com/deployments/pre-deploy-command). A pre-deploy a build és az alkalmazás indítása között fut, környezeti változókkal és privát hálózati hozzáféréssel; a pontos projektkonfiguráció a megvalósításkor ellenőrizendő.
+
+## Railway staging tényleges felépítése
+
+A staging három elkülönített Railway-szolgáltatásból áll: PostgreSQL, privát hálózaton futó FastAPI backend és Basic Auth-tal védett React/Node frontend. A backend szolgáltatás gyökérkönyvtára `/backend`, migrációs pre-deploy parancsa `alembic upgrade head`, indítása az `$PORT` porton történik, readiness útvonala `/api/ready`. A frontend gyökérkönyvtára `/frontend`; a build `npm ci && npm run build`, az indítás `npm start`, a healthcheck `/healthz`.
+
+Stagingben a backend middleware a `/api/ready` kivételével minden kérést `STAGING_PROXY_TOKEN` fejléc-ellenőrzéshez köt. A frontend runtime gateway nem teszi a tokent `VITE_*` változóba: Basic Auth után a privát `BACKEND_URL`-re proxyz, és csak szerveroldalon adja hozzá a tokent. A publikus backend domain szándékosan nincs létrehozva, így a default-profile adatai nem kerülnek közvetlenül internetre. A service worker `/api/` útvonalat nem cache-el, csak statikus erőforrásokat tárol.
+
+A teljes Railway felületi eljárás, változólista, ellenőrzőlista és visszavonási lépések a `RAILWAY_STAGING.md` fájlban találhatók. A staging konfiguráció előkészített, de tényleges Railway-projekt, hozzáférés, titkos értékek és deploy nélkül marad.

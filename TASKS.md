@@ -150,6 +150,15 @@ A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel b
 - [x] Rész-célok összege napi céltól eltérhet, erről semleges jelzés látszik; nincs automatikus étrendi számítás vagy keretmódosítás.
 - [x] Korábbi napok nézete és mobil UI működik; minden közös kapu teljesül. M4 után autonóm fejlesztés megáll; M5–M7 és katalógus nincs implementálva.
 
+## Railway staging előkészítés — előkészítve, deploy nélkül
+
+- [x] Külön backend- és frontend-konfiguráció készült, a szolgáltatások saját root directoryval és healthcheckkel használhatók.
+- [x] A backend staging módban PostgreSQL-t és proxy tokent követel meg; a frontend runtime gateway Basic Auth-tal véd, a backend publikus domain nélkül marad.
+- [x] A frontend production buildje nem tartalmaz beégetett localhost API-címet; a `/api` kérések privát backend-proxyra mennek.
+- [x] A service worker személyes `/api` válaszokat nem cache-el.
+- [x] A részletes Railway UI telepítési útmutató a `RAILWAY_STAGING.md` fájlban van.
+- [ ] Valós Railway projekt létrehozása, titkos staging változók kitöltése és deploy. Ez külön, felhasználói hozzáférést és biztonsági döntést igénylő művelet; ebben a feladatban nem történt meg.
+
 
 ### Ellenőrzött megvalósítás — 2026-09-25
 
