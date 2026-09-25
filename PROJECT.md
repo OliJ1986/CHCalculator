@@ -111,3 +111,6 @@ Az M0 Non-goals kizárólag M0-ra vonatkozik. M6–M7, receptek, OCR, AI, új ka
 ## M5 megvalósult állapot
 
 Az M5 vendég IndexedDB naplót és regisztrált user réteget ad. A meal/goal API hitelesített user profile-t használ, a vendégimport explicit, idempotens és megőrzi a snapshotot, időzónát, helyi napot és célverziót. Email-delivery adapter és valós Railway deploy nyitott üzemeltetési lépés.
+
+### M12 állapot
+A mobil UX 2.0 automatikus kapui teljesültek; böngészős mobil és PWA QA környezeti okból nyitott.

@@ -225,3 +225,11 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - A frontend dátumnavigációt, cél-szerkesztő lapot, múltbeli megerősítést, hat kategóriát és kategória-részösszegeket mutat. Valós helyi renderben 390×844 és 360×800 px-en `scrollWidth == clientWidth`; cél mentés, kategória-rész-cél és törlés API-n keresztül ellenőrizve.
 - Kapuk: teljes backend `70 passed, 2 warnings` valódi `chill_test` PostgreSQL-lel; Alembic head dev/test-en; frontend typecheck, lint, `7 passed` unit teszt és production build; mobil render/interakció sikeres.
 - M4 után az autonóm fejlesztés megáll. A privát `default-profile`, auth, teljes offline szinkron, M5–M7 és új katalógus továbbra is korlátozás.
+
+## M12 — Mobil UX 2.0 [IMPLEMENTED — böngészős QA nyitott]
+
+- Az alsó navigáció pontosan öt elemre váltott: Ma, Ételek, Hozzáadás, Tervező, Profil. A központi Hozzáadás gomb megnyitja a gyors naplózási sheetet; a korábbi Kamera elsődleges navigációja megszűnt.
+- Az Ételek nézet saját ételeket, kedvenceket és recepteket kezel; a heti tervező külön Tervező nézetben érhető el. A gyors hozzáadás megőrzi a kiválasztott napot, és másik nap esetén egyértelmű jelzést mutat.
+- A napi hero, kategóriaösszegzés és profil kisebb mobil képernyőkre tömörebb lett; a safe-area és az alsó navigációs tartalékhely megmaradt.
+- Automatizált kapuk: backend 84 passed, frontend 9 unit passed, typecheck és build passed. A lint csak a meglévő React effect/dependency figyelmeztetéseket jelzi.
+- Korlát: ebben a környezetben nincs böngészővezérlés, ezért 360/390 px vizuális, billentyűzet- és PWA-ellenőrzés nem bizonyított.

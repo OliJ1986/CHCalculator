@@ -107,3 +107,6 @@ A vendég data layer az IndexedDB chill-guest-v1 tárban dolgozik: a lekérdezé
 A profilhoz kötött saját ételek, receptek, étkezéstervek és bevásárlótételek PostgreSQL-ben külön táblákban élnek (`custom_foods`, `recipes`, `recipe_ingredients`, `meal_plan_entries`, `shopping_items`). Minden recept- és naplóbejegyzés számítási snapshotot rögzít, ezért a későbbi katalógus-frissítés nem írja át a múltat. A vendég mód ugyanennek a minimális adatmodellnek az IndexedDB 2-es, additive tároló-verzióját használja; a háromnapos naplóablak csak megjelenítési korlát.
 
 Az API-k minden személyes lekérdezést hitelesített user profiljára szűrnek, módosításkor CSRF-védelmet használnak. A tervező különálló domain a tényleges naplótól, a bevásárlólista aggregációja név és kompatibilis egység szerint történik. Az új Alembic revíziók sorrendje `0006_custom_foods` → `0007_recipes` → `0008_meal_plans` → `0009_shopping_list`.
+
+## M12 mobil navigáció
+A frontend alsó navigációja öt fix célból áll; a Hozzáadás elem lokális sheetet nyit, a személyes adatok továbbra is a meglévő guest IndexedDB vagy hitelesített API rétegen mennek át.

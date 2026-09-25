@@ -259,3 +259,11 @@ Korlát: a 360/390 px-es böngészős UI-ellenőrzés nem futott le, mert a kör
 A frontend Node gateway most Basic Auth nélkül szolgálja ki a vendégalkalmazást. A `STAGING_BASIC_AUTH_USER` és `STAGING_BASIC_AUTH_PASSWORD` változók, a Basic Auth ellenőrzés és a hozzá tartozó kriptográfiai kód kikerült. A `BACKEND_URL` és `BACKEND_PROXY_TOKEN` staging-függőség megmaradt; a gateway a kliens `Authorization` fejlécét nem továbbítja, és szerveroldalon adja hozzá a proxy tokent.
 
 A backend publikus domain nélkül marad. A vendégadatok IndexedDB-ben maradnak, a regisztrált felhasználók személyes meal/goal végpontjai továbbra is sessiont és íráskor CSRF-tokent igényelnek. A gateway smoke, frontend build/typecheck/unit/lint, auth regresszió és valódi PostgreSQL integráció sikeres; push és deploy nem történt. A telefonos vizuális QA környezeti böngészőhiány miatt továbbra is nyitott.
+
+## M12 — Mobil UX 2.0 [IMPLEMENTED — böngészős QA nyitott]
+
+- Az alsó navigáció pontosan öt elemre váltott: Ma, Ételek, Hozzáadás, Tervező, Profil. A központi Hozzáadás gomb megnyitja a gyors naplózási sheetet; a korábbi Kamera elsődleges navigációja megszűnt.
+- Az Ételek nézet saját ételeket, kedvenceket és recepteket kezel; a heti tervező külön Tervező nézetben érhető el. A gyors hozzáadás megőrzi a kiválasztott napot, és másik nap esetén egyértelmű jelzést mutat.
+- A napi hero, kategóriaösszegzés és profil kisebb mobil képernyőkre tömörebb lett; a safe-area és az alsó navigációs tartalékhely megmaradt.
+- Automatizált kapuk: backend 84 passed, frontend 9 unit passed, typecheck és build passed. A lint csak a meglévő React effect/dependency figyelmeztetéseket jelzi.
+- Korlát: ebben a környezetben nincs böngészővezérlés, ezért 360/390 px vizuális, billentyűzet- és PWA-ellenőrzés nem bizonyított.

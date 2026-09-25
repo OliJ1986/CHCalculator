@@ -125,3 +125,6 @@ A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött 
 - D45: Vendégimport szerveroldali CH-újraszámítás, azonos rekord kihagyás, eltérés rollback; eltérő cél explicit overwrite_existing megerősítés.
 - D46: A Railway frontend gateway Basic Auth nélkül szolgálja ki a vendégalkalmazást; a backend publikus domain nélkül marad, a gateway minden `/api` kéréshez csak szerveroldali `BACKEND_PROXY_TOKEN`-t ad, a személyes API-k védelmét pedig a backend session/CSRF ellenőrzése adja.
 - D47: A saját ételek, receptek, tervek és bevásárlótételek profilhoz kötött PostgreSQL-táblákba kerülnek, vendég módban pedig külön IndexedDB object store-okba. A recept- és napló CH-számítás snapshotból készül; a terv külön marad a tényleges naplótól, a lista aggregációja név+kompatibilis egység szerint történik.
+
+## D-M12-01 — Központi gyors hozzáadás
+A gyors hozzáadás külön útvonal helyett navigációs műveletként nyitja meg a meglévő sheetet, így a kiválasztott nap és a vendég/account adattárolási út változatlan marad.

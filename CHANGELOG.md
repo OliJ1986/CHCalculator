@@ -161,3 +161,6 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Az automatizált M5-kapuk sikeresek; a módosított UI 360/390 px-es böngészős QA-ja a környezetben elérhető böngészővezérlés hiánya miatt nyitott.
 - A vendég IndexedDB nézet és célkezelés már nem várja meg az auth-lekérdezést; a regisztráció csak későbbi, opcionális fiókos váltás.
 - Email-delivery adapter és Railway deploy nincs végrehajtva.
+
+### M12 mobil UX 2.0
+- Ötelemű mobil navigáció, központi gyors hozzáadás, tömörebb napi/profil nézet és napjelzés készült. A böngészős mobil QA továbbra is nyitott.
