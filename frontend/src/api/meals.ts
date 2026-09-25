@@ -20,6 +20,8 @@ export type MealSnapshot = {
 export type Meal = {
   id: string
   foodId: string | null
+  customFoodId?: string | null
+  recipeId?: string | null
   consumedAt: string
   localDate: string
   timezone: string
@@ -56,6 +58,8 @@ type MealSnapshotResponse = {
 type MealResponse = {
   id: string
   food_id: string | null
+  custom_food_id?: string | null
+  recipe_id?: string | null
   consumed_at: string
   local_date: string
   timezone: string
@@ -96,6 +100,8 @@ function mapMeal(meal: MealResponse): Meal {
   return {
     id: meal.id,
     foodId: meal.food_id,
+    customFoodId: meal.custom_food_id,
+    recipeId: meal.recipe_id,
     consumedAt: meal.consumed_at,
     localDate: meal.local_date,
     timezone: meal.timezone,
@@ -141,7 +147,8 @@ export async function listMeals(localDate: string, signal?: AbortSignal): Promis
 }
 
 export type CreateMealPayload = {
-  food_id: string
+  food_id?: string
+  custom_food_id?: string
   amount_g: number
   local_date: string
   meal_category: MealCategory
@@ -156,6 +163,7 @@ export async function createMeal(payload: CreateMealPayload): Promise<Meal> {
 export type UpdateMealPayload = {
   amount_g: number
   food_id?: string
+  custom_food_id?: string
   meal_category?: MealCategory
 }
 

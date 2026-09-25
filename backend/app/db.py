@@ -73,6 +73,7 @@ def create_tables() -> None:
     # Additive columns keep an existing development cache usable after upgrades.
     if settings.is_sqlite:
         existing = {column["name"] for column in inspect(engine).get_columns("foods")}
+        meal_columns = {column["name"] for column in inspect(engine).get_columns("meal_entries")}
         profile_columns = {column["name"] for column in inspect(engine).get_columns("profiles")}
         user_columns = {column["name"] for column in inspect(engine).get_columns("users")}
         with engine.begin() as connection:
@@ -87,6 +88,12 @@ def create_tables() -> None:
                 connection.execute(text("ALTER TABLE profiles ADD COLUMN user_id VARCHAR(36)"))
             if "role" not in user_columns:
                 connection.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(24) NOT NULL DEFAULT 'registered'"))
+            if "custom_food_id" not in meal_columns:
+                connection.execute(text("ALTER TABLE meal_entries ADD COLUMN custom_food_id VARCHAR(36)"))
+            if "recipe_id" not in meal_columns:
+                connection.execute(text("ALTER TABLE meal_entries ADD COLUMN recipe_id VARCHAR(36)"))
+            if "quantity_unit" not in meal_columns:
+                connection.execute(text("ALTER TABLE meal_entries ADD COLUMN quantity_unit VARCHAR(16) NOT NULL DEFAULT 'g'"))
             connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_profiles_user_id ON profiles(user_id)"))
     with SessionLocal() as db:
         migrate_usda_cache(db)

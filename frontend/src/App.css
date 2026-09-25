@@ -46,3 +46,11 @@
 .amount-control > button { transition: background .2s ease, transform .2s ease; }.amount-control > button:active { transform: scale(.94); background: var(--lime); }
 .hero-total { display: inline-block; animation: number-pop .28s ease; }
 .food-kind { color: var(--plum) !important; font-weight: 600; }
+.catalog-screen, .planner-screen { padding-top: 12px; }
+.catalog-screen h1, .planner-screen h1 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 36px; letter-spacing: -.06em; }
+.catalog-card { margin-top: 20px; padding: 17px; border: 1px solid var(--line); border-radius: 18px; background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.catalog-card h2 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 22px; letter-spacing: -.04em; }
+.catalog-card .goal-input { margin-top: 12px; }
+.catalog-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 54px; border-bottom: 1px solid var(--line); }
+.catalog-row:last-child { border-bottom: 0; }.catalog-row > span { display: flex; min-width: 0; flex-direction: column; gap: 3px; }.catalog-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }.catalog-row small { color: var(--muted); font-size: 11px; }.catalog-row button { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: transparent; color: var(--muted); }.catalog-row button:hover { background: var(--paper); color: var(--coral); }.compact-action { display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; font-size: 11px; }
+.planner-select { width: 100%; margin: 12px 0 4px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); }

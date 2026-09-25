@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..domain.carbs import CarbohydrateInputError, validate_amount_g, validate_available_carbs_100g
-from ..models import Food, MealEntry, Profile
+from ..models import CustomFood, Food, MealEntry, Profile
 from ..schemas import MealCreateRequest, MealResponse, MealUpdateRequest
 
 DEFAULT_PROFILE_ID = "default-profile"
@@ -80,7 +80,26 @@ def _decimal(value: object, *, field: str) -> Decimal:
     return result
 
 
-def _snapshot(food: Food, captured_at: datetime) -> dict:
+def _snapshot(food: Food | CustomFood, captured_at: datetime) -> dict:
+    if isinstance(food, CustomFood):
+        return {
+            "snapshot_version": SNAPSHOT_VERSION,
+            "captured_at": captured_at.isoformat(),
+            "calculation_version": CALCULATION_VERSION,
+            "unit": "g",
+            "name": food.name,
+            "original_name": food.name,
+            "brand": food.brand,
+            "source": "custom",
+            "source_id": food.id,
+            "available_carbs_100g": float(food.available_carbs_100g),
+            "total_carbohydrate_100g": None,
+            "dietary_fiber_100g": float(food.dietary_fiber_100g) if food.dietary_fiber_100g is not None else None,
+            "nutrient_ids": None,
+            "nutrient_values": None,
+            "nutrient_provenance": {"kind": "user_entered"},
+            "mapping_version": None,
+        }
     payload = dict(food.source_payload) if isinstance(food.source_payload, dict) else {}
     return {
         "snapshot_version": SNAPSHOT_VERSION,
@@ -122,11 +141,14 @@ def _meal_response(entry: MealEntry) -> MealResponse:
     return MealResponse(
         id=entry.id,
         food_id=entry.food_id,
+        custom_food_id=entry.custom_food_id,
+        recipe_id=entry.recipe_id,
         consumed_at=entry.consumed_at,
         local_date=entry.local_date,
         timezone=entry.timezone,
         amount_g=float(entry.amount_g),
         meal_category=entry.meal_category,
+        quantity_unit=entry.quantity_unit,
         calculated_carbs_g=float(entry.calculated_carbs_g),
         snapshot=entry.snapshot,
         created_at=entry.created_at,
@@ -141,7 +163,12 @@ def create_meal(db: Session, request: MealCreateRequest, profile_id: str | None 
     zone = _timezone(zone_name)
     consumed_at = _utc_datetime(request.consumed_at)
     local_date = request.local_date or consumed_at.astimezone(zone).date()
-    food = db.get(Food, request.food_id)
+    if bool(request.food_id) == bool(request.custom_food_id):
+        raise MealError("Pontosan egy ételforrást kell megadni")
+    if request.food_id:
+        food: Food | CustomFood | None = db.get(Food, request.food_id)
+    else:
+        food = db.scalar(select(CustomFood).where(CustomFood.id == request.custom_food_id, CustomFood.profile_id == profile.id))
     if food is None:
         raise MealError("A kiválasztott étel nem található")
     if food.available_carbs_100g is None:
@@ -153,7 +180,8 @@ def create_meal(db: Session, request: MealCreateRequest, profile_id: str | None 
         )
     )
     if existing is not None:
-        if existing.food_id != food.id or Decimal(str(existing.amount_g)) != amount:
+        source_id = request.food_id or request.custom_food_id
+        if (existing.food_id or existing.custom_food_id) != source_id or Decimal(str(existing.amount_g)) != amount:
             raise MealConflictError("Az idempotencia-kulcs már más bejegyzéshez tartozik")
         return _meal_response(existing)
     calculated = _calculated(amount, food.available_carbs_100g)
@@ -162,7 +190,9 @@ def create_meal(db: Session, request: MealCreateRequest, profile_id: str | None 
     now = datetime.now(UTC)
     entry = MealEntry(
         profile_id=profile.id,
-        food_id=food.id,
+        food_id=food.id if isinstance(food, Food) else None,
+        custom_food_id=food.id if isinstance(food, CustomFood) else None,
+        quantity_unit="g",
         consumed_at=consumed_at,
         local_date=local_date,
         timezone=zone_name,
@@ -201,12 +231,26 @@ def update_meal(db: Session, meal_id: str, request: MealUpdateRequest, profile_i
     if entry is None:
         raise MealNotFoundError("A bejegyzés nem található")
     amount = _validate_amount(request.amount_g) if request.amount_g is not None else _decimal(entry.amount_g, field="amount_g")
-    food = db.get(Food, request.food_id) if request.food_id is not None else (db.get(Food, entry.food_id) if entry.food_id else None)
-    food_changed = request.food_id is not None and request.food_id != entry.food_id
+    source_changed = request.food_id is not None or request.custom_food_id is not None
+    if request.food_id is not None:
+        food: Food | CustomFood | None = db.get(Food, request.food_id)
+    elif request.custom_food_id is not None:
+        food = db.scalar(select(CustomFood).where(CustomFood.id == request.custom_food_id, CustomFood.profile_id == profile.id))
+    elif entry.food_id:
+        food = db.get(Food, entry.food_id)
+    elif entry.custom_food_id:
+        food = db.scalar(select(CustomFood).where(CustomFood.id == entry.custom_food_id, CustomFood.profile_id == profile.id))
+    else:
+        food = None
+    food_changed = source_changed and (request.food_id != entry.food_id or request.custom_food_id != entry.custom_food_id)
     if food_changed:
         if food is None or food.available_carbs_100g is None:
             raise MealError("Az új étel CH-adata nem számolható")
-        entry.food_id = food.id
+        if food is None:
+            raise MealError("Az új étel nem található")
+        entry.food_id = food.id if isinstance(food, Food) else None
+        entry.custom_food_id = food.id if isinstance(food, CustomFood) else None
+        entry.recipe_id = None
         entry.snapshot = _snapshot(food, datetime.now(UTC))
     snapshot_carbs = entry.snapshot.get("available_carbs_100g") if isinstance(entry.snapshot, dict) else None
     calculated = _calculated(amount, snapshot_carbs)

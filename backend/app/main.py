@@ -39,6 +39,10 @@ from .schemas import (
     VerifyEmailRequest,
     GuestImportRequest,
     GuestImportResponse,
+    CustomFoodCreateRequest, CustomFoodUpdateRequest, CustomFoodResponse,
+    RecipeCreateRequest, RecipeResponse, RecipeMealRequest,
+    MealPlanCreateRequest, MealPlanUpdateRequest, MealPlanResponse,
+    ShoppingItemCreateRequest, ShoppingItemUpdateRequest, ShoppingItemResponse,
 )
 from .services.foods import FoodService
 from .services.meals import (
@@ -70,6 +74,10 @@ from .services.auth import (
     verify_email,
 )
 from .services.guest_import import GuestImportError, import_guest_data
+from .services.custom_foods import CustomFoodError, create_custom_food, delete_custom_food, list_custom_foods, toggle_favorite as toggle_custom_food_favorite, update_custom_food
+from .services.recipes import RecipeError, create_recipe, delete_recipe, get_recipe_response, list_recipes, log_recipe_meal, toggle_recipe_favorite, update_recipe
+from .services.planner import PlanError, create_plan, delete_plan, list_plans, update_plan
+from .services.shopping import ShoppingError, create_item, delete_item, generate_from_plans, list_items, update_item
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -406,3 +414,150 @@ async def get_food_by_barcode(barcode: str, db: Session = Depends(get_db)) -> Fo
     except FoodProviderError as exc:
         raise HTTPException(status_code=503, detail="A vonalkódos ételkeresés átmenetileg nem elérhető") from exc
     return _food_response(food) if food else None
+
+
+def _catalog_error(exc: ValueError) -> HTTPException:
+    return HTTPException(status_code=422, detail=str(exc))
+
+
+@app.get("/api/custom-foods", response_model=list[CustomFoodResponse])
+def get_custom_foods(q: str | None = Query(default=None, max_length=120), favorites: bool = False,
+                     db: Session = Depends(get_db), user: User = Depends(require_user)) -> list[CustomFoodResponse]:
+    return list_custom_foods(db, profile_for_user(db, user).id, q, favorites)
+
+
+@app.post("/api/custom-foods", response_model=CustomFoodResponse, status_code=201)
+def post_custom_food(request: Request, payload: CustomFoodCreateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> CustomFoodResponse:
+    require_csrf(request, db)
+    try: return create_custom_food(db, profile_for_user(db, user).id, payload)
+    except CustomFoodError as exc: raise _catalog_error(exc) from exc
+
+
+@app.patch("/api/custom-foods/{food_id}", response_model=CustomFoodResponse)
+def patch_custom_food(request: Request, food_id: str, payload: CustomFoodUpdateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> CustomFoodResponse:
+    require_csrf(request, db)
+    try: return update_custom_food(db, profile_for_user(db, user).id, food_id, payload)
+    except CustomFoodError as exc: raise _catalog_error(exc) from exc
+
+
+@app.delete("/api/custom-foods/{food_id}", status_code=204)
+def remove_custom_food(request: Request, food_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> None:
+    require_csrf(request, db)
+    try: delete_custom_food(db, profile_for_user(db, user).id, food_id)
+    except CustomFoodError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/custom-foods/{food_id}/favorite", response_model=CustomFoodResponse)
+def favorite_custom_food(request: Request, food_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> CustomFoodResponse:
+    require_csrf(request, db)
+    try: return toggle_custom_food_favorite(db, profile_for_user(db, user).id, food_id)
+    except CustomFoodError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/recipes", response_model=list[RecipeResponse])
+def get_recipes(db: Session = Depends(get_db), user: User = Depends(require_user)) -> list[RecipeResponse]:
+    return list_recipes(db, profile_for_user(db, user).id)
+
+
+@app.get("/api/recipes/{recipe_id}", response_model=RecipeResponse)
+def get_one_recipe(recipe_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> RecipeResponse:
+    try: return get_recipe_response(db, profile_for_user(db, user).id, recipe_id)
+    except RecipeError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/recipes", response_model=RecipeResponse, status_code=201)
+def post_recipe(request: Request, payload: RecipeCreateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> RecipeResponse:
+    require_csrf(request, db)
+    try: return create_recipe(db, profile_for_user(db, user).id, payload)
+    except RecipeError as exc: raise _catalog_error(exc) from exc
+
+
+@app.put("/api/recipes/{recipe_id}", response_model=RecipeResponse)
+def put_recipe(request: Request, recipe_id: str, payload: RecipeCreateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> RecipeResponse:
+    require_csrf(request, db)
+    try: return update_recipe(db, profile_for_user(db, user).id, recipe_id, payload)
+    except RecipeError as exc: raise _catalog_error(exc) from exc
+
+
+@app.delete("/api/recipes/{recipe_id}", status_code=204)
+def remove_recipe(request: Request, recipe_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> None:
+    require_csrf(request, db)
+    try: delete_recipe(db, profile_for_user(db, user).id, recipe_id)
+    except RecipeError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/recipes/{recipe_id}/favorite", response_model=RecipeResponse)
+def favorite_recipe(request: Request, recipe_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> RecipeResponse:
+    require_csrf(request, db)
+    try: return toggle_recipe_favorite(db, profile_for_user(db, user).id, recipe_id)
+    except RecipeError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/recipes/{recipe_id}/meal", response_model=MealResponse, status_code=201)
+def post_recipe_meal(request: Request, recipe_id: str, payload: RecipeMealRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealResponse:
+    require_csrf(request, db)
+    profile = profile_for_user(db, user)
+    try:
+        entry = log_recipe_meal(db, profile.id, recipe_id, payload, payload.timezone or profile.timezone)
+    except RecipeError as exc: raise _catalog_error(exc) from exc
+    return MealResponse(id=entry.id, food_id=None, custom_food_id=None, recipe_id=entry.recipe_id, consumed_at=entry.consumed_at,
+                        local_date=entry.local_date, timezone=entry.timezone, amount_g=float(entry.amount_g), quantity_unit=entry.quantity_unit,
+                        meal_category=entry.meal_category, calculated_carbs_g=float(entry.calculated_carbs_g), snapshot=entry.snapshot,
+                        created_at=entry.created_at, updated_at=entry.updated_at)
+
+
+@app.get("/api/plans", response_model=list[MealPlanResponse])
+def get_plans(start: date | None = Query(default=None), end: date | None = Query(default=None), db: Session = Depends(get_db), user: User = Depends(require_user)) -> list[MealPlanResponse]:
+    return list_plans(db, profile_for_user(db, user).id, start, end)
+
+
+@app.post("/api/plans", response_model=MealPlanResponse, status_code=201)
+def post_plan(request: Request, payload: MealPlanCreateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealPlanResponse:
+    require_csrf(request, db)
+    try: return create_plan(db, profile_for_user(db, user).id, payload)
+    except PlanError as exc: raise _catalog_error(exc) from exc
+
+
+@app.patch("/api/plans/{plan_id}", response_model=MealPlanResponse)
+def patch_plan(request: Request, plan_id: str, payload: MealPlanUpdateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealPlanResponse:
+    require_csrf(request, db)
+    try: return update_plan(db, profile_for_user(db, user).id, plan_id, payload)
+    except PlanError as exc: raise _catalog_error(exc) from exc
+
+
+@app.delete("/api/plans/{plan_id}", status_code=204)
+def remove_plan(request: Request, plan_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> None:
+    require_csrf(request, db)
+    try: delete_plan(db, profile_for_user(db, user).id, plan_id)
+    except PlanError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/shopping-list", response_model=list[ShoppingItemResponse])
+def get_shopping_list(db: Session = Depends(get_db), user: User = Depends(require_user)) -> list[ShoppingItemResponse]:
+    return list_items(db, profile_for_user(db, user).id)
+
+
+@app.post("/api/shopping-list", response_model=ShoppingItemResponse, status_code=201)
+def post_shopping_item(request: Request, payload: ShoppingItemCreateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> ShoppingItemResponse:
+    require_csrf(request, db); return create_item(db, profile_for_user(db, user).id, payload)
+
+
+@app.patch("/api/shopping-list/{item_id}", response_model=ShoppingItemResponse)
+def patch_shopping_item(request: Request, item_id: str, payload: ShoppingItemUpdateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> ShoppingItemResponse:
+    require_csrf(request, db)
+    try: return update_item(db, profile_for_user(db, user).id, item_id, payload)
+    except ShoppingError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.delete("/api/shopping-list/{item_id}", status_code=204)
+def remove_shopping_item(request: Request, item_id: str, db: Session = Depends(get_db), user: User = Depends(require_user)) -> None:
+    require_csrf(request, db)
+    try: delete_item(db, profile_for_user(db, user).id, item_id)
+    except ShoppingError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/shopping-list/generate", response_model=list[ShoppingItemResponse])
+def post_generate_shopping(request: Request, start: date, end: date, db: Session = Depends(get_db), user: User = Depends(require_user)) -> list[ShoppingItemResponse]:
+    require_csrf(request, db)
+    if end < start: raise HTTPException(status_code=422, detail="Az időszak vége nem lehet korábbi a kezdeténél")
+    return generate_from_plans(db, profile_for_user(db, user).id, start, end)

@@ -62,10 +62,13 @@ class MealEntry(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
     food_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("foods.id", ondelete="SET NULL"), nullable=True)
+    custom_food_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("custom_foods.id", ondelete="SET NULL"), nullable=True)
+    recipe_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True)
     consumed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     local_date: Mapped[date] = mapped_column(Date, nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
     amount_g: Mapped[float] = mapped_column(Numeric(12, 3), nullable=False)
+    quantity_unit: Mapped[str] = mapped_column(String(16), nullable=False, default="g")
     meal_category: Mapped[str] = mapped_column(String(32), nullable=False, default="other")
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
@@ -155,6 +158,99 @@ class LoginAttempt(Base):
     failures: Mapped[int] = mapped_column(nullable=False, default=0)
     first_failed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
+
+
+class CustomFood(Base):
+    __tablename__ = "custom_foods"
+    __table_args__ = (
+        UniqueConstraint("profile_id", "name", "brand", name="uq_custom_foods_profile_name_brand"),
+        Index("ix_custom_foods_profile_name", "profile_id", "name"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    brand: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    available_carbs_100g: Mapped[float] = mapped_column(Float, nullable=False)
+    dietary_fiber_100g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    serving_size_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_favorite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
+
+
+class Recipe(Base):
+    __tablename__ = "recipes"
+    __table_args__ = (Index("ix_recipes_profile_name", "profile_id", "name"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prep_minutes: Mapped[int | None] = mapped_column(nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    servings: Mapped[float] = mapped_column(Numeric(12, 3), nullable=False)
+    total_weight_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    is_favorite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
+
+
+class RecipeIngredient(Base):
+    __tablename__ = "recipe_ingredients"
+    __table_args__ = (Index("ix_recipe_ingredients_recipe", "recipe_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    recipe_id: Mapped[str] = mapped_column(String(36), ForeignKey("recipes.id", ondelete="CASCADE"), nullable=False)
+    food_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("foods.id", ondelete="SET NULL"), nullable=True)
+    custom_food_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("custom_foods.id", ondelete="SET NULL"), nullable=True)
+    quantity_g: Mapped[float] = mapped_column(Numeric(12, 3), nullable=False)
+    calculated_carbs_g: Mapped[float] = mapped_column(Numeric(14, 6), nullable=False)
+    snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    position: Mapped[int] = mapped_column(nullable=False, default=0)
+
+
+class MealPlanEntry(Base):
+    __tablename__ = "meal_plan_entries"
+    __table_args__ = (Index("ix_meal_plan_profile_date", "profile_id", "plan_date"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
+    plan_date: Mapped[date] = mapped_column(Date, nullable=False)
+    meal_category: Mapped[str] = mapped_column(String(32), nullable=False, default="other")
+    food_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("foods.id", ondelete="SET NULL"), nullable=True)
+    custom_food_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("custom_foods.id", ondelete="SET NULL"), nullable=True)
+    recipe_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("recipes.id", ondelete="SET NULL"), nullable=True)
+    quantity: Mapped[float] = mapped_column(Numeric(12, 3), nullable=False)
+    quantity_unit: Mapped[str] = mapped_column(String(16), nullable=False, default="g")
+    planned_carbs_g: Mapped[float] = mapped_column(Numeric(14, 6), nullable=False)
+    snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
+
+
+class ShoppingItem(Base):
+    __tablename__ = "shopping_items"
+    __table_args__ = (Index("ix_shopping_items_profile", "profile_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    quantity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    unit: Mapped[str] = mapped_column(String(16), nullable=False, default="db")
+    checked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    source: Mapped[str] = mapped_column(String(24), nullable=False, default="manual")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
     )

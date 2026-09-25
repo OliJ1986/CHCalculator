@@ -49,7 +49,8 @@ MealCategory = Literal["breakfast", "morning_snack", "lunch", "afternoon_snack",
 
 
 class MealCreateRequest(BaseModel):
-    food_id: str = Field(min_length=1, max_length=36)
+    food_id: str | None = Field(default=None, min_length=1, max_length=36)
+    custom_food_id: str | None = Field(default=None, min_length=1, max_length=36)
     amount_g: float
     consumed_at: datetime | None = None
     local_date: date | None = None
@@ -57,10 +58,12 @@ class MealCreateRequest(BaseModel):
     meal_category: MealCategory = "other"
     idempotency_key: str = Field(min_length=8, max_length=128)
     client_carbs_g: float | None = None
+    quantity_unit: Literal["g"] = "g"
 
 
 class MealUpdateRequest(BaseModel):
     food_id: str | None = Field(default=None, min_length=1, max_length=36)
+    custom_food_id: str | None = Field(default=None, min_length=1, max_length=36)
     amount_g: float | None = None
     consumed_at: datetime | None = None
     local_date: date | None = None
@@ -71,11 +74,14 @@ class MealUpdateRequest(BaseModel):
 class MealResponse(BaseModel):
     id: str
     food_id: str | None
+    custom_food_id: str | None = None
+    recipe_id: str | None = None
     consumed_at: datetime
     local_date: date
     timezone: str
     amount_g: float
     meal_category: str
+    quantity_unit: str = "g"
     calculated_carbs_g: float
     snapshot: dict
     created_at: datetime
@@ -187,3 +193,149 @@ class GuestImportResponse(BaseModel):
     skipped_meals: int
     imported_goals: int
     skipped_goals: int
+
+
+class CustomFoodCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    brand: str | None = Field(default=None, max_length=200)
+    available_carbs_100g: float
+    dietary_fiber_100g: float | None = None
+    serving_size_g: float | None = None
+    notes: str | None = Field(default=None, max_length=4000)
+    is_favorite: bool = False
+
+
+class CustomFoodUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    brand: str | None = Field(default=None, max_length=200)
+    available_carbs_100g: float | None = None
+    dietary_fiber_100g: float | None = None
+    serving_size_g: float | None = None
+    notes: str | None = Field(default=None, max_length=4000)
+    is_favorite: bool | None = None
+
+
+class CustomFoodResponse(BaseModel):
+    id: str
+    name: str
+    brand: str | None
+    available_carbs_100g: float
+    dietary_fiber_100g: float | None
+    serving_size_g: float | None
+    notes: str | None
+    is_favorite: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class RecipeIngredientRequest(BaseModel):
+    food_id: str | None = Field(default=None, min_length=1, max_length=36)
+    custom_food_id: str | None = Field(default=None, min_length=1, max_length=36)
+    quantity_g: float
+
+
+class RecipeCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    servings: float = Field(gt=0)
+    total_weight_g: float | None = Field(default=None, gt=0)
+    instructions: str | None = Field(default=None, max_length=10000)
+    prep_minutes: int | None = Field(default=None, ge=0, le=10080)
+    notes: str | None = Field(default=None, max_length=4000)
+    is_favorite: bool = False
+    ingredients: list[RecipeIngredientRequest] = Field(min_length=1, max_length=200)
+
+
+class RecipeUpdateRequest(RecipeCreateRequest):
+    pass
+
+
+class RecipeIngredientResponse(BaseModel):
+    id: str
+    food_id: str | None
+    custom_food_id: str | None
+    quantity_g: float
+    calculated_carbs_g: float
+    snapshot: dict
+    position: int
+
+
+class RecipeResponse(BaseModel):
+    id: str
+    name: str
+    instructions: str | None
+    prep_minutes: int | None
+    notes: str | None
+    servings: float
+    total_weight_g: float | None
+    total_carbs_g: float
+    carbs_per_serving_g: float
+    is_favorite: bool
+    ingredients: list[RecipeIngredientResponse]
+    created_at: datetime
+    updated_at: datetime
+
+
+class RecipeMealRequest(BaseModel):
+    quantity: float = Field(gt=0)
+    quantity_unit: Literal["g", "servings"] = "servings"
+    local_date: date | None = None
+    meal_category: MealCategory = "other"
+    timezone: str | None = Field(default=None, min_length=1, max_length=64)
+    idempotency_key: str = Field(min_length=8, max_length=128)
+
+
+class MealPlanCreateRequest(BaseModel):
+    plan_date: date
+    meal_category: MealCategory = "other"
+    food_id: str | None = Field(default=None, min_length=1, max_length=36)
+    custom_food_id: str | None = Field(default=None, min_length=1, max_length=36)
+    recipe_id: str | None = Field(default=None, min_length=1, max_length=36)
+    quantity: float = Field(gt=0)
+    quantity_unit: Literal["g", "servings"] = "g"
+
+
+class MealPlanUpdateRequest(BaseModel):
+    plan_date: date | None = None
+    meal_category: MealCategory | None = None
+    quantity: float | None = Field(default=None, gt=0)
+    quantity_unit: Literal["g", "servings"] | None = None
+
+
+class MealPlanResponse(BaseModel):
+    id: str
+    plan_date: date
+    meal_category: str
+    food_id: str | None
+    custom_food_id: str | None
+    recipe_id: str | None
+    quantity: float
+    quantity_unit: str
+    planned_carbs_g: float
+    snapshot: dict
+    created_at: datetime
+    updated_at: datetime
+
+
+class ShoppingItemCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    quantity: float | None = Field(default=None, ge=0)
+    unit: Literal["g", "ml", "db", "adag"] = "db"
+    checked: bool = False
+
+
+class ShoppingItemUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    quantity: float | None = Field(default=None, ge=0)
+    unit: Literal["g", "ml", "db", "adag"] | None = None
+    checked: bool | None = None
+
+
+class ShoppingItemResponse(BaseModel):
+    id: str
+    name: str
+    quantity: float | None
+    unit: str
+    checked: bool
+    source: str
+    created_at: datetime
+    updated_at: datetime
