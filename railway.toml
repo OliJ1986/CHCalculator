@@ -6,7 +6,7 @@ builder = "NIXPACKS"
 [deploy]
 # The cd is intentional only for this repository-root fallback configuration.
 preDeployCommand = ["cd backend && alembic upgrade head"]
-startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/api/ready"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"

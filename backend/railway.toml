@@ -4,7 +4,8 @@ builder = "NIXPACKS"
 [deploy]
 # Railway runs these commands from the /backend Root Directory.
 preDeployCommand = ["alembic upgrade head"]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+# Defensive idempotent guard when a Railway deployment omits the pre-deploy step.
+startCommand = "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/api/ready"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"

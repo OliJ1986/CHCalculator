@@ -63,6 +63,7 @@ A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel b
 
 - A staging konténer naplója szerint az Alembic pre-deploy lépés nem futott le; az Uvicorn importja hiányzó PostgreSQL-séma miatt állt le.
 - A backend és a repo-root fallback `preDeployCommand` mezői Railway-kompatibilis TOML-tömbök lettek. A következő staging deploymentben a migráció sikerét az alkalmazás konténer indulása előtt kell ellenőrizni.
+- A backend start-parancsa is tartalmazza az idempotens `alembic upgrade head` védelmi lépést, így a pre-deploy kihagyása nem engedi migrálatlan sémával indulni az alkalmazást.
 
 ## M1.3 — PostgreSQL / Alembic / Railway-előkészítés [DONE]
 
