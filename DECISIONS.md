@@ -2,9 +2,9 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a valódi PostgreSQL-, kalkulátor- és snapshot-napló kapu sikeres. M4: **DONE**, a hatálynapos cél- és kategóriakapuk bizonyítottak.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**, a valódi PostgreSQL-, kalkulátor-, snapshot- és célkezelési kapuk sikeresek. M5: **DONE**, a vendég- és felhasználói auth kapuk bizonyítottak.
 
-Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
+Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
 - React + TypeScript + Vite: gyors, valódi SPA/PWA alap és egyszerű deploy.
 - Next.js és Flutter elvetve: nem illeszkednek a kért frontend stackhez.

@@ -4,7 +4,7 @@
 
 M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4 és M5: **DONE**; a hatálynapos célok és étkezési kategóriák lezárultak.
 
-Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
+Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
 ## Cél
 
@@ -78,9 +78,9 @@ M0-ban nincs perzisztencia, valódi food adatbázis, autentikáció, célkezelé
 
 ## Későbbi mérföldkövek
 
-M2 kalkulátor bővítése, M3 napló, M4 célok/étkezések, M5 saját ételek/kedvencek/receptek, M6 vonalkód/OCR, M7 AI funkciók.
+M6 vonalkód/OCR, M7 AI funkciók.
 
-## Megvalósított scope: M1.3–M4 [lezárva]
+## Megvalósított scope: M1.3–M5 [lezárva]
 
 M1.3 PostgreSQL-re viszi a fejlesztést, Alembic-sémakezeléssel és adatvesztést kizáró, ellenőrzött SQLite cache-importtal. Külön dev/test/prod DB kötelező; Railway-telepítés előkészül, valódi deploy nem történik ebben a scope-ban.
 
@@ -98,7 +98,7 @@ A `GoalVersion` modell és az `0003_goal_versions` migráció profilhoz kötött
 
 Az étkezési napló PostgreSQL/Alembic alapon perzisztens. A `/api/meals` létrehoz, listáz helyi nap szerint, módosít és töröl; a mentéskor szerveroldali tápanyag-snapshot és determinisztikus CH kerül az adatbázisba. Egy rögzített, szerver által kiválasztott profil használható; auth és teljes offline szinkron továbbra sem része a scope-nak. Az M4 célok és kategóriák elkészültek.
 
-Az M0 Non-goals kizárólag M0-ra vonatkozik. M5–M7, receptek, OCR, AI, új katalógus és új autentikációs termék nem része az autonóm megvalósításnak. Részletes viselkedés, bemeneti szabályok, időzóna- és célkezelés: `TASKS.md`.
+Az M0 Non-goals kizárólag M0-ra vonatkozik. M6–M7, receptek, OCR, AI, új katalógus és új autentikációs termék nem része az autonóm megvalósításnak. Részletes viselkedés, bemeneti szabályok, időzóna- és célkezelés: `TASKS.md`.
 
 
 
