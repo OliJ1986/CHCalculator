@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.carbs import CarbohydrateInputError, calculate_carbohydrate
-from ..models import CustomFood, GoalVersion, MealEntry, MealPlanEntry, Profile, Recipe, RecipeIngredient, ShoppingItem
+from ..models import CustomFood, Food, GoalVersion, MealEntry, MealPlanEntry, Profile, Recipe, RecipeIngredient, ShoppingItem
 from ..domain.carbs import validate_available_carbs_100g
 from ..schemas import GuestImportRequest
 from .goals import CATEGORY_LABELS, _target
@@ -22,6 +22,7 @@ def import_guest_data(db: Session, profile: Profile, request: GuestImportRequest
     imported_custom_foods = skipped_custom_foods = 0
     imported_recipes = skipped_recipes = imported_plans = skipped_plans = imported_shopping = skipped_shopping = 0
     custom_id_map: dict[str, str] = {}
+    recipe_id_map: dict[str, str] = {}
     try:
         for item in request.custom_foods:
             try:
@@ -53,22 +54,27 @@ def import_guest_data(db: Session, profile: Profile, request: GuestImportRequest
         for item in request.recipes:
             existing = db.scalar(select(Recipe).where(Recipe.profile_id == profile.id, Recipe.id == item.id))
             if existing is not None:
+                recipe_id_map[item.id] = existing.id
                 existing_rows = list(db.scalars(select(RecipeIngredient).where(RecipeIngredient.recipe_id == existing.id).order_by(RecipeIngredient.position)))
                 same = existing.name == item.name and float(existing.servings) == float(item.servings) and [row.snapshot for row in existing_rows] == [ingredient.snapshot for ingredient in item.ingredients]
                 if same: skipped_recipes += 1; continue
                 if not request.overwrite_existing: raise GuestImportError("A meglévő vendég recept eltérő adatot tartalmaz; megerősítés szükséges")
                 for row in existing_rows: db.delete(row)
                 recipe = existing
+                recipe_id_map[item.id] = recipe.id
             else:
                 recipe = Recipe(id=item.id if db.get(Recipe, item.id) is None else None, profile_id=profile.id, name=item.name,
                     instructions=item.instructions, prep_minutes=item.prep_minutes, notes=item.notes, servings=item.servings,
                     total_weight_g=item.total_weight_g, is_favorite=item.is_favorite)
                 db.add(recipe); db.flush()
+                recipe_id_map[item.id] = recipe.id
             recipe.name = item.name; recipe.instructions = item.instructions; recipe.prep_minutes = item.prep_minutes; recipe.notes = item.notes
             recipe.servings = item.servings; recipe.total_weight_g = item.total_weight_g; recipe.is_favorite = item.is_favorite
             for ingredient in item.ingredients:
+                food_id = ingredient.food_id if ingredient.food_id and db.get(Food, ingredient.food_id) is not None else None
+                custom_id = custom_id_map.get(ingredient.custom_food_id or "")
                 db.add(RecipeIngredient(id=ingredient.id if db.get(RecipeIngredient, ingredient.id) is None else None, recipe_id=recipe.id,
-                    food_id=ingredient.food_id, custom_food_id=custom_id_map.get(ingredient.custom_food_id or "", ingredient.custom_food_id),
+                    food_id=food_id, custom_food_id=custom_id,
                     quantity_g=ingredient.quantity_g, calculated_carbs_g=ingredient.calculated_carbs_g,
                     snapshot=ingredient.snapshot, position=ingredient.position))
             imported_recipes += 1
@@ -83,8 +89,10 @@ def import_guest_data(db: Session, profile: Profile, request: GuestImportRequest
             else:
                 row = MealPlanEntry(id=item.id if db.get(MealPlanEntry, item.id) is None else None, profile_id=profile.id)
                 db.add(row)
-            row.plan_date = item.plan_date; row.meal_category = item.meal_category; row.food_id = item.food_id
-            row.custom_food_id = custom_id_map.get(item.custom_food_id or "", item.custom_food_id); row.recipe_id = item.recipe_id
+            row.plan_date = item.plan_date; row.meal_category = item.meal_category
+            row.food_id = item.food_id if item.food_id and db.get(Food, item.food_id) is not None else None
+            row.custom_food_id = custom_id_map.get(item.custom_food_id or "")
+            row.recipe_id = recipe_id_map.get(item.recipe_id or "") or (item.recipe_id if item.recipe_id and db.get(Recipe, item.recipe_id) is not None else None)
             row.quantity = item.quantity; row.quantity_unit = item.quantity_unit; row.planned_carbs_g = item.planned_carbs_g; row.snapshot = item.snapshot
             imported_plans += 1
 
