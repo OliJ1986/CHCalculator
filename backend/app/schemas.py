@@ -193,10 +193,57 @@ class GuestCustomFoodImport(BaseModel):
     is_favorite: bool = False
 
 
+class GuestRecipeIngredientImport(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    food_id: str | None = None
+    custom_food_id: str | None = None
+    quantity_g: float
+    calculated_carbs_g: float
+    snapshot: dict
+    position: int = 0
+
+
+class GuestRecipeImport(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=200)
+    instructions: str | None = None
+    prep_minutes: int | None = None
+    notes: str | None = None
+    servings: float
+    total_weight_g: float | None = None
+    is_favorite: bool = False
+    ingredients: list[GuestRecipeIngredientImport] = Field(min_length=1, max_length=200)
+
+
+class GuestPlanImport(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    plan_date: date
+    meal_category: MealCategory = "other"
+    food_id: str | None = None
+    custom_food_id: str | None = None
+    recipe_id: str | None = None
+    quantity: float
+    quantity_unit: Literal["g", "servings"] = "g"
+    planned_carbs_g: float
+    snapshot: dict
+
+
+class GuestShoppingImport(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=200)
+    quantity: float | None = None
+    unit: Literal["g", "ml", "db", "adag"] = "db"
+    checked: bool = False
+    source: str = "manual"
+
+
 class GuestImportRequest(BaseModel):
     meals: list[GuestMealImport] = Field(default_factory=list, max_length=2000)
     goals: list[GuestGoalImport] = Field(default_factory=list, max_length=500)
     custom_foods: list[GuestCustomFoodImport] = Field(default_factory=list, max_length=1000)
+    recipes: list[GuestRecipeImport] = Field(default_factory=list, max_length=500)
+    plans: list[GuestPlanImport] = Field(default_factory=list, max_length=2000)
+    shopping: list[GuestShoppingImport] = Field(default_factory=list, max_length=2000)
     overwrite_existing: bool = False
 
 
@@ -207,6 +254,12 @@ class GuestImportResponse(BaseModel):
     skipped_goals: int
     imported_custom_foods: int = 0
     skipped_custom_foods: int = 0
+    imported_recipes: int = 0
+    skipped_recipes: int = 0
+    imported_plans: int = 0
+    skipped_plans: int = 0
+    imported_shopping: int = 0
+    skipped_shopping: int = 0
 
 
 class CustomFoodCreateRequest(BaseModel):

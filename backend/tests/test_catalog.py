@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.models import Base, Food, Profile
-from app.schemas import CustomFoodCreateRequest, GuestCustomFoodImport, GuestImportRequest, MealCreateRequest, MealPlanCreateRequest, MealPlanUpdateRequest, RecipeCreateRequest, RecipeIngredientRequest, RecipeMealRequest, ShoppingItemCreateRequest
+from app.schemas import CustomFoodCreateRequest, GuestCustomFoodImport, GuestImportRequest, GuestPlanImport, GuestRecipeImport, GuestRecipeIngredientImport, GuestShoppingImport, MealCreateRequest, MealPlanCreateRequest, MealPlanUpdateRequest, RecipeCreateRequest, RecipeIngredientRequest, RecipeMealRequest, ShoppingItemCreateRequest
 from app.services.custom_foods import create_custom_food, list_custom_foods
 from app.services.planner import create_plan, list_plans, update_plan
 from app.services.recipes import create_recipe, get_recipe_response
@@ -61,5 +61,19 @@ def test_profile_isolation_for_custom_foods():
 def test_guest_custom_food_import_is_idempotent():
     db = next(db_session())
     payload = GuestImportRequest(custom_foods=[GuestCustomFoodImport(id="guest-own-1", name="Saját", available_carbs_100g=9.5)])
-    assert import_guest_data(db, db.get(Profile, "p1"), payload)[4:] == (1, 0)
-    assert import_guest_data(db, db.get(Profile, "p1"), payload)[4:] == (0, 1)
+    assert import_guest_data(db, db.get(Profile, "p1"), payload)[4:] == (1, 0, 0, 0, 0, 0, 0, 0)
+    assert import_guest_data(db, db.get(Profile, "p1"), payload)[4:] == (0, 1, 0, 0, 0, 0, 0, 0)
+
+
+def test_guest_catalog_import_carries_recipe_plan_and_shopping():
+    db = next(db_session())
+    payload = GuestImportRequest(
+        custom_foods=[GuestCustomFoodImport(id="guest-cf", name="Saját", available_carbs_100g=9.5)],
+        recipes=[GuestRecipeImport(id="guest-recipe", name="Recept", servings=1, ingredients=[GuestRecipeIngredientImport(id="guest-ing", custom_food_id="guest-cf", quantity_g=100, calculated_carbs_g=9.5, snapshot={"name": "Saját", "available_carbs_100g": 9.5})])],
+        plans=[GuestPlanImport(id="guest-plan", plan_date=date(2099, 9, 25), custom_food_id="guest-cf", quantity=100, planned_carbs_g=9.5, snapshot={"name": "Saját"})],
+        shopping=[GuestShoppingImport(id="guest-shopping", name="Saját", quantity=100, unit="g")],
+    )
+    first = import_guest_data(db, db.get(Profile, "p1"), payload)
+    assert first[4:] == (1, 0, 1, 0, 1, 0, 1, 0)
+    second = import_guest_data(db, db.get(Profile, "p1"), payload)
+    assert second[4:] == (0, 1, 0, 1, 0, 1, 0, 1)

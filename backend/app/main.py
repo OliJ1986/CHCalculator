@@ -269,7 +269,7 @@ def change_password(request: Request, response: Response, payload: ChangePasswor
 def import_guest(request: Request, payload: GuestImportRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> GuestImportResponse:
     require_csrf(request, db)
     try:
-        imported_meals, skipped_meals, imported_goals, skipped_goals, imported_custom_foods, skipped_custom_foods = import_guest_data(
+        imported_meals, skipped_meals, imported_goals, skipped_goals, imported_custom_foods, skipped_custom_foods, imported_recipes, skipped_recipes, imported_plans, skipped_plans, imported_shopping, skipped_shopping = import_guest_data(
             db, profile_for_user(db, user), payload
         )
     except GuestImportError as exc:
@@ -281,6 +281,12 @@ def import_guest(request: Request, payload: GuestImportRequest, db: Session = De
         skipped_goals=skipped_goals,
         imported_custom_foods=imported_custom_foods,
         skipped_custom_foods=skipped_custom_foods,
+        imported_recipes=imported_recipes,
+        skipped_recipes=skipped_recipes,
+        imported_plans=imported_plans,
+        skipped_plans=skipped_plans,
+        imported_shopping=imported_shopping,
+        skipped_shopping=skipped_shopping,
     )
 
 

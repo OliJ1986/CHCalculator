@@ -51,6 +51,9 @@ export type GuestImportPayload = {
   meals: Array<{ id: string; consumed_at: string; local_date: string; timezone: string; amount_g: number; meal_category: string; snapshot: Record<string, unknown> }>
   goals: Array<{ effective_date: string; daily_target_g: number | null; meal_targets: Record<string, number>; allow_past: boolean }>
   custom_foods?: Array<{ id: string; name: string; brand: string | null; available_carbs_100g: number; dietary_fiber_100g: number | null; serving_size_g: number | null; notes: string | null; is_favorite: boolean }>
+  recipes?: Array<{ id: string; name: string; instructions: string | null; prep_minutes: number | null; notes: string | null; servings: number; total_weight_g: number | null; is_favorite: boolean; ingredients: Array<{ id: string; food_id: string | null; custom_food_id: string | null; quantity_g: number; calculated_carbs_g: number; snapshot: Record<string, unknown>; position: number }> }>
+  plans?: Array<{ id: string; plan_date: string; meal_category: string; food_id: string | null; custom_food_id: string | null; recipe_id: string | null; quantity: number; quantity_unit: string; planned_carbs_g: number; snapshot: Record<string, unknown> }>
+  shopping?: Array<{ id: string; name: string; quantity: number | null; unit: string; checked: boolean; source: string }>
   overwrite_existing?: boolean
 }
 
