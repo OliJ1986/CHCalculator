@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M5: **DONE**, a PostgreSQL-, kalkulátor-, snapshot-, célkezelési és felhasználói auth kapuk bizonyítottak. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**, M5: **IN PROGRESS**; a felhasználói auth kód- és automatizált kapui bizonyítottak, a módosított UI böngészős kapuja nyitott. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -44,22 +44,22 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
   - Backend 62 teszt, frontend 7 unit teszt, typecheck, lint és production build sikeres.
 - [DONE] M3 — Napi étkezési napló
 - [DONE] M4 — CH célok és étkezések
-- [DONE] M5 — Vendég mód, regisztráció és felhasználói rendszer
+- [IN PROGRESS] M5 — Vendég mód, regisztráció és felhasználói rendszer
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1, M1.2, M1.3, M2, M3, M4 és M5 lezárva; az M1.2 élő USDA/OFF combined smoke-ja lezárt történet.
+M0, M1.1, M1.2, M1.3, M2, M3 és M4 lezárva; M5 kódja elkészült, a módosított UI böngészős kapuja nyitott; az M1.2 élő USDA/OFF combined smoke-ja lezárt történet.
 
 ## Közös teljesítési kapu
 
-A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel bizonyított. Az M1.3–M5 sorrend teljesült; M6–M7 és a katalógus további, nyitott scope.
+A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel bizonyított. Az M1.3–M4 sorrend teljesült; M5-nél a közös böngészős UI-kapu nyitott. M6–M7 és a katalógus további, nyitott scope.
 
 - [x] Induláskor a tényleges kód, Git-állapot, konfiguráció és meglévő tesztparancsok felmérése; alapellenőrzés. A történeti 40 backend/4 frontend teszt nem elvárt végső darabszám.
 - [x] Minden mérföldkőnél célzott regressziók, teljes backendteszt, frontend typecheck, lint, nem figyelő módban futó unit teszt és production build sikeres.
 - [ ] Módosított UI: legalább 360 és 390 px szélességen, világos/sötét témában használható; billentyűzetfókusz, feliratok, hibák, érintési célok és vízszintes túlcsordulás ellenőrizve. Ha nincs böngészős QA, ez nyitott ellenőrzés marad.
 - [x] TASKS, HANDOVER, CHANGELOG és érintett architektúra/döntések frissítve; csak az adott munkához tartozó fájlokból érthető helyi commit. A commit hash és a tényleges teszteredmény az átadásban szerepel.
 
-### M5 — Vendég mód, regisztráció és felhasználói rendszer [DONE]
+### M5 — Vendég mód, regisztráció és felhasználói rendszer [IN PROGRESS — kód elkészült]
 
 - Vendég napló/cél az IndexedDB chill-guest-v1 tárban; láthatóan az aktuális és előző két nap. Régebbi rekordot a data layer nem töröl, exportkor megmarad.
 - User, Profile, session, verification/reset token és login-attempt táblák; 0004_user_accounts és 0005_user_role migráció. A default-profile nem kerül automatikusan userhez.
@@ -73,7 +73,7 @@ A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel b
 - [x] Auth/regresszió 15 passed; PostgreSQL meal/goal integráció 2 passed; frontend typecheck, 8 unit teszt, build sikeres.
 - [x] Dev/test PostgreSQL Alembic head 0005_user_role; helyi adatot nem töröltünk.
 
-Korlát: staging/prod email-delivery adapter és valós Railway deploy nincs bekötve/végrehajtva.
+Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsordulás-ellenőrzése a környezetben elérhető böngészővezérlés hiánya miatt nem futott le; staging/prod email-delivery adapter és valós Railway deploy sincs bekötve/végrehajtva. M5 csak ezek után jelölhető DONE-nak.
 
 ## Railway staging utólagos naplóellenőrzés — 2026-09-25
 

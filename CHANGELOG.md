@@ -145,4 +145,5 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - IndexedDB vendég napló/cél, háromnapos látható ablak, automatikus törlés nélkül.
 - Regisztráció, email-megerősítés/reset terv, scrypt jelszóhash, session, CSRF, rate limit és user-owned profile.
 - Hitelesített meal/goal API, explicit idempotens vendégimport CH-újraszámolással, snapshot/célverzió-megőrzéssel és rollbackkel.
+- Az automatizált M5-kapuk sikeresek; a módosított UI 360/390 px-es böngészős QA-ja a környezetben elérhető böngészővezérlés hiánya miatt nyitott.
 - Email-delivery adapter és Railway deploy nincs végrehajtva.

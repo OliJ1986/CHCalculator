@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4 és M5: **DONE**; a hatálynapos célok és étkezési kategóriák lezárultak.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja elkészült, de a böngészős UI-kapu miatt **IN PROGRESS**.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -80,7 +80,7 @@ M0-ban nincs perzisztencia, valódi food adatbázis, autentikáció, célkezelé
 
 M6 vonalkód/OCR, M7 AI funkciók.
 
-## Megvalósított scope: M1.3–M5 [lezárva]
+## Megvalósított scope: M1.3–M5 [M5 kód elkészült, UI-kapu nyitott]
 
 M1.3 PostgreSQL-re viszi a fejlesztést, Alembic-sémakezeléssel és adatvesztést kizáró, ellenőrzött SQLite cache-importtal. Külön dev/test/prod DB kötelező; Railway-telepítés előkészül, valódi deploy nem történik ebben a scope-ban.
 

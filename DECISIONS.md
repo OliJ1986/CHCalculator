@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**, a valódi PostgreSQL-, kalkulátor-, snapshot- és célkezelési kapuk sikeresek. M5: **DONE**, a vendég- és felhasználói auth kapuk bizonyítottak.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**, a valódi PostgreSQL-, kalkulátor-, snapshot- és célkezelési kapuk sikeresek. M5 kódja elkészült, de a böngészős UI-kapu miatt **IN PROGRESS**.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 

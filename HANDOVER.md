@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, mert a helyi PostgreSQL-, kalkulátor- és snapshot-napló kapuk sikeresen lefutottak; M4 és M5: **DONE**; a célverziózás és mobilos célkezelés lezárult. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja és automatizált kapui elkészültek, de a böngészős UI-kapu miatt **IN PROGRESS**. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -238,4 +238,4 @@ A vendég napló az IndexedDB chill-guest-v1 tárat használja, a látható abla
 
 A vendégimport szerveroldalon újraszámol, snapshotot/célverziót őriz, idempotens és konfliktusnál rollbackel; a kliens csak siker után töröl. Ellenőrzés: auth 15 passed, PostgreSQL meal/goal 2 passed, Alembic 0005 head dev/test, frontend typecheck/8 unit/build sikeres. A teljes backend futás 73 passed, 3 skipped, 3 Windows pytest-temp ACL error volt.
 
-Korlát: staging/prod email-delivery adapter és valós Railway deploy nincs bekötve.
+Korlát: a 360/390 px-es böngészős UI-ellenőrzés nem futott le, mert a környezetben nincs elérhető böngészővezérlés; staging/prod email-delivery adapter és valós Railway deploy sincs bekötve. A következő lépés a böngészős QA, majd csak siker esetén az M5 lezárása.
