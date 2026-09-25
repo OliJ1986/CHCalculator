@@ -213,3 +213,11 @@ Ellenőrzési bizonyíték: backend teljes regresszió `73 passed, 2 warnings` i
 A Railway monorepo működése alapján a szolgáltatás Root Directoryja határozza meg, honnan futnak a build/deploy parancsok; a config fájl ettől függetlenül abszolút útvonallal választható ki. Ezért `/backend` + `/backend/railway.toml` esetén nincs `cd backend`, és `/frontend` + `/frontend/railway.toml` esetén nincs `cd frontend`. A gyökér `railway.toml` megmaradt repo-root fallbackként, benne a szükséges `cd backend` előtaggal.
 
 Új regressziós teszt (`backend/tests/test_railway_config.py`) TOML-ből ellenőrzi mindhárom konfiguráció parancsait, így a szolgáltatás-root és a fallback formája nem keverhető össze.
+
+## Railway build-hibajavítás — 2026-09-25
+
+A backend build-probléma oka a projektgyökérből történő felismerés és a `pyproject.toml`/`requirements.txt` kettős Python-jelzésének kockázata volt. A `backend/nixpacks.toml` explicit Python providert és `requirements` csomagkezelőt használ, a `.python-version` Python 3.12-t rögzít. A Dashboard Root Directory továbbra is `/backend`, Config File `/backend/railway.toml` kell legyen; ha a napló repo-root felismerést mutat, a Dashboard beállítás nincs ténylegesen alkalmazva vagy rossz config fájl van kiválasztva.
+
+A frontend hibát a `frontend/railway.toml` második `npm ci`-je okozhatta: Nixpacks már az install fázisban telepít, ezért a build most csak `npm run build`. A Vite-kompatibilis Node 22.12.0 az `engines` és `.nvmrc` fájlban rögzített. Az EBUSY utáni első staging buildhez Dashboard Variables között ideiglenes `NO_CACHE=1` szükséges; sikeres build után törlendő.
+
+`.dockerignore` és `.railwayignore` nem került be, mert a `.gitignore` már kizárja a `node_modules`, `dist` és `.env` fájlokat, és a GitHub-forrású Railway build nem ezeket szállítja. Valós Railway rebuildet ebből a munkamenetből nem futtattam.

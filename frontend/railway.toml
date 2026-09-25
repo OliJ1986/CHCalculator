@@ -1,7 +1,8 @@
 [build]
 builder = "NIXPACKS"
 # Railway runs the build from the /frontend Root Directory.
-buildCommand = "npm ci && npm run build"
+# Nixpacks installs lockfile dependencies before the build phase.
+buildCommand = "npm run build"
 
 [deploy]
 startCommand = "npm start"

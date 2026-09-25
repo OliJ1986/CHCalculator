@@ -1,0 +1,8 @@
+# The backend service Root Directory is /backend.
+# Force the Python provider and requirements.txt path even though pyproject.toml
+# is present for pytest/ruff configuration only.
+providers = ["python"]
+
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.12"
+NIXPACKS_PYTHON_PACKAGE_MANAGER = "requirements"
