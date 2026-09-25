@@ -170,3 +170,5 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 ### M14 planner 2.0
 - Heti tervnézet, napmozgatás/másolás, tervezett-tényleges CH összegzés és idempotens heti bevásárlólista-frissítés készült.
+
+- A gyors hozzáadás kedvenc saját ételeket és recepteket is kínál.

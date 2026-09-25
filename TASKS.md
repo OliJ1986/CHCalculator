@@ -250,3 +250,6 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - Vendég módban az IndexedDB-lista idempotensen frissül; hitelesített módban a meglévő PostgreSQL API-k és profil-szigetelés maradnak érvényben.
 - Új regresszió igazolja a planner bevásárlólista ismételt generálásának stabil mennyiségét; a teljes backend PostgreSQL-készlet 84 passed, frontend 9 unit passed, typecheck/build passed.
 - Korlát: nincs elérhető böngészővezérlés, ezért a 360/390 px-es mobil vizuális, fókusz- és PWA telepítési QA nyitott marad; ezt nem jelölöm automatizáltan sikeresnek.
+
+### M12 gyors hozzáadás kiegészítés
+- A gyors sheet üres keresési állapotban kedvenc saját ételeket és kedvenc recepteket kínál; a recept egy adaggal, az adott napra és kiválasztott kategóriával naplózható.
