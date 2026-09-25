@@ -110,3 +110,6 @@ Az API-k minden személyes lekérdezést hitelesített user profiljára szűrnek
 
 ## M12 mobil navigáció
 A frontend alsó navigációja öt fix célból áll; a Hozzáadás elem lokális sheetet nyit, a személyes adatok továbbra is a meglévő guest IndexedDB vagy hitelesített API rétegen mennek át.
+
+## M13 receptszámítás
+A recept API a hozzávalók pillanatfelvételéből számol; a főtt CH/100 g kizárólag explicit total_weight_g esetén készül, a nyers összegből nincs becslés.

@@ -128,3 +128,6 @@ A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött 
 
 ## D-M12-01 — Központi gyors hozzáadás
 A gyors hozzáadás külön útvonal helyett navigációs műveletként nyitja meg a meglévő sheetet, így a kiválasztott nap és a vendég/account adattárolási út változatlan marad.
+
+## D-M13-01 — Főtt CH csak megadott tömegből
+A rendszer nem becsüli a főtt sűrűséget nyers hozzávalókból. A főtt CH/100 g mező null marad, ha a felhasználó nem ad meg főtt össztömeget.

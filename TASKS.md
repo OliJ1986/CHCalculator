@@ -233,3 +233,11 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - A napi hero, kategóriaösszegzés és profil kisebb mobil képernyőkre tömörebb lett; a safe-area és az alsó navigációs tartalékhely megmaradt.
 - Automatizált kapuk: backend 84 passed, frontend 9 unit passed, typecheck és build passed. A lint csak a meglévő React effect/dependency figyelmeztetéseket jelzi.
 - Korlát: ebben a környezetben nincs böngészővezérlés, ezért 360/390 px vizuális, billentyűzet- és PWA-ellenőrzés nem bizonyított.
+
+## M13 — Receptek 2.0 [IMPLEMENTED — böngészős QA nyitott]
+
+- Elkészült a mobil receptlista, részlet/szerkesztő és törlés/kedvenc művelet. A szerkesztő név, leírás, elkészítési idő, adag, opcionális főtt össztömeg és több külső/saját hozzávaló kezelését biztosítja.
+- A backend minden hozzávaló CH-adatát szerveroldalon validálja, determinisztikusan számolja az össz- és adagonkénti CH-t, és csak megadott főtt össztömegnél ad CH/100 g főtt értéket. Nyers hozzávalók összegéből főtt érték nem következik.
+- A recept-hozzávaló- és receptnapló-snapshotok megmaradnak; teljes adag naplózható, vendég és hitelesített módban is. A szerkesztő elhagyásakor megerősítés védi a félkész változásokat.
+- Új backend regressziók igazolják a főtt CH/100 g számítást és a tervmásolás idempotenciáját. A teljes backendkészlet PostgreSQL-lel 84 passed; frontend 9 unit passed, typecheck és build passed.
+- Korlát: a böngésző nélküli környezetben mobil érintési, fókusz- és vizuális QA nem futott.

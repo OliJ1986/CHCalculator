@@ -164,3 +164,6 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 ### M12 mobil UX 2.0
 - Ötelemű mobil navigáció, központi gyors hozzáadás, tömörebb napi/profil nézet és napjelzés készült. A böngészős mobil QA továbbra is nyitott.
+
+### M13 receptek 2.0
+- Teljes mobil receptszerkesztő, többforrású hozzávalók, determinisztikus CH, főtt tömeg alapú opcionális CH/100 g, snapshot és naplózás készült.
