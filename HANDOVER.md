@@ -16,6 +16,8 @@ Ellenőrzések: `test_catalog.py` 3 passed; valódi PostgreSQL katalógus API 1 
 
 Nyitott korlát: a browser-control környezet nem biztosít böngészőt, ezért a 360/390 px vizuális mobil QA, fókusz/túlcsordulás-ellenőrzés és PWA telepítés nem futott le. Következő lépés egy valódi telefonon vagy elérhető böngészős runnerben a `/`, `/receptek`, `/kedvencek` vendég és bejelentkezett flow ellenőrzése, majd csak sikeres kapu után lehet M5/M8–M11 státuszt DONE-ra váltani.
 
+További technikai tartozás: a regisztrációs vendégimport jelenleg a naplókat, célokat és saját ételeket viszi át idempotensen; a vendég receptek, tervek és bevásárlótételek továbbra is helyi IndexedDB-adatok, ezekhez külön későbbi import-szerződés szükséges. Ez nem törli és nem módosítja a helyi adatokat.
+
 ## Jelenlegi állapot
 
 Az M0, M0.1, M0.2, M1.1 és M1.2 lezárult. Az M1.2.3 stabilizálása elkészült, a konfiguráció betöltése kulcsérték megjelenítése nélkül igazolt, és a combined USDA/OFF integráció élő ellenőrzése sikeres: működő React/Vite frontend, CHill vizuális identitás, PWA build-infrastruktúra, Food domain, Open Food Facts + USDA provider, SQLite cache és FastAPI backend.
