@@ -20,13 +20,17 @@ const mapPlan = (x: any): Plan => ({ id:x.id,planDate:x.plan_date,mealCategory:x
 const mapShopping = (x: any): ShoppingItem => ({ id:x.id,name:x.name,quantity:x.quantity,unit:x.unit,checked:x.checked,source:x.source,createdAt:x.created_at,updatedAt:x.updated_at })
 export async function listCustomFoods(query?: string): Promise<CustomFood[]> { return (await request<any[]>(`/custom-foods${query ? `?q=${encodeURIComponent(query)}` : ''}`)).map(mapCustom) }
 export async function createCustomFood(payload: Record<string, unknown>): Promise<CustomFood> { return mapCustom(await request('/custom-foods',{method:'POST',body:JSON.stringify(payload)})) }
+export async function updateCustomFood(id: string, payload: Record<string, unknown>): Promise<CustomFood> { return mapCustom(await request(`/custom-foods/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(payload)})) }
+export async function favoriteCustomFood(id: string): Promise<CustomFood> { return mapCustom(await request(`/custom-foods/${encodeURIComponent(id)}/favorite`,{method:'POST'})) }
 export async function deleteCustomFood(id: string): Promise<void> { await request(`/custom-foods/${encodeURIComponent(id)}`,{method:'DELETE'}) }
 export async function listRecipes(): Promise<Recipe[]> { return (await request<any[]>('/recipes')).map(mapRecipe) }
 export async function createRecipe(payload: Record<string, unknown>): Promise<Recipe> { return mapRecipe(await request('/recipes',{method:'POST',body:JSON.stringify(payload)})) }
+export async function updateRecipe(id: string, payload: Record<string, unknown>): Promise<Recipe> { return mapRecipe(await request(`/recipes/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(payload)})) }
 export async function deleteRecipe(id: string): Promise<void> { await request(`/recipes/${encodeURIComponent(id)}`,{method:'DELETE'}) }
 export async function listPlans(start?: string, end?: string): Promise<Plan[]> { const q = start ? `?start=${start}${end ? `&end=${end}` : ''}` : ''; return (await request<any[]>(`/plans${q}`)).map(mapPlan) }
 export async function createPlan(payload: Record<string, unknown>): Promise<Plan> { return mapPlan(await request('/plans',{method:'POST',body:JSON.stringify(payload)})) }
 export async function deletePlan(id: string): Promise<void> { await request(`/plans/${encodeURIComponent(id)}`,{method:'DELETE'}) }
+export async function logPlanMeal(id: string, payload: { idempotency_key: string; local_date?: string }): Promise<void> { await request(`/plans/${encodeURIComponent(id)}/meal`,{method:'POST',body:JSON.stringify(payload)}) }
 export async function listShopping(): Promise<ShoppingItem[]> { return (await request<any[]>('/shopping-list')).map(mapShopping) }
 export async function createShopping(payload: Record<string, unknown>): Promise<ShoppingItem> { return mapShopping(await request('/shopping-list',{method:'POST',body:JSON.stringify(payload)})) }
 export async function updateShopping(id: string, payload: Record<string, unknown>): Promise<ShoppingItem> { return mapShopping(await request(`/shopping-list/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(payload)})) }

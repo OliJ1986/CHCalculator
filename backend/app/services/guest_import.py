@@ -7,7 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..domain.carbs import CarbohydrateInputError, calculate_carbohydrate
-from ..models import GoalVersion, MealEntry, Profile
+from ..models import CustomFood, GoalVersion, MealEntry, Profile
+from ..domain.carbs import validate_available_carbs_100g
 from ..schemas import GuestImportRequest
 from .goals import CATEGORY_LABELS, _target
 
@@ -16,9 +17,31 @@ class GuestImportError(ValueError):
     pass
 
 
-def import_guest_data(db: Session, profile: Profile, request: GuestImportRequest) -> tuple[int, int, int, int]:
+def import_guest_data(db: Session, profile: Profile, request: GuestImportRequest) -> tuple[int, int, int, int, int, int]:
     imported_meals = skipped_meals = imported_goals = skipped_goals = 0
+    imported_custom_foods = skipped_custom_foods = 0
     try:
+        for item in request.custom_foods:
+            try:
+                carbs = validate_available_carbs_100g(item.available_carbs_100g)
+            except (CarbohydrateInputError, TypeError, ValueError) as exc:
+                raise GuestImportError("A vendég saját étel CH-adata nem számolható") from exc
+            brand = item.brand.strip() if item.brand else None
+            current = db.scalar(select(CustomFood).where(CustomFood.profile_id == profile.id, CustomFood.name == item.name.strip(), CustomFood.brand == brand))
+            if current is not None:
+                same = float(current.available_carbs_100g) == float(carbs) and current.dietary_fiber_100g == item.dietary_fiber_100g and current.serving_size_g == item.serving_size_g and current.notes == item.notes
+                if same:
+                    skipped_custom_foods += 1
+                    continue
+                if not request.overwrite_existing:
+                    raise GuestImportError("A meglévő saját étel eltérő adatot tartalmaz; megerősítés szükséges")
+                current.available_carbs_100g = carbs; current.dietary_fiber_100g = item.dietary_fiber_100g; current.serving_size_g = item.serving_size_g; current.notes = item.notes; current.is_favorite = item.is_favorite
+                imported_custom_foods += 1
+                continue
+            db.add(CustomFood(profile_id=profile.id, name=item.name.strip(), brand=brand, available_carbs_100g=carbs,
+                              dietary_fiber_100g=item.dietary_fiber_100g, serving_size_g=item.serving_size_g, notes=item.notes, is_favorite=item.is_favorite))
+            imported_custom_foods += 1
+
         for item in request.meals:
             if item.consumed_at.tzinfo is None or item.consumed_at.utcoffset() is None:
                 raise GuestImportError("A vendég bejegyzés időpontjának időzónát kell tartalmaznia")
@@ -92,4 +115,4 @@ def import_guest_data(db: Session, profile: Profile, request: GuestImportRequest
     except Exception:
         db.rollback()
         raise
-    return imported_meals, skipped_meals, imported_goals, skipped_goals
+    return imported_meals, skipped_meals, imported_goals, skipped_goals, imported_custom_foods, skipped_custom_foods

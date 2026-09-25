@@ -182,9 +182,21 @@ class GuestGoalImport(BaseModel):
     allow_past: bool = True
 
 
+class GuestCustomFoodImport(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=200)
+    brand: str | None = Field(default=None, max_length=200)
+    available_carbs_100g: float
+    dietary_fiber_100g: float | None = None
+    serving_size_g: float | None = None
+    notes: str | None = Field(default=None, max_length=4000)
+    is_favorite: bool = False
+
+
 class GuestImportRequest(BaseModel):
     meals: list[GuestMealImport] = Field(default_factory=list, max_length=2000)
     goals: list[GuestGoalImport] = Field(default_factory=list, max_length=500)
+    custom_foods: list[GuestCustomFoodImport] = Field(default_factory=list, max_length=1000)
     overwrite_existing: bool = False
 
 
@@ -193,6 +205,8 @@ class GuestImportResponse(BaseModel):
     skipped_meals: int
     imported_goals: int
     skipped_goals: int
+    imported_custom_foods: int = 0
+    skipped_custom_foods: int = 0
 
 
 class CustomFoodCreateRequest(BaseModel):
@@ -314,6 +328,13 @@ class MealPlanResponse(BaseModel):
     snapshot: dict
     created_at: datetime
     updated_at: datetime
+
+
+class PlanLogMealRequest(BaseModel):
+    idempotency_key: str = Field(min_length=8, max_length=128)
+    consumed_at: datetime | None = None
+    local_date: date | None = None
+    timezone: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class ShoppingItemCreateRequest(BaseModel):

@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from ..domain.carbs import validate_amount_g, validate_available_carbs_100g
 from ..models import CustomFood, Food, MealPlanEntry, Recipe, RecipeIngredient
-from ..schemas import MealPlanCreateRequest, MealPlanResponse, MealPlanUpdateRequest
+from ..schemas import MealCreateRequest, MealPlanCreateRequest, MealPlanResponse, MealPlanUpdateRequest, PlanLogMealRequest
+from .meals import create_meal
+from .recipes import log_recipe_meal
 from .recipes import RecipeError, get_recipe
 
 
@@ -85,3 +87,16 @@ def update_plan(db: Session, profile_id: str, plan_id: str, payload: MealPlanUpd
 
 def delete_plan(db: Session, profile_id: str, plan_id: str) -> None:
     db.delete(get_plan(db, profile_id, plan_id)); db.commit()
+
+
+def log_plan_meal(db: Session, profile_id: str, plan_id: str, payload: PlanLogMealRequest):
+    row = get_plan(db, profile_id, plan_id)
+    if row.recipe_id:
+        from ..schemas import RecipeMealRequest
+        return log_recipe_meal(db, profile_id, row.recipe_id, RecipeMealRequest(quantity=float(row.quantity), quantity_unit=row.quantity_unit,
+            local_date=payload.local_date or row.plan_date, meal_category=row.meal_category,
+            timezone=payload.timezone, idempotency_key=payload.idempotency_key), payload.timezone or "Europe/Budapest", payload.consumed_at)
+    request = MealCreateRequest(food_id=row.food_id, custom_food_id=row.custom_food_id, amount_g=float(row.quantity),
+        consumed_at=payload.consumed_at, local_date=payload.local_date or row.plan_date, timezone=payload.timezone,
+        meal_category=row.meal_category, idempotency_key=payload.idempotency_key)
+    return create_meal(db, request, profile_id)

@@ -198,6 +198,12 @@ export async function deleteGuestRecipe(id: string): Promise<void> { await remov
 export async function listGuestPlans(localDate?: string): Promise<Plan[]> { const rows = await readAll<Plan>(PLANS); return localDate ? rows.filter((row) => row.planDate === localDate) : rows }
 export async function saveGuestPlan(item: Plan): Promise<void> { await put(PLANS, item) }
 export async function deleteGuestPlan(id: string): Promise<void> { await remove(PLANS, id) }
+export async function createGuestMealFromPlan(plan: Plan, localDate: string): Promise<Meal> {
+  const now = new Date().toISOString()
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
+  const meal: Meal = { id, foodId: plan.foodId, customFoodId: plan.customFoodId, recipeId: plan.recipeId, consumedAt: now, localDate, timezone: 'Europe/Budapest', amountG: plan.quantity, mealCategory: plan.mealCategory, calculatedCarbsG: plan.plannedCarbsG, snapshot: { snapshotVersion: 1, capturedAt: now, calculationVersion: 'm10-plan-v1', unit: plan.quantityUnit, name: String(plan.snapshot.name ?? 'Tervezett étkezés'), originalName: String(plan.snapshot.name ?? 'Tervezett étkezés'), brand: null, source: String(plan.snapshot.source ?? 'plan'), sourceId: String(plan.snapshot.source_id ?? plan.id), availableCarbs100g: null, totalCarbohydrate100g: null, dietaryFiber100g: null, nutrientIds: null, nutrientValues: null, nutrientProvenance: { planned: true }, mappingVersion: null }, createdAt: now, updatedAt: now }
+  await put(MEALS, meal); return meal
+}
 export async function listGuestShopping(): Promise<ShoppingItem[]> { return readAll<ShoppingItem>(SHOPPING) }
 export async function saveGuestShopping(item: ShoppingItem): Promise<void> { await put(SHOPPING, item) }
 export async function updateGuestShopping(item: ShoppingItem): Promise<void> { await put(SHOPPING, item) }

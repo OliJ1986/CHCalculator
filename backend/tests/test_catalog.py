@@ -5,13 +5,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.models import Base, Food, Profile
-from app.schemas import CustomFoodCreateRequest, MealCreateRequest, MealPlanCreateRequest, MealPlanUpdateRequest, RecipeCreateRequest, RecipeIngredientRequest, RecipeMealRequest, ShoppingItemCreateRequest
+from app.schemas import CustomFoodCreateRequest, GuestCustomFoodImport, GuestImportRequest, MealCreateRequest, MealPlanCreateRequest, MealPlanUpdateRequest, RecipeCreateRequest, RecipeIngredientRequest, RecipeMealRequest, ShoppingItemCreateRequest
 from app.services.custom_foods import create_custom_food, list_custom_foods
 from app.services.planner import create_plan, list_plans, update_plan
 from app.services.recipes import create_recipe, get_recipe_response
 from app.services.shopping import create_item, generate_from_plans
 from app.services.meals import create_meal
 from app.services.recipes import log_recipe_meal
+from app.services.guest_import import import_guest_data
 
 
 def db_session():
@@ -55,3 +56,10 @@ def test_profile_isolation_for_custom_foods():
     db = next(db_session())
     create_custom_food(db, "p1", CustomFoodCreateRequest(name="Titkos", available_carbs_100g=1))
     assert list_custom_foods(db, "p2") == []
+
+
+def test_guest_custom_food_import_is_idempotent():
+    db = next(db_session())
+    payload = GuestImportRequest(custom_foods=[GuestCustomFoodImport(id="guest-own-1", name="Saját", available_carbs_100g=9.5)])
+    assert import_guest_data(db, db.get(Profile, "p1"), payload)[4:] == (1, 0)
+    assert import_guest_data(db, db.get(Profile, "p1"), payload)[4:] == (0, 1)

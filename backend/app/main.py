@@ -43,6 +43,7 @@ from .schemas import (
     RecipeCreateRequest, RecipeResponse, RecipeMealRequest,
     MealPlanCreateRequest, MealPlanUpdateRequest, MealPlanResponse,
     ShoppingItemCreateRequest, ShoppingItemUpdateRequest, ShoppingItemResponse,
+    PlanLogMealRequest,
 )
 from .services.foods import FoodService
 from .services.meals import (
@@ -76,7 +77,7 @@ from .services.auth import (
 from .services.guest_import import GuestImportError, import_guest_data
 from .services.custom_foods import CustomFoodError, create_custom_food, delete_custom_food, list_custom_foods, toggle_favorite as toggle_custom_food_favorite, update_custom_food
 from .services.recipes import RecipeError, create_recipe, delete_recipe, get_recipe_response, list_recipes, log_recipe_meal, toggle_recipe_favorite, update_recipe
-from .services.planner import PlanError, create_plan, delete_plan, list_plans, update_plan
+from .services.planner import PlanError, create_plan, delete_plan, list_plans, log_plan_meal, update_plan
 from .services.shopping import ShoppingError, create_item, delete_item, generate_from_plans, list_items, update_item
 
 logger = logging.getLogger(__name__)
@@ -264,11 +265,11 @@ def change_password(request: Request, response: Response, payload: ChangePasswor
     return AuthResponse(status="password_changed", authenticated=True, role=user.role, email=user.email, email_verified=True, csrf_token=csrf)
 
 
-@app.post("/api/auth/import-guest", response_model=GuestImportResponse)
+@app.post("/api/auth/import-guest", response_model=GuestImportResponse, response_model_exclude_defaults=True)
 def import_guest(request: Request, payload: GuestImportRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> GuestImportResponse:
     require_csrf(request, db)
     try:
-        imported_meals, skipped_meals, imported_goals, skipped_goals = import_guest_data(
+        imported_meals, skipped_meals, imported_goals, skipped_goals, imported_custom_foods, skipped_custom_foods = import_guest_data(
             db, profile_for_user(db, user), payload
         )
     except GuestImportError as exc:
@@ -278,6 +279,8 @@ def import_guest(request: Request, payload: GuestImportRequest, db: Session = De
         skipped_meals=skipped_meals,
         imported_goals=imported_goals,
         skipped_goals=skipped_goals,
+        imported_custom_foods=imported_custom_foods,
+        skipped_custom_foods=skipped_custom_foods,
     )
 
 
@@ -511,6 +514,18 @@ def get_plans(start: date | None = Query(default=None), end: date | None = Query
     return list_plans(db, profile_for_user(db, user).id, start, end)
 
 
+@app.get("/api/plans/summary")
+def get_plan_summary(start: date, end: date, db: Session = Depends(get_db), user: User = Depends(require_user)) -> dict:
+    if end < start: raise HTTPException(status_code=422, detail="Az időszak vége nem lehet korábbi a kezdeténél")
+    rows = list_plans(db, profile_for_user(db, user).id, start, end)
+    by_day: dict[str, dict] = {}
+    for row in rows:
+        day = by_day.setdefault(row.plan_date.isoformat(), {"plan_date": row.plan_date.isoformat(), "planned_carbs_g": 0.0, "categories": {}})
+        day["planned_carbs_g"] += row.planned_carbs_g
+        day["categories"][row.meal_category] = day["categories"].get(row.meal_category, 0.0) + row.planned_carbs_g
+    return {"items": list(by_day.values())}
+
+
 @app.post("/api/plans", response_model=MealPlanResponse, status_code=201)
 def post_plan(request: Request, payload: MealPlanCreateRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealPlanResponse:
     require_csrf(request, db)
@@ -530,6 +545,21 @@ def remove_plan(request: Request, plan_id: str, db: Session = Depends(get_db), u
     require_csrf(request, db)
     try: delete_plan(db, profile_for_user(db, user).id, plan_id)
     except PlanError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/plans/{plan_id}/meal", response_model=MealResponse, status_code=201)
+def post_plan_meal(request: Request, plan_id: str, payload: PlanLogMealRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealResponse:
+    require_csrf(request, db)
+    profile = profile_for_user(db, user)
+    try:
+        result = log_plan_meal(db, profile.id, plan_id, payload)
+    except (PlanError, RecipeError, MealError) as exc:
+        raise _catalog_error(exc) from exc
+    if isinstance(result, MealResponse): return result
+    return MealResponse(id=result.id, food_id=result.food_id, custom_food_id=result.custom_food_id, recipe_id=result.recipe_id,
+                        consumed_at=result.consumed_at, local_date=result.local_date, timezone=result.timezone, amount_g=float(result.amount_g),
+                        quantity_unit=result.quantity_unit, meal_category=result.meal_category, calculated_carbs_g=float(result.calculated_carbs_g),
+                        snapshot=result.snapshot, created_at=result.created_at, updated_at=result.updated_at)
 
 
 @app.get("/api/shopping-list", response_model=list[ShoppingItemResponse])

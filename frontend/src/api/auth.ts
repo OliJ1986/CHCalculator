@@ -50,10 +50,11 @@ export async function resetPassword(token: string, password: string): Promise<Au
 export type GuestImportPayload = {
   meals: Array<{ id: string; consumed_at: string; local_date: string; timezone: string; amount_g: number; meal_category: string; snapshot: Record<string, unknown> }>
   goals: Array<{ effective_date: string; daily_target_g: number | null; meal_targets: Record<string, number>; allow_past: boolean }>
+  custom_foods?: Array<{ id: string; name: string; brand: string | null; available_carbs_100g: number; dietary_fiber_100g: number | null; serving_size_g: number | null; notes: string | null; is_favorite: boolean }>
   overwrite_existing?: boolean
 }
 
-export async function importGuestData(payload: GuestImportPayload): Promise<{ importedMeals: number; skippedMeals: number; importedGoals: number; skippedGoals: number }> {
-  const value = await request<{ imported_meals: number; skipped_meals: number; imported_goals: number; skipped_goals: number }>('/auth/import-guest', { method: 'POST', body: JSON.stringify(payload) })
-  return { importedMeals: value.imported_meals, skippedMeals: value.skipped_meals, importedGoals: value.imported_goals, skippedGoals: value.skipped_goals }
+export async function importGuestData(payload: GuestImportPayload): Promise<{ importedMeals: number; skippedMeals: number; importedGoals: number; skippedGoals: number; importedCustomFoods: number; skippedCustomFoods: number }> {
+  const value = await request<{ imported_meals: number; skipped_meals: number; imported_goals: number; skipped_goals: number; imported_custom_foods?: number; skipped_custom_foods?: number }>('/auth/import-guest', { method: 'POST', body: JSON.stringify(payload) })
+  return { importedMeals: value.imported_meals, skippedMeals: value.skipped_meals, importedGoals: value.imported_goals, skippedGoals: value.skipped_goals, importedCustomFoods: value.imported_custom_foods ?? 0, skippedCustomFoods: value.skipped_custom_foods ?? 0 }
 }
