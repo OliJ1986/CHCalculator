@@ -176,11 +176,12 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 ## Railway staging előkészítés — előkészítve, deploy nélkül
 
 - [x] Külön backend- és frontend-konfiguráció készült, a szolgáltatások saját root directoryval és healthcheckkel használhatók.
-- [x] A backend staging módban PostgreSQL-t és proxy tokent követel meg; a frontend runtime gateway Basic Auth-tal véd, a backend publikus domain nélkül marad.
+- [x] A backend staging módban PostgreSQL-t és proxy tokent követel meg; a frontend runtime gateway vendégként nyilvánosan megnyitható, a backend publikus domain nélkül marad.
 - [x] A frontend production buildje nem tartalmaz beégetett localhost API-címet; a `/api` kérések privát backend-proxyra mennek.
 - [x] Backend Nixpacks Python 3.12 és `requirements.txt` telepítő rögzítve; frontend Node 22.12.0 és lockfile-kompatibilis install/build útvonal rögzítve.
 - [x] A frontend buildből kikerült a második `npm ci`, amely az install fázis után EBUSY cache-hibát okozhatott.
 - [x] A service worker személyes `/api` válaszokat nem cache-el.
+- [x] A frontend gateway Basic Auth nélkül, vendégként megnyitható; a `BACKEND_PROXY_TOKEN` megmaradt, a backend személyes API-védelme változatlan.
 - [x] A részletes Railway UI telepítési útmutató a `RAILWAY_STAGING.md` fájlban van.
 - [x] A backend/frontend Root Directoryhoz igazított parancsok és a repo-root fallback külön regressziós teszttel ellenőrzöttek.
 - [ ] Valós Railway projekt létrehozása, titkos staging változók kitöltése és deploy. Ez külön, felhasználói hozzáférést és biztonsági döntést igénylő művelet; ebben a feladatban nem történt meg.

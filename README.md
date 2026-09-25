@@ -104,7 +104,7 @@ A teljes M4 ellenőrzés: backend `70 passed, 2 warnings` valódi PostgreSQL-lel
 
 ## Railway staging előkészítés
 
-A repó külön Railway-konfigurációt tartalmaz a backendhez (`backend/railway.toml`) és a frontendhez (`frontend/railway.toml`). A backend staging módban kötelező PostgreSQL `DATABASE_URL`-t és `STAGING_PROXY_TOKEN`-t kér, publikus domain nélkül futtatható, és a `/api/ready` healthcheck az adatbázist is ellenőrzi. A frontend production buildet a saját Node gateway szolgálja ki; Basic Auth-tal védi a staging domaint, a `/api` kéréseket pedig a backend privát Railway-címére továbbítja.
+A repó külön Railway-konfigurációt tartalmaz a backendhez (`backend/railway.toml`) és a frontendhez (`frontend/railway.toml`). A backend staging módban kötelező PostgreSQL `DATABASE_URL`-t és `STAGING_PROXY_TOKEN`-t kér, publikus domain nélkül futtatható, és a `/api/ready` healthcheck az adatbázist is ellenőrzi. A frontend production buildet a saját Node gateway szolgálja ki, vendégként hitelesítés nélkül megnyitható, a `/api` kéréseket pedig a backend privát Railway-címére továbbítja.
 
 A felületi létrehozási és ellenőrzési lépések a [RAILWAY_STAGING.md](RAILWAY_STAGING.md) fájlban vannak. A staging külön adatbázissal indul, helyi PostgreSQL- vagy SQLite-adatot nem másol át automatikusan. Valós Railway-projekt létrehozása, domain-kiadás és deploy ebben a munkamenetben nem történt.
 
@@ -116,6 +116,6 @@ Staging buildnél a backend Nixpacks Python 3.12-t és a `requirements.txt` tele
 
 Vendégként a napló IndexedDB-ben, háromnapos nézettel működik; régi rekord importig megmarad. A személyes API sessiont és íráskor CSRF-tokent kér.
 
-Ellenőrzés: cd backend; ..\.venv\Scripts\python.exe -m pytest -q; cd frontend; npm.cmd run typecheck; npm.cmd run lint; npm.cmd run test -- --run; npm.cmd run build. Migráció: cd backend; ..\.venv\Scripts\python.exe -m alembic upgrade head.
+Ellenőrzés: cd backend; ..\.venv\Scripts\python.exe -m pytest -q; cd frontend; npm.cmd run typecheck; npm.cmd run lint; npm.cmd run test -- --run; npm.cmd run test:gateway; npm.cmd run build. Migráció: cd backend; ..\.venv\Scripts\python.exe -m alembic upgrade head.
 
 Staging/prod email-delivery adapter és valós deploy nincs végrehajtva.

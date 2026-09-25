@@ -3,7 +3,9 @@
 ## Unreleased — Railway staging előkészítés — 2026-09-25
 
 - Külön Railway build/deploy konfiguráció készült a backendhez és a frontendhez; a backend Alembic pre-deploy migrációt és adatbázis-readiness healthchecket használ.
-- Staging módban a backend PostgreSQL-t és proxy tokent követel, a frontend production Node gateway pedig Basic Auth-tal védi a domaint és privát backend-címre proxyz.
+- Staging módban a backend PostgreSQL-t és proxy tokent követel, a frontend production Node gateway pedig regisztráció nélkül kiszolgálja a vendégalkalmazást és privát backend-címre proxyz.
+- A frontend gateway Basic Auth függősége megszűnt; a `STAGING_BASIC_AUTH_USER` és `STAGING_BASIC_AUTH_PASSWORD` változók nem szükségesek.
+- A gateway smoke ellenőrzi a Basic Auth nélküli statikus elérést, a szerveroldali proxy tokent és a kliens `Authorization` fejlécének eldobását.
 - Megszűnt a runtime localhost API-fallback: a Vite fejlesztési proxy `VITE_DEV_API_URL` változóból olvas, a staging frontend `/api` same-origin útvonalat használ.
 - A service worker cache-verziója frissült, és személyes `/api` válaszok többé nem kerülnek általános cache-first tárolóba.
 - A Railway felületi telepítési és ellenőrzési útmutató a `RAILWAY_STAGING.md` fájlban található. Valós projekt, domain, deploy és adatimport nem történt.

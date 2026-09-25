@@ -241,3 +241,9 @@ A vendégimport szerveroldalon újraszámol, snapshotot/célverziót őriz, idem
 A vendég indulási útvonal módosítása után az IndexedDB étkezés- és céllekérdezése auth-válasz nélkül is elindul; a sikeres auth később fiókos adatra válthat. Az új ellenőrzés: backend auth/config/health `9 passed`, valódi PostgreSQL `2 passed`, frontend typecheck/unit/build sikeres, PWA manifest és API-kizáró service-worker statikusan ellenőrzött.
 
 Korlát: a 360/390 px-es böngészős UI-ellenőrzés nem futott le, mert a környezetben nincs elérhető böngészővezérlés; staging/prod email-delivery adapter és valós Railway deploy sincs bekötve. A következő lépés a böngészős QA, majd csak siker esetén az M5 lezárása.
+
+## 2026-09-25 — Railway Basic Auth eltávolítva
+
+A frontend Node gateway most Basic Auth nélkül szolgálja ki a vendégalkalmazást. A `STAGING_BASIC_AUTH_USER` és `STAGING_BASIC_AUTH_PASSWORD` változók, a Basic Auth ellenőrzés és a hozzá tartozó kriptográfiai kód kikerült. A `BACKEND_URL` és `BACKEND_PROXY_TOKEN` staging-függőség megmaradt; a gateway a kliens `Authorization` fejlécét nem továbbítja, és szerveroldalon adja hozzá a proxy tokent.
+
+A backend publikus domain nélkül marad. A vendégadatok IndexedDB-ben maradnak, a regisztrált felhasználók személyes meal/goal végpontjai továbbra is sessiont és íráskor CSRF-tokent igényelnek. A gateway smoke, frontend build/typecheck/unit/lint, auth regresszió és valódi PostgreSQL integráció sikeres; push és deploy nem történt. A telefonos vizuális QA környezeti böngészőhiány miatt továbbra is nyitott.

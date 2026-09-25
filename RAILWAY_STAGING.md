@@ -55,26 +55,24 @@ A frontend staging service variables értékei:
 APP_ENV=staging
 BACKEND_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
 BACKEND_PROXY_TOKEN=${{backend.STAGING_PROXY_TOKEN}}
-STAGING_BASIC_AUTH_USER=<staging-felhasználó>
-STAGING_BASIC_AUTH_PASSWORD=<hosszú, egyedi staging-jelszó>
 VITE_API_BASE_URL=/api
 ```
 
-A `BACKEND_URL` és a token runtime változó. A `VITE_API_BASE_URL` buildkor bekerülhet a böngészőbe, ezért ide soha ne kerüljön titok. A frontend Node gateway Basic Auth-tal védi a staging domaint, a `/healthz` viszont hitelesítés nélkül válaszol a Railway healthchecknek. A `/api/*` kéréseket a gateway a backend privát címére továbbítja, és hozzáadja a token fejlécet.
+A `BACKEND_URL` és a token runtime változó. A `VITE_API_BASE_URL` buildkor bekerülhet a böngészőbe, ezért ide soha ne kerüljön titok. A frontend Node gateway a statikus vendég alkalmazást hitelesítés nélkül szolgálja ki; a `/healthz` nyilvános healthcheck, a `/api/*` kéréseket pedig a gateway a backend privát címére továbbítja és hozzáadja a token fejlécet.
 
 A `/frontend` Root Directory miatt a `frontend/railway.toml` parancsai közvetlenül `npm run build` és `npm start` formában futnak; a Nixpacks install fázisa végzi az `npm ci`-t. `cd frontend` előtag nem szükséges.
 
 A frontend `engines.node` és `.nvmrc` értéke kompatibilis Node 22-t rögzít (`22.12.0`), így a Vite nem indul Node 18 alatt. A `railway.toml` build parancsa csak `npm run build`: az install fázisban futó második `npm ci` eltávolítása megszünteti az ismételt `node_modules`-műveletet, amely az EBUSY hibát okozhatta.
 
-Csak az elkészült Basic Auth változók után generálj egyetlen nyilvános frontend domaint. A backendhez ne generálj publikus domaint: a Railway privát hálózata nem böngészőből elérhető, ezért a böngésző kizárólag a frontend same-origin `/api` proxyját használja.
+Miután a backend változói és a frontend gateway tokenje beálltak, generálj egyetlen nyilvános frontend domaint. A backendhez ne generálj publikus domaint: a Railway privát hálózata nem böngészőből elérhető, ezért a böngésző kizárólag a frontend same-origin `/api` proxyját használja.
 
 ## 4. Telepítési sorrend és ellenőrzés
 
 1. PostgreSQL szolgáltatás létrehozása a `staging` környezetben.
 2. Backend szolgáltatás első deployja; ellenőrizd az Alembic headet és a `/api/ready` healthchecket.
 3. Frontend szolgáltatás deployja; ezután generáld a nyilvános domaint.
-4. Privát böngészőablakban nyisd meg a frontend domaint. Basic Auth nélkül 401, helyes adatokkal az alkalmazás jelenik meg.
-5. Ellenőrizd a `/healthz` 200 válaszát, majd hitelesítve keress ételt és töltsd be a naplót/célokat. A böngésző hálózati nézetében az API-cél `/api/...` legyen, ne localhost és ne a backend publikus címe.
+4. Nyisd meg a frontend domaint inkognitó ablakban is; a vendég alkalmazásnak felhasználónév és jelszó nélkül meg kell jelennie.
+5. Ellenőrizd a `/healthz` 200 válaszát, majd vendégként keress ételt, ments étkezést és célt. A böngésző hálózati nézetében az API-cél `/api/...` legyen, ne localhost és ne a backend publikus címe.
 6. A Railway logban csak státuszt és általános hibát ellenőrizz; URL-t, jelszót, API-kulcsot vagy proxy tokent ne másolj át.
 
 A service worker csak statikus erőforrásokat cache-el. A személyes `/api` válaszok nem kerülnek általános cache-first tárolóba. A staging adatbázisba nincs automatikus helyi adatmásolás.
@@ -105,9 +103,9 @@ A root `railway.toml`-t ne állítsd be egyik staging service Config File mezőj
 
 ## 5. Biztonsági korlátok és visszavonás
 
-Ez a védelem egyetlen privát staging profilhoz és megosztott Basic Auth-hoz készült; nem teljes felhasználói auth és nem production hozzáférés-kezelés. Publikus vagy többfelhasználós kiadás előtt SSO/edge access és profil-szintű auth külön döntés szükséges.
+Az internet felől csak a frontend gateway érhető el; a backend privát marad, és minden `/api` kéréshez szerveroldali `STAGING_PROXY_TOKEN` kell. A regisztrált felhasználók személyes végpontjai ezen felül sessiont és íráskor CSRF-tokent igényelnek. A vendégadatok nem kerülnek a szerverre.
 
-Ha a staging hozzáférést vissza kell vonni, töröld vagy cseréld a frontend Basic Auth változóit, állítsd le a frontend domaint/szolgáltatást, majd cseréld a backend `STAGING_PROXY_TOKEN` értékét is. Ne töröld és ne állítsd vissza a helyi vagy production adatbázist ebből a folyamatból.
+Ha a staging hozzáférést vissza kell vonni, állítsd le vagy korlátozd a frontend domaint, majd cseréld a backend `STAGING_PROXY_TOKEN` értékét és a frontend `BACKEND_PROXY_TOKEN` referenciáját. Ne töröld és ne állítsd vissza a helyi vagy production adatbázist ebből a folyamatból.
 
 Railway dokumentáció: [monorepo root directory](https://docs.railway.com/deployments/monorepo), [build és deploy konfiguráció](https://docs.railway.com/builds/build-configuration), [pre-deploy parancs](https://docs.railway.com/deployments/pre-deploy-command), [staging izoláció](https://docs.railway.com/guides/isolate-staging-production), [privát hálózat](https://docs.railway.com/networking/private-networking), [frontend környezeti változók](https://docs.railway.com/guides/frontend-environment-variables).
 
@@ -121,4 +119,4 @@ A Railway pre-deploy parancs külön konténerben, az alkalmazás indítása el�
 
 ## M5 auth konfiguráció
 
-A privát backend + frontend Basic Auth gateway változatlan. A DATABASE_URL és STAGING_PROXY_TOKEN mellett az email delivery szerződéshez AUTH_EMAIL_DELIVERY_URL konfigurálható; staging/prod token nem jelenik meg API-válaszban. Deploy után ellenőrizd a ready, auth/me, register/verify/login, CSRF meal/goal és vendégimport flow-t. Külső email-szolgáltató és deploy ebben a munkamenetben nem történt.
+A privát backend + tokenezett frontend gateway marad. A DATABASE_URL és STAGING_PROXY_TOKEN mellett az email delivery szerződéshez AUTH_EMAIL_DELIVERY_URL konfigurálható; staging/prod token nem jelenik meg API-válaszban. Deploy után ellenőrizd a ready, auth/me, opcionális register/verify/login, CSRF meal/goal és vendégimport flow-t. Külső email-szolgáltató és deploy ebben a munkamenetben nem történt.

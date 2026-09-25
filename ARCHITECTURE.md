@@ -89,9 +89,9 @@ Hivatalos műszaki hivatkozások a terv ellenőrzéséhez: [Alembic tutorial](ht
 
 ## Railway staging tényleges felépítése
 
-A staging három elkülönített Railway-szolgáltatásból áll: PostgreSQL, privát hálózaton futó FastAPI backend és Basic Auth-tal védett React/Node frontend. A backend szolgáltatás gyökérkönyvtára `/backend`, migrációs pre-deploy parancsa `alembic upgrade head`, indítása az `$PORT` porton történik, readiness útvonala `/api/ready`. A frontend gyökérkönyvtára `/frontend`; a build `npm ci && npm run build`, az indítás `npm start`, a healthcheck `/healthz`.
+A staging három elkülönített Railway-szolgáltatásból áll: PostgreSQL, privát hálózaton futó FastAPI backend és publikus, vendégként megnyitható React/Node frontend gateway. A backend szolgáltatás gyökérkönyvtára `/backend`, migrációs pre-deploy parancsa `alembic upgrade head`, indítása az `$PORT` porton történik, readiness útvonala `/api/ready`. A frontend gyökérkönyvtára `/frontend`; a build `npm ci && npm run build`, az indítás `npm start`, a healthcheck `/healthz`.
 
-Stagingben a backend middleware a `/api/ready` kivételével minden kérést `STAGING_PROXY_TOKEN` fejléc-ellenőrzéshez köt. A frontend runtime gateway nem teszi a tokent `VITE_*` változóba: Basic Auth után a privát `BACKEND_URL`-re proxyz, és csak szerveroldalon adja hozzá a tokent. A publikus backend domain szándékosan nincs létrehozva, így a default-profile adatai nem kerülnek közvetlenül internetre. A service worker `/api/` útvonalat nem cache-el, csak statikus erőforrásokat tárol.
+Stagingben a backend middleware a `/api/ready` kivételével minden kérést `STAGING_PROXY_TOKEN` fejléc-ellenőrzéshez köt. A frontend runtime gateway hitelesítés nélkül szolgálja ki a statikus vendégalkalmazást, a privát `BACKEND_URL`-re proxyz, és csak szerveroldalon adja hozzá a tokent. A publikus backend domain szándékosan nincs létrehozva, így a default-profile adatai nem kerülnek közvetlenül internetre; a személyes API-k ezen felül user sessiont és CSRF-et ellenőriznek. A service worker `/api/` útvonalat nem cache-el, csak statikus erőforrásokat tárol.
 
 A teljes Railway felületi eljárás, változólista, ellenőrzőlista és visszavonási lépések a `RAILWAY_STAGING.md` fájlban találhatók. A staging konfiguráció előkészített, de tényleges Railway-projekt, hozzáférés, titkos értékek és deploy nélkül marad.
 

@@ -123,3 +123,4 @@ A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött 
 - D43: Opaque session-token digesttel, HttpOnly/SameSite/Secure cookie, CSRF-token, origin-ellenőrzés, lejárat/visszavonás; jelszó scrypt KDF.
 - D44: Verification/reset token egyszer használatos, lejáró digest; staging/prod token csak email-delivery adapteren keresztül mehet ki.
 - D45: Vendégimport szerveroldali CH-újraszámítás, azonos rekord kihagyás, eltérés rollback; eltérő cél explicit overwrite_existing megerősítés.
+- D46: A Railway frontend gateway Basic Auth nélkül szolgálja ki a vendégalkalmazást; a backend publikus domain nélkül marad, a gateway minden `/api` kéréshez csak szerveroldali `BACKEND_PROXY_TOKEN`-t ad, a személyes API-k védelmét pedig a backend session/CSRF ellenőrzése adja.
