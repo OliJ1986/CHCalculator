@@ -33,7 +33,7 @@ def _resolve(db: Session, profile_id: str, payload: MealPlanCreateRequest):
         if payload.quantity_unit == "servings": carbs = quantity * total / Decimal(str(recipe.servings))
         elif recipe.total_weight_g: carbs = quantity * total / Decimal(str(recipe.total_weight_g))
         else: raise PlanError("A recept össztömege szükséges gramm alapú tervezéshez")
-        return recipe.id, None, None, carbs, {"name": recipe.name, "source": "recipe", "source_id": recipe.id, "quantity": float(quantity), "quantity_unit": payload.quantity_unit,
+        return recipe.id, None, None, carbs, {"name": recipe.name, "source": "recipe", "source_id": recipe.id, "quantity": float(quantity), "quantity_unit": payload.quantity_unit, "servings": float(recipe.servings), "total_weight_g": recipe.total_weight_g,
                                               "ingredients": [row.snapshot | {"quantity_g": float(row.quantity_g)} for row in rows]}
     if payload.food_id:
         source = db.get(Food, payload.food_id)

@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.models import Base, Food, Profile
-from app.schemas import CustomFoodCreateRequest, MealCreateRequest, MealPlanCreateRequest, RecipeCreateRequest, RecipeIngredientRequest, RecipeMealRequest
+from app.schemas import CustomFoodCreateRequest, MealCreateRequest, MealPlanCreateRequest, MealPlanUpdateRequest, RecipeCreateRequest, RecipeIngredientRequest, RecipeMealRequest
 from app.services.custom_foods import create_custom_food, list_custom_foods
-from app.services.planner import create_plan, list_plans
+from app.services.planner import create_plan, list_plans, update_plan
 from app.services.recipes import create_recipe, get_recipe_response
 from app.services.shopping import create_item, generate_from_plans
 from app.services.meals import create_meal
@@ -35,6 +35,8 @@ def test_custom_food_recipe_plan_and_shopping_snapshot():
     assert round(recipe.carbs_per_serving_g, 3) == 52.5
     plan = create_plan(db, "p1", MealPlanCreateRequest(plan_date=date(2026, 9, 25), recipe_id=recipe.id, quantity=1, quantity_unit="servings"))
     assert plan.planned_carbs_g == 52.5
+    plan = update_plan(db, "p1", plan.id, MealPlanUpdateRequest(quantity=2))
+    assert plan.planned_carbs_g == 105.0
     items = generate_from_plans(db, "p1", date(2026, 9, 25), date(2026, 9, 25))
     assert {item.name for item in items} == {"Rizs", "Saját zabkása"}
     assert len(list_custom_foods(db, "p1")) == 1

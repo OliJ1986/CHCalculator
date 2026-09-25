@@ -49,8 +49,14 @@ def generate_from_plans(db: Session, profile_id: str, start: date, end: date) ->
     grouped: dict[tuple[str, str], float] = {}
     for plan in plans:
         if plan.recipe_id and isinstance(plan.snapshot.get("ingredients"), list):
+            if plan.quantity_unit == "servings":
+                factor = float(plan.quantity) / float(plan.snapshot.get("servings") or 1)
+            elif plan.snapshot.get("total_weight_g"):
+                factor = float(plan.quantity) / float(plan.snapshot["total_weight_g"])
+            else:
+                factor = 1.0
             for ingredient in plan.snapshot["ingredients"]:
-                name = str(ingredient.get("name") or "Hozzávaló"); qty = float(ingredient.get("quantity_g") or 0)
+                name = str(ingredient.get("name") or "Hozzávaló"); qty = float(ingredient.get("quantity_g") or 0) * factor
                 grouped[(name, "g")] = grouped.get((name, "g"), 0) + qty
         else:
             name = str(plan.snapshot.get("name") or "Élelmiszer")
