@@ -38,9 +38,11 @@ def _response(recipe: Recipe, ingredients: list[RecipeIngredient] | None = None)
     rows = ingredients if ingredients is not None else []
     total = sum((Decimal(str(row.calculated_carbs_g)) for row in rows), Decimal("0"))
     servings = Decimal(str(recipe.servings))
+    cooked = (total / Decimal(str(recipe.total_weight_g)) * Decimal("100")) if recipe.total_weight_g else None
     return RecipeResponse(id=recipe.id, name=recipe.name, instructions=recipe.instructions, prep_minutes=recipe.prep_minutes,
                           notes=recipe.notes, servings=float(servings), total_weight_g=recipe.total_weight_g,
-                          total_carbs_g=float(total), carbs_per_serving_g=float(total / servings), is_favorite=recipe.is_favorite,
+                          total_carbs_g=float(total), carbs_per_serving_g=float(total / servings),
+                          carbs_per_100g_cooked_g=float(cooked) if cooked is not None else None, is_favorite=recipe.is_favorite,
                           ingredients=[RecipeIngredientResponse(id=row.id, food_id=row.food_id, custom_food_id=row.custom_food_id,
                               quantity_g=float(row.quantity_g), calculated_carbs_g=float(row.calculated_carbs_g), snapshot=row.snapshot, position=row.position) for row in rows],
                           created_at=recipe.created_at, updated_at=recipe.updated_at)

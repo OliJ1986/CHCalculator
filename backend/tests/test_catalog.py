@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 from app.models import Base, Food, Profile
 from app.schemas import CustomFoodCreateRequest, GuestCustomFoodImport, GuestImportRequest, GuestPlanImport, GuestRecipeImport, GuestRecipeIngredientImport, GuestShoppingImport, MealCreateRequest, MealPlanCreateRequest, MealPlanUpdateRequest, RecipeCreateRequest, RecipeIngredientRequest, RecipeMealRequest, ShoppingItemCreateRequest
 from app.services.custom_foods import create_custom_food, list_custom_foods
-from app.services.planner import create_plan, list_plans, update_plan
+from app.services.planner import copy_plan, create_plan, list_plans, update_plan
 from app.services.recipes import create_recipe, get_recipe_response
 from app.services.shopping import create_item, generate_from_plans
 from app.services.meals import create_meal
@@ -34,10 +34,14 @@ def test_custom_food_recipe_plan_and_shopping_snapshot():
         ingredients=[RecipeIngredientRequest(food_id="f1", quantity_g=100), RecipeIngredientRequest(custom_food_id=own.id, quantity_g=200)]))
     assert round(recipe.total_carbs_g, 3) == 105.0
     assert round(recipe.carbs_per_serving_g, 3) == 52.5
+    assert round(recipe.carbs_per_100g_cooked_g or 0, 3) == 26.25
     plan = create_plan(db, "p1", MealPlanCreateRequest(plan_date=date(2026, 9, 25), recipe_id=recipe.id, quantity=1, quantity_unit="servings"))
     assert plan.planned_carbs_g == 52.5
     plan = update_plan(db, "p1", plan.id, MealPlanUpdateRequest(quantity=2))
     assert plan.planned_carbs_g == 105.0
+    copied = copy_plan(db, "p1", plan.id, date(2026, 9, 26))
+    assert copied.plan_date == date(2026, 9, 26)
+    assert copy_plan(db, "p1", plan.id, date(2026, 9, 26)).id == copied.id
     items = generate_from_plans(db, "p1", date(2026, 9, 25), date(2026, 9, 25))
     assert {item.name for item in items} == {"Rizs", "Saját zabkása"}
     create_item(db, "p1", ShoppingItemCreateRequest(name="Rizs", quantity=1, unit="db"))

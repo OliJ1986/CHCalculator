@@ -64,6 +64,6 @@ def generate_from_plans(db: Session, profile_id: str, start: date, end: date) ->
             grouped[(name, unit)] = grouped.get((name, unit), 0) + float(plan.quantity)
     for (name, unit), quantity in grouped.items():
         existing = db.scalar(select(ShoppingItem).where(ShoppingItem.profile_id == profile_id, ShoppingItem.name == name, ShoppingItem.unit == unit, ShoppingItem.source == "planner"))
-        if existing: existing.quantity = (existing.quantity or 0) + quantity; existing.checked = False
+        if existing: existing.quantity = quantity; existing.checked = False
         else: db.add(ShoppingItem(profile_id=profile_id, name=name, quantity=quantity, unit=unit, source="planner", checked=False))
     db.commit(); return list_items(db, profile_id)

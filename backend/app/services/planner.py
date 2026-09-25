@@ -89,6 +89,24 @@ def delete_plan(db: Session, profile_id: str, plan_id: str) -> None:
     db.delete(get_plan(db, profile_id, plan_id)); db.commit()
 
 
+def copy_plan(db: Session, profile_id: str, plan_id: str, target_date: date) -> MealPlanResponse:
+    source = get_plan(db, profile_id, plan_id)
+    existing = db.scalar(select(MealPlanEntry).where(
+        MealPlanEntry.profile_id == profile_id, MealPlanEntry.plan_date == target_date,
+        MealPlanEntry.meal_category == source.meal_category, MealPlanEntry.food_id == source.food_id,
+        MealPlanEntry.custom_food_id == source.custom_food_id, MealPlanEntry.recipe_id == source.recipe_id,
+        MealPlanEntry.quantity == source.quantity, MealPlanEntry.quantity_unit == source.quantity_unit,
+    ))
+    if existing is not None:
+        return _response(existing)
+    row = MealPlanEntry(profile_id=profile_id, plan_date=target_date, meal_category=source.meal_category,
+                        food_id=source.food_id, custom_food_id=source.custom_food_id, recipe_id=source.recipe_id,
+                        quantity=source.quantity, quantity_unit=source.quantity_unit,
+                        planned_carbs_g=source.planned_carbs_g, snapshot=source.snapshot)
+    db.add(row); db.commit(); db.refresh(row)
+    return _response(row)
+
+
 def log_plan_meal(db: Session, profile_id: str, plan_id: str, payload: PlanLogMealRequest):
     row = get_plan(db, profile_id, plan_id)
     if row.recipe_id:

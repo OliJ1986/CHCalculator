@@ -41,7 +41,7 @@ from .schemas import (
     GuestImportResponse,
     CustomFoodCreateRequest, CustomFoodUpdateRequest, CustomFoodResponse,
     RecipeCreateRequest, RecipeResponse, RecipeMealRequest,
-    MealPlanCreateRequest, MealPlanUpdateRequest, MealPlanResponse,
+    MealPlanCreateRequest, MealPlanUpdateRequest, MealPlanCopyRequest, MealPlanResponse,
     ShoppingItemCreateRequest, ShoppingItemUpdateRequest, ShoppingItemResponse,
     PlanLogMealRequest,
 )
@@ -77,7 +77,7 @@ from .services.auth import (
 from .services.guest_import import GuestImportError, import_guest_data
 from .services.custom_foods import CustomFoodError, create_custom_food, delete_custom_food, list_custom_foods, toggle_favorite as toggle_custom_food_favorite, update_custom_food
 from .services.recipes import RecipeError, create_recipe, delete_recipe, get_recipe_response, list_recipes, log_recipe_meal, toggle_recipe_favorite, update_recipe
-from .services.planner import PlanError, create_plan, delete_plan, list_plans, log_plan_meal, update_plan
+from .services.planner import PlanError, copy_plan, create_plan, delete_plan, list_plans, log_plan_meal, update_plan
 from .services.shopping import ShoppingError, create_item, delete_item, generate_from_plans, list_items, update_item
 
 logger = logging.getLogger(__name__)
@@ -551,6 +551,13 @@ def remove_plan(request: Request, plan_id: str, db: Session = Depends(get_db), u
     require_csrf(request, db)
     try: delete_plan(db, profile_for_user(db, user).id, plan_id)
     except PlanError as exc: raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/plans/{plan_id}/copy", response_model=MealPlanResponse)
+def post_plan_copy(request: Request, plan_id: str, payload: MealPlanCopyRequest, db: Session = Depends(get_db), user: User = Depends(require_user)) -> MealPlanResponse:
+    require_csrf(request, db)
+    try: return copy_plan(db, profile_for_user(db, user).id, plan_id, payload.target_date)
+    except PlanError as exc: raise _catalog_error(exc) from exc
 
 
 @app.post("/api/plans/{plan_id}/meal", response_model=MealResponse, status_code=201)

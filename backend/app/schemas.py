@@ -336,6 +336,7 @@ class RecipeResponse(BaseModel):
     total_weight_g: float | None
     total_carbs_g: float
     carbs_per_serving_g: float
+    carbs_per_100g_cooked_g: float | None
     is_favorite: bool
     ingredients: list[RecipeIngredientResponse]
     created_at: datetime
@@ -366,6 +367,10 @@ class MealPlanUpdateRequest(BaseModel):
     meal_category: MealCategory | None = None
     quantity: float | None = Field(default=None, gt=0)
     quantity_unit: Literal["g", "servings"] | None = None
+
+
+class MealPlanCopyRequest(BaseModel):
+    target_date: date
 
 
 class MealPlanResponse(BaseModel):
