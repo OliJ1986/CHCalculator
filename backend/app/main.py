@@ -19,6 +19,9 @@ from .schemas import (
     CarbohydrateCalculationResponse,
     FoodResponse,
     FoodSearchResponse,
+    GoalResponse,
+    GoalSummaryResponse,
+    GoalUpsertRequest,
     MealCreateRequest,
     MealListResponse,
     MealResponse,
@@ -35,6 +38,7 @@ from .services.meals import (
     list_meals,
     update_meal,
 )
+from .services.goals import GoalError, goal_response, summary as goal_summary, upsert_goal
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -80,6 +84,10 @@ def _meal_error(exc: MealError) -> HTTPException:
     return HTTPException(status_code=422, detail=str(exc))
 
 
+def _goal_error(exc: GoalError) -> HTTPException:
+    return HTTPException(status_code=422, detail=str(exc))
+
+
 @app.get("/api/meals", response_model=MealListResponse)
 def get_meals(
     local_date: date | None = Query(default=None),
@@ -115,6 +123,38 @@ def remove_meal(meal_id: str, db: Session = Depends(get_db)) -> None:
         delete_meal(db, meal_id)
     except MealError as exc:
         raise _meal_error(exc) from exc
+
+
+@app.get("/api/goals", response_model=GoalResponse)
+def get_goals(
+    local_date: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> GoalResponse:
+    target_date = local_date or datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
+    try:
+        return goal_response(db, target_date)
+    except GoalError as exc:
+        raise _goal_error(exc) from exc
+
+
+@app.put("/api/goals", response_model=GoalResponse)
+def put_goal(payload: GoalUpsertRequest, db: Session = Depends(get_db)) -> GoalResponse:
+    try:
+        return upsert_goal(db, payload)
+    except GoalError as exc:
+        raise _goal_error(exc) from exc
+
+
+@app.get("/api/goals/summary", response_model=GoalSummaryResponse)
+def get_goal_summary(
+    local_date: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> GoalSummaryResponse:
+    target_date = local_date or datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).date()
+    try:
+        return goal_summary(db, target_date)
+    except GoalError as exc:
+        raise _goal_error(exc) from exc
 
 
 def _food_response(food: Food) -> FoodResponse:

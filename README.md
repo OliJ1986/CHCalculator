@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk ellenőrzöttek. M4 még **TODO**, a sorrend megmarad.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk ellenőrzöttek. M4: **DONE**, a célverziózás és étkezési kategóriák elkészültek.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -94,3 +94,10 @@ Az M3 tartós snapshot-napló és M4 hatálynapos saját célok részletes köve
 ## M3 ellenőrzött állapot
 
 Az M3 a mock napi listát valódi `/api/meals` CRUD-ra cseréli. Az Alembic `0002_meal_log_snapshot` profil- és naplósémát ad; a szerver UTC időpontot, rögzített helyi napot és IANA-zónát tárol, a tápanyag-pillanatképből számol, és idempotencia-kulccsal védi az ismételt küldést. A cache későbbi módosítása nem változtatja meg a mentett snapshotot. A `chill_test` PostgreSQL-integráció és a 66 backend teszt sikeres; a frontend mobil QA 390 és 360 px-en túlcsordulás nélkül zöld.
+
+
+## M4 ellenőrzött állapot
+
+Az M4 a `0003_goal_versions` migrációval tartós, hatálynapos felhasználói napi és opcionális étkezési célokat vezetett be. A hat kategória (`reggeli`, `tízórai`, `ebéd`, `uzsonna`, `vacsora`, `egyéb`) részösszege a mentett napló-snapshotokból készül; hiányzó cél esetén nincs százalék vagy implicit 160 g. A mobil felület dátumot vált, korábbi célhoz megerősítést kér, és 390/360 px-en túlcsordulás nélkül működik.
+
+A teljes M4 ellenőrzés: backend `70 passed, 2 warnings` valódi PostgreSQL-lel, frontend typecheck/lint/7 unit teszt/build, valamint cél- és kategória-interakciós mobil render.

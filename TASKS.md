@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4: **TODO**, ez a következő sorrendi mérföldkő. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2, M3 és M4: **DONE**, a PostgreSQL-, kalkulátor-, snapshot- és célkezelési kapuk bizonyítottak. A korábbi tesztszámok és élő eredmények történeti bizonyítékok, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -43,16 +43,16 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
   - Mobil UI ellenőrzés 390 és 360 px szélességen sikeres, vízszintes túlcsordulás nélkül; 55 g × 11,4 g/100 g = 6,27 g, 12,5 g × 21 g/100 g = 2,625 g → 2,6 g kijelzés.
   - Backend 62 teszt, frontend 7 unit teszt, typecheck, lint és production build sikeres.
 - [DONE] M3 — Napi étkezési napló
-- [TODO] M4 — CH célok és étkezések
+- [DONE] M4 — CH célok és étkezések
 - [TODO] M5 — Saját ételek, kedvencek és receptek
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1, M1.2, M1.3, M2 és M3 lezárva; M4 következik. Az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
+M0, M1.1, M1.2, M1.3, M2, M3 és M4 lezárva; az M1.2 élő USDA/OFF combined smoke-ja változatlanul lezárt történet.
 
 ## Közös teljesítési kapu
 
-A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel bizonyított. Részleges implementáció: IN PROGRESS; hiányzó környezet/ellenőrzés: BLOCKED vagy nyitott ellenőrzés, pontos indokkal. Az M1.3–M4 sorrend kötelező; sikertelen adatbiztonsági kapun nem lehet továbblépni.
+A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel bizonyított. Részleges implementáció: IN PROGRESS; hiányzó környezet/ellenőrzés: BLOCKED vagy nyitott ellenőrzés, pontos indokkal. Az M1.3–M4 sorrend teljesült; M5–M7 további, nyitott scope.
 
 - [ ] Induláskor a tényleges kód, Git-állapot, konfiguráció és meglévő tesztparancsok felmérése; alapellenőrzés. A történeti 40 backend/4 frontend teszt nem elvárt végső darabszám.
 - [ ] Minden mérföldkőnél célzott regressziók, teljes backendteszt, frontend typecheck, lint, nem figyelő módban futó unit teszt és production build sikeres.
@@ -131,7 +131,7 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 - [x] Offline/szerverhiba érthetően jelzett, nincs hamis „mentve” állapot. PWA nem cache-el privát napló API-választ általános cache-first szabállyal; teljes offline szinkron nem része M3-nak.
 - [x] Közös teljesítési kapu teljesül, a korábbi 84/160 mock állapot nem látszik valós adatként.
 
-## M4 — Felhasználói CH-célok és étkezések [TODO]
+## M4 — Felhasználói CH-célok és étkezések [DONE]
 
 ### Megvalósítás
 
@@ -143,9 +143,19 @@ A következő jelölőnégyzetek mind nyitottak. Egy mérföldkő csak akkor DON
 
 ### Elfogadás
 
-- [ ] Napi cél és opcionális rész-célok mentés, újratöltés és backend-újraindítás után megmaradnak; hiányzó, törölt, 0, negatív és hibás érték kezelése tesztelt.
-- [ ] 160 g cél, 84 g fogyasztás → 76 g maradék, belső arány 52,5%; 175 g → 15 g túllépés, sáv legfeljebb 100%. Cél nélkül nincs osztás és nincs alapértelmezett 160 g.
-- [ ] Minden kategória részösszege együtt pontosan a napi összeg; hozzáadás, törlés, mennyiség- és kategóriaváltás azonnal konzisztens eredményt ad.
-- [ ] Mai célszerkesztés nem írja át a tegnapit; cél előtti nap, jövőbeli hatály, explicit múltbeli módosítás és cél törlésének hatálya tesztelt.
-- [ ] Rész-célok összege napi céltól eltérhet, erről semleges jelzés látszik; nincs automatikus étrendi számítás vagy keretmódosítás.
-- [ ] Korábbi napok nézete és mobil UI működik; minden közös kapu teljesül. M4 után autonóm fejlesztés megáll; M5–M7 és katalógus nincs implementálva.
+- [x] Napi cél és opcionális rész-célok mentés, újratöltés és backend-újraindítás után megmaradnak; hiányzó, törölt, 0, negatív és hibás érték kezelése tesztelt.
+- [x] 160 g cél, 84 g fogyasztás → 76 g maradék, belső arány 52,5%; 175 g fogyasztás 160 g cél mellett → 15 g túllépés, sáv legfeljebb 100%. Cél nélkül nincs osztás és nincs alapértelmezett 160 g.
+- [x] Minden kategória részösszege együtt pontosan a napi összeg; hozzáadás, törlés, mennyiség- és kategóriaváltás azonnal konzisztens eredményt ad.
+- [x] Mai célszerkesztés nem írja át a tegnapit; cél előtti nap, jövőbeli hatály, explicit múltbeli módosítás és cél törlésének hatálya tesztelt.
+- [x] Rész-célok összege napi céltól eltérhet, erről semleges jelzés látszik; nincs automatikus étrendi számítás vagy keretmódosítás.
+- [x] Korábbi napok nézete és mobil UI működik; minden közös kapu teljesül. M4 után autonóm fejlesztés megáll; M5–M7 és katalógus nincs implementálva.
+
+
+### Ellenőrzött megvalósítás — 2026-09-25
+
+- Az Alembic `0003_goal_versions` migráció és a `GoalVersion` modell profilhoz kötött, hatálynap szerinti, egyedi célverziókat tárol; a napi és kategória-célok egy tranzakcióban menthetők, üres mentés pedig külön „nincs cél” állapotot hagy.
+- A `/api/goals`, `/api/goals/summary` és a hat kategóriás `meal_category` szerződés szerveroldali validációval működik. A korábbi nap módosítása explicit `allow_past` engedélyt kér; a régebbi napok a korábbi verziót használják.
+- A kategória-összegek a mentett étkezési snapshot-CH-ból készülnek. A 160/84 példa 76 g maradékot és 52,5%-os belső arányt ad; 175 g fogyasztásnál 15 g túllépés és legfeljebb 100%-os vizuális sáv jelenik meg.
+- A frontend dátumnavigációt, cél-szerkesztő lapot, múltbeli megerősítést, hat kategóriát és kategória-részösszegeket mutat. Valós helyi renderben 390×844 és 360×800 px-en `scrollWidth == clientWidth`; cél mentés, kategória-rész-cél és törlés API-n keresztül ellenőrizve.
+- Kapuk: teljes backend `70 passed, 2 warnings` valódi `chill_test` PostgreSQL-lel; Alembic head dev/test-en; frontend typecheck, lint, `7 passed` unit teszt és production build; mobil render/interakció sikeres.
+- M4 után az autonóm fejlesztés megáll. A privát `default-profile`, auth, teljes offline szinkron, M5–M7 és új katalógus továbbra is korlátozás.

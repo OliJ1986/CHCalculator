@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4 még **TODO**; a következő fejlesztés az M4.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapuk bizonyítottak. M4: **DONE**; a hatálynapos célok és étkezési kategóriák lezárultak.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -80,7 +80,7 @@ M0-ban nincs perzisztencia, valódi food adatbázis, autentikáció, célkezelé
 
 M2 kalkulátor bővítése, M3 napló, M4 célok/étkezések, M5 saját ételek/kedvencek/receptek, M6 vonalkód/OCR, M7 AI funkciók.
 
-## Jóváhagyott következő scope: M1.3–M4 [terv]
+## Megvalósított scope: M1.3–M4 [lezárva]
 
 M1.3 PostgreSQL-re viszi a fejlesztést, Alembic-sémakezeléssel és adatvesztést kizáró, ellenőrzött SQLite cache-importtal. Külön dev/test/prod DB kötelező; Railway-telepítés előkészül, valódi deploy nem történik ebben a scope-ban.
 
@@ -90,8 +90,12 @@ M3 a mock/frontend-state napi listát valódi, tartós naplóra cseréli. A ment
 
 M4 felhasználói napi és opcionális étkezésenkénti célokat ad, hatálynapokkal és múltmegőrzéssel. Kategóriák: reggeli, tízórai, ebéd, uzsonna, vacsora, egyéb. A CHill nem ajánl orvosi vagy étrendi célértéket, és nem kezeli valódi célként a prototípus 160 g értékét.
 
+## M4 megvalósult állapot
+
+A `GoalVersion` modell és az `0003_goal_versions` migráció profilhoz kötött, hatálynapos napi/rész-célokat kezel. A `/api/goals` és `/api/goals/summary` szerveroldali validációval, hat kategóriával, hiányzó célállapottal és történeti visszakereséssel működik. A frontend dátumváltást, cél-szerkesztést, múltbeli megerősítést, eltérésjelzést és kategória-összesítést ad. Az M4 kapui a valódi `chill_test` PostgreSQL-en, a frontend builden és a 390/360 px mobil renderben sikeresek.
+
 ## M3 megvalósult állapot
 
-Az étkezési napló PostgreSQL/Alembic alapon perzisztens. A `/api/meals` létrehoz, listáz helyi nap szerint, módosít és töröl; a mentéskor szerveroldali tápanyag-snapshot és determinisztikus CH kerül az adatbázisba. Egy rögzített, szerver által kiválasztott profil használható; auth és teljes offline szinkron továbbra sem része a scope-nak. Az M4 célok és kategóriák következnek.
+Az étkezési napló PostgreSQL/Alembic alapon perzisztens. A `/api/meals` létrehoz, listáz helyi nap szerint, módosít és töröl; a mentéskor szerveroldali tápanyag-snapshot és determinisztikus CH kerül az adatbázisba. Egy rögzített, szerver által kiválasztott profil használható; auth és teljes offline szinkron továbbra sem része a scope-nak. Az M4 célok és kategóriák elkészültek.
 
 Az M0 Non-goals kizárólag M0-ra vonatkozik. M5–M7, receptek, OCR, AI, új katalógus és új autentikációs termék nem része az autonóm megvalósításnak. Részletes viselkedés, bemeneti szabályok, időzóna- és célkezelés: `TASKS.md`.

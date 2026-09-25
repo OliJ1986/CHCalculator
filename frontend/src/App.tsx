@@ -4,9 +4,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { calculateCarbohydrate, formatCarbohydrate, MAX_AMOUNT_GRAMS, parseAmountInput } from './lib/carbs'
 import { searchFoods, type Food } from './api/foods'
-import { createMeal, deleteMeal, listMeals, updateMeal, type Meal } from './api/meals'
+import { createMeal, deleteMeal, listMeals, updateMeal, type Meal, type MealCategory } from './api/meals'
+import { getGoalSummary, saveGoal, type GoalSummary } from './api/goals'
 
 const DEFAULT_TIMEZONE = 'Europe/Budapest'
+const CATEGORY_LABELS: Record<MealCategory, string> = { breakfast: 'Reggeli', morning_snack: 'Tízórai', lunch: 'Ebéd', afternoon_snack: 'Uzsonna', dinner: 'Vacsora', other: 'Egyéb' }
+const MEAL_CATEGORIES: MealCategory[] = ['breakfast', 'morning_snack', 'lunch', 'afternoon_snack', 'dinner', 'other']
 const navItems = [
   { label: 'Ma', icon: Sparkles, to: '/' }, { label: 'Receptek', icon: BookOpen, to: '/receptek' },
   { label: 'Kamera', icon: Camera, to: '/kamera' }, { label: 'Kedvencek', icon: Heart, to: '/kedvencek' },
@@ -17,10 +20,6 @@ function localDateInTimezone(date = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: DEFAULT_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date)
   const part = (type: string) => parts.find((item) => item.type === type)?.value ?? ''
   return part('year') + '-' + part('month') + '-' + part('day')
-}
-
-function displayDate(date = new Date()): string {
-  return new Intl.DateTimeFormat('hu-HU', { timeZone: DEFAULT_TIMEZONE, day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' }).format(date)
 }
 
 function mealTime(meal: Meal): string {
@@ -57,40 +56,49 @@ function App() {
   const [selectedFood, setSelectedFood] = useState<Food | null>(null)
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null)
   const [amount, setAmount] = useState('55')
+  const [mealCategory, setMealCategory] = useState<MealCategory>('other')
   const [query, setQuery] = useState('')
   const [showToast, setShowToast] = useState(false)
-  const [toastMessage, setToastMessage] = useState('Mentve a mai naphoz')
+  const [toastMessage, setToastMessage] = useState('Mentve a naplóba')
   const [actionError, setActionError] = useState<string | null>(null)
-  const localDate = localDateInTimezone()
-  const mealsQuery = useQuery({ queryKey: ['meals', localDate], queryFn: ({ signal }) => listMeals(localDate, signal), staleTime: 15_000 })
+  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(false)
+  const todayDate = localDateInTimezone()
+  const [selectedDate, setSelectedDate] = useState(todayDate)
+  const mealsQuery = useQuery({ queryKey: ['meals', selectedDate], queryFn: ({ signal }) => listMeals(selectedDate, signal), staleTime: 15_000 })
+  const goalQuery = useQuery<GoalSummary>({ queryKey: ['goal-summary', selectedDate], queryFn: ({ signal }) => getGoalSummary(selectedDate, signal), staleTime: 15_000 })
   const createMutation = useMutation({
     mutationFn: createMeal,
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['meals', localDate] }); closeSheet(); showSavedToast() },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['meals', selectedDate] }); void queryClient.invalidateQueries({ queryKey: ['goal-summary', selectedDate] }); closeSheet(); showSavedToast() },
     onError: (error) => setActionError(error instanceof Error ? error.message : 'A mentés nem sikerült.'),
   })
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: { amount_g: number; food_id?: string } }) => updateMeal(id, payload),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['meals', localDate] }); closeSheet(); showSavedToast() },
+    mutationFn: ({ id, payload }: { id: string; payload: { amount_g: number; food_id?: string; meal_category?: MealCategory } }) => updateMeal(id, payload),
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['meals', selectedDate] }); void queryClient.invalidateQueries({ queryKey: ['goal-summary', selectedDate] }); closeSheet(); showSavedToast() },
     onError: (error) => setActionError(error instanceof Error ? error.message : 'A módosítás nem sikerült.'),
   })
   const deleteMutation = useMutation({
     mutationFn: deleteMeal,
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['meals', localDate] }); showSavedToast('Bejegyzés törölve') },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['meals', selectedDate] }); void queryClient.invalidateQueries({ queryKey: ['goal-summary', selectedDate] }); showSavedToast('Bejegyzés törölve') },
     onError: (error) => setActionError(error instanceof Error ? error.message : 'A törlés nem sikerült.'),
+  })
+  const goalMutation = useMutation({
+    mutationFn: saveGoal,
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ['goal-summary', selectedDate] }); setIsGoalSheetOpen(false); showSavedToast('Cél mentve') },
+    onError: (error) => setActionError(error instanceof Error ? error.message : 'A cél mentése nem sikerült.'),
   })
   const meals = mealsQuery.data?.items ?? []
   const total = mealsQuery.data?.totalCarbsG ?? 0
   const isSaving = createMutation.isPending || updateMutation.isPending
 
-  function showSavedToast(message = 'Mentve a mai naphoz') {
+  function showSavedToast(message = 'Mentve a naplóba') {
     setToastMessage(message)
     setShowToast(true)
     window.setTimeout(() => setShowToast(false), 2800)
     setActionError(null)
   }
-  function closeSheet() { setIsSheetOpen(false); setEditingMeal(null); setSelectedFood(null); setQuery(''); setActionError(null) }
+  function closeSheet() { setIsSheetOpen(false); setEditingMeal(null); setSelectedFood(null); setMealCategory('other'); setQuery(''); setActionError(null) }
   function openSheet(meal?: Meal) {
-    setEditingMeal(meal ?? null); setSelectedFood(meal ? foodFromMeal(meal) : null); setAmount(meal ? String(meal.amountG) : '55'); setQuery(''); setActionError(null); setIsSheetOpen(true)
+    setEditingMeal(meal ?? null); setSelectedFood(meal ? foodFromMeal(meal) : null); setAmount(meal ? String(meal.amountG) : '55'); setMealCategory(meal ? (meal.mealCategory as MealCategory) : 'other'); setQuery(''); setActionError(null); setIsSheetOpen(true)
   }
   function saveMeal() {
     const amountGrams = parseAmountInput(amount)
@@ -99,12 +107,12 @@ function App() {
     if (carbs === null) return
     setActionError(null)
     if (editingMeal) {
-      const payload = { amount_g: amountGrams, ...(selectedFood.id !== editingMeal.foodId ? { food_id: selectedFood.id } : {}) }
+      const payload = { amount_g: amountGrams, meal_category: mealCategory, ...(selectedFood.id !== editingMeal.foodId ? { food_id: selectedFood.id } : {}) }
       updateMutation.mutate({ id: editingMeal.id, payload })
       return
     }
     const key = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + '-' + String(Math.random())
-    createMutation.mutate({ food_id: selectedFood.id, amount_g: amountGrams, local_date: localDate, meal_category: 'other', idempotency_key: key, client_carbs_g: carbs })
+    createMutation.mutate({ food_id: selectedFood.id, amount_g: amountGrams, local_date: selectedDate, meal_category: mealCategory, idempotency_key: key, client_carbs_g: carbs })
   }
   function requestDelete(meal: Meal) {
     if (window.confirm('Törlöd ezt: ' + meal.snapshot.name + '?')) deleteMutation.mutate(meal.id)
@@ -113,28 +121,35 @@ function App() {
   return <div className={'app-shell ' + (darkMode ? 'theme-dark' : '')}>
     <div className="app-frame">
       <header className="topbar"><Link className="wordmark" to="/" aria-label="CHill kezdőlap"><span className="wordmark-ch">CH</span><span className="wordmark-rest">ill</span></Link><button className="theme-toggle" onClick={() => setDarkMode((mode) => !mode)} aria-label={darkMode ? 'Világos téma' : 'Sötét téma'}>{darkMode ? <Sun size={17} /> : <Moon size={17} />}</button></header>
-      <Routes><Route path="/" element={<HomeScreen date={displayDate()} total={total} meals={meals} isLoading={mealsQuery.isPending} isError={mealsQuery.isError} onAdd={() => openSheet()} onEdit={openSheet} onDelete={requestDelete} />} /><Route path="*" element={<PlaceholderScreen />} /></Routes>
+      <Routes><Route path="/" element={<HomeScreen date={selectedDate} todayDate={todayDate} total={total} meals={meals} goal={goalQuery.data} isLoading={mealsQuery.isPending} isError={mealsQuery.isError} onAdd={() => openSheet()} onEdit={openSheet} onDelete={requestDelete} onDateChange={setSelectedDate} onGoal={() => { setActionError(null); setIsGoalSheetOpen(true) }} />} /><Route path="*" element={<PlaceholderScreen />} /></Routes>
       <BottomNavigation />
     </div>
-    {isSheetOpen && <AddMealSheet mode={editingMeal ? 'edit' : 'create'} query={query} setQuery={setQuery} selectedFood={selectedFood} setSelectedFood={setSelectedFood} amount={amount} setAmount={setAmount} onClose={closeSheet} onAdd={saveMeal} isSaving={isSaving} error={actionError} />}
+    {isSheetOpen && <AddMealSheet mode={editingMeal ? 'edit' : 'create'} query={query} setQuery={setQuery} selectedFood={selectedFood} setSelectedFood={setSelectedFood} amount={amount} setAmount={setAmount} mealCategory={mealCategory} setMealCategory={setMealCategory} onClose={closeSheet} onAdd={saveMeal} isSaving={isSaving} error={actionError} />}
+    {isGoalSheetOpen && <GoalSheet localDate={selectedDate} todayDate={todayDate} goal={goalQuery.data} onClose={() => setIsGoalSheetOpen(false)} onSave={(payload) => goalMutation.mutate(payload)} isSaving={goalMutation.isPending} error={goalMutation.isError ? actionError : null} />}
     {showToast && <div className="toast" role="status"><span className="toast-icon"><Check size={15} /></span>{toastMessage}</div>}
   </div>
 }
 
-function HomeScreen({ date, total, meals, isLoading, isError, onAdd, onEdit, onDelete }: { date: string; total: number; meals: Meal[]; isLoading: boolean; isError: boolean; onAdd: () => void; onEdit: (meal: Meal) => void; onDelete: (meal: Meal) => void }) {
+function HomeScreen({ date, todayDate, total, meals, goal, isLoading, isError, onAdd, onEdit, onDelete, onDateChange, onGoal }: { date: string; todayDate: string; total: number; meals: Meal[]; goal?: GoalSummary; isLoading: boolean; isError: boolean; onAdd: () => void; onEdit: (meal: Meal) => void; onDelete: (meal: Meal) => void; onDateChange: (date: string) => void; onGoal: () => void }) {
+  const target = goal?.dailyTargetG ?? null
+  const remaining = goal?.remainingCarbsG ?? null
+  const progress = goal?.progressPercent ?? null
+  const shiftDate = (delta: number) => { const value = new Date(date + 'T12:00:00'); value.setDate(value.getDate() + delta); onDateChange(localDateInTimezone(value)) }
   return <main className="screen home-screen">
-    <div className="date-line"><span className="date-dot" /> {date}</div>
-    <section className="hero-section" aria-labelledby="daily-title"><div className="hero-copy"><p className="eyebrow">Ma</p><h1 id="daily-title"><span className="hero-total" key={total}>{formatCarbohydrate(total)}</span> <small>g CH</small></h1></div><p className="remaining"><span className="remaining-dot" /> Napi összesen</p></section>
+    <div className="date-line"><button className="date-nav" onClick={() => shiftDate(-1)} aria-label="Előző nap">‹</button><span className="date-dot" /><span className="date-label">{date === todayDate ? 'Ma · ' : ''}{new Intl.DateTimeFormat('hu-HU', { timeZone: DEFAULT_TIMEZONE, day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' }).format(new Date(date + 'T12:00:00'))}</span><button className="date-nav" onClick={() => shiftDate(1)} aria-label="Következő nap">›</button></div>
+    <section className="hero-section" aria-labelledby="daily-title"><div className="hero-copy"><p className="eyebrow">{target === null ? 'Napi összesen' : 'Fogyasztás'}</p><h1 id="daily-title"><span className="hero-total" key={total}>{formatCarbohydrate(total)}</span> <small>g CH</small></h1></div><p className="remaining"><span className="remaining-dot" />{target === null ? 'Nincs beállított napi cél' : remaining !== null && remaining < 0 ? 'Túllépés ' + formatCarbohydrate(Math.abs(remaining)) + ' g' : 'Még ' + formatCarbohydrate(remaining ?? 0) + ' g maradt'}</p>{target !== null && <div className="progress-wrap"><div className="progress-meta"><span>Napi cél</span><span>{formatCarbohydrate(target)} g</span></div><div className="progress-track"><div className="progress-fill" style={{ width: Math.min(progress ?? 0, 100) + '%' }} /></div></div>}</section>
+    <div className="goal-actions"><button className="secondary-action" onClick={onGoal}>{target === null ? 'Napi cél beállítása' : 'Cél szerkesztése'}</button></div>
+    {goal?.categories && <section className="category-summary" aria-label="Étkezési kategóriák"><div className="section-heading"><h2>Kategóriák</h2><span className="entry-count">{goal.categories.length} kategória</span></div><div className="category-summary-grid">{goal.categories.map((category) => <div className="category-summary-item" key={category.key}><span>{category.label}</span><strong>{formatCarbohydrate(category.consumedCarbsG)} g</strong>{category.targetG !== null && <small>/ {formatCarbohydrate(category.targetG)} g cél</small>}</div>)}</div></section>}
     <button className="add-meal-button" onClick={onAdd}><span className="add-icon"><Plus size={20} strokeWidth={2.5} /></span><span>Étkezés hozzáadása</span><ChevronRight size={19} className="button-arrow" /></button>
-    <section className="entries-section" aria-labelledby="entries-title"><div className="section-heading"><h2 id="entries-title">Mai bejegyzések</h2><span className="entry-count">{meals.length} étkezés</span></div><div className="entries-list">{isLoading && <p className="search-state">Napló betöltése…</p>}{isError && <p className="search-state error">A napló most nem érhető el. Próbáld újra később.</p>}{!isLoading && !isError && meals.length === 0 && <p className="search-state">Még nincs mentett étkezésed mára.</p>}{meals.map((meal) => <MealRow meal={meal} key={meal.id} onEdit={onEdit} onDelete={onDelete} />)}</div></section>
+    <section className="entries-section" aria-labelledby="entries-title"><div className="section-heading"><h2 id="entries-title">{date === todayDate ? 'Mai' : 'Napi'} bejegyzések</h2><span className="entry-count">{meals.length} étkezés</span></div><div className="entries-list">{isLoading && <p className="search-state">Napló betöltése…</p>}{isError && <p className="search-state error">A napló most nem érhető el. Próbáld újra később.</p>}{!isLoading && !isError && meals.length === 0 && <p className="search-state">Még nincs mentett étkezés erre a napra.</p>}{meals.map((meal) => <MealRow meal={meal} key={meal.id} onEdit={onEdit} onDelete={onDelete} />)}</div></section>
   </main>
 }
 
 function MealRow({ meal, onEdit, onDelete }: { meal: Meal; onEdit: (meal: Meal) => void; onDelete: (meal: Meal) => void }) {
-  return <article className="meal-row"><span className="meal-marker lime"><Utensils size={15} /></span><div className="meal-info"><div className="meal-meta"><span>Egyéb</span><span className="meal-time">{mealTime(meal)}</span></div><h3>{meal.snapshot.name}</h3></div><div className="meal-carbs"><strong>{formatCarbohydrate(meal.calculatedCarbsG)}</strong><span>g CH</span></div><div className="meal-actions"><button onClick={() => onEdit(meal)} aria-label={meal.snapshot.name + ' szerkesztése'}><Pencil size={16} /></button><button onClick={() => onDelete(meal)} aria-label={meal.snapshot.name + ' törlése'}><Trash2 size={16} /></button></div></article>
+  return <article className="meal-row"><span className="meal-marker lime"><Utensils size={15} /></span><div className="meal-info"><div className="meal-meta"><span>{CATEGORY_LABELS[meal.mealCategory as MealCategory] ?? CATEGORY_LABELS.other}</span><span className="meal-time">{mealTime(meal)}</span></div><h3>{meal.snapshot.name}</h3></div><div className="meal-carbs"><strong>{formatCarbohydrate(meal.calculatedCarbsG)}</strong><span>g CH</span></div><div className="meal-actions"><button onClick={() => onEdit(meal)} aria-label={meal.snapshot.name + ' szerkesztése'}><Pencil size={16} /></button><button onClick={() => onDelete(meal)} aria-label={meal.snapshot.name + ' törlése'}><Trash2 size={16} /></button></div></article>
 }
 
-function AddMealSheet({ mode, query, setQuery, selectedFood, setSelectedFood, amount, setAmount, onClose, onAdd, isSaving, error }: { mode: 'create' | 'edit'; query: string; setQuery: (value: string) => void; selectedFood: Food | null; setSelectedFood: (food: Food | null) => void; amount: string; setAmount: (value: string) => void; onClose: () => void; onAdd: () => void; isSaving: boolean; error: string | null }) {
+function AddMealSheet({ mode, query, setQuery, selectedFood, setSelectedFood, amount, setAmount, mealCategory, setMealCategory, onClose, onAdd, isSaving, error }: { mode: 'create' | 'edit'; query: string; setQuery: (value: string) => void; selectedFood: Food | null; setSelectedFood: (food: Food | null) => void; amount: string; setAmount: (value: string) => void; mealCategory: MealCategory; setMealCategory: (value: MealCategory) => void; onClose: () => void; onAdd: () => void; isSaving: boolean; error: string | null }) {
   const normalizedQuery = query.trim()
   const [debouncedQuery, setDebouncedQuery] = useState('')
   useEffect(() => { const timeout = window.setTimeout(() => setDebouncedQuery(normalizedQuery), 300); return () => window.clearTimeout(timeout) }, [normalizedQuery])
@@ -146,8 +161,29 @@ function AddMealSheet({ mode, query, setQuery, selectedFood, setSelectedFood, am
   const carbs = selectedFood && amountGrams !== null ? calculateCarbohydrate(amountGrams, selectedFood.availableCarbs100g) : null
   const adjustAmount = (delta: number) => { const current = amountGrams ?? 0; const next = Math.min(MAX_AMOUNT_GRAMS, Math.max(0, current + delta)); setAmount(next > 0 ? String(next) : '') }
   return <div className="sheet-backdrop" onMouseDown={isSaving ? undefined : onClose}><section className="add-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" onMouseDown={(event: MouseEvent<HTMLElement>) => event.stopPropagation()}><div className="sheet-handle" /><div className="sheet-header"><div><p className="eyebrow">{mode === 'edit' ? 'Bejegyzés szerkesztése' : 'Új bejegyzés · 1 / 2'}</p><h2 id="sheet-title">{selectedFood ? 'Mennyit ettél?' : 'Mit ettél?'}</h2></div><button className="close-button" onClick={onClose} aria-label="Bezárás" disabled={isSaving}><X size={20} /></button></div>
-    {!selectedFood ? <><label className="search-field"><Search size={20} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Keress egy ételt…" aria-label="Étel keresése" /></label><div className="food-list">{normalizedQuery.length < 2 && <p className="search-state">Írj be legalább 2 karaktert a kereséshez.</p>}{normalizedQuery.length >= 2 && (isDebouncing || searchQuery.isPending) && <p className="search-state">Keresés…</p>}{normalizedQuery.length >= 2 && !isDebouncing && searchQuery.isError && <p className="search-state error">Az ételkeresés most nem elérhető. Próbáld újra később.</p>}{normalizedQuery.length >= 2 && !isDebouncing && searchQuery.isSuccess && foods.length === 0 && <p className="search-state">Nincs találat erre a keresésre.</p>}{foods.map((food) => <button className="food-option" key={food.id} onClick={() => food.carbsAvailable && setSelectedFood(food)} disabled={!food.carbsAvailable} aria-disabled={!food.carbsAvailable}><FoodMedia food={food} /><span className="food-copy"><strong>{food.name}</strong>{food.originalName && food.originalName !== food.name && <small className="food-source-name">{food.originalName}</small>}<small className="food-kind">{food.categoryLabel}</small>{food.brand && <small>{food.brand}</small>}{food.carbsAvailable ? <small>{formatCarbohydrate(food.availableCarbs100g!)} g CH / 100 g</small> : <small className="unavailable">CH adat nem elérhető</small>}</span><ChevronRight size={18} /></button>)}</div></> : <div className="amount-step"><button className="selected-food-card" onClick={() => setSelectedFood(null)} disabled={isSaving}><FoodMedia food={selectedFood} /><span><strong>{selectedFood.name}</strong>{selectedFood.originalName && selectedFood.originalName !== selectedFood.name && <small className="food-source-name">{selectedFood.originalName}</small>}<small className="food-kind">{selectedFood.categoryLabel}</small>{selectedFood.brand && <small>{selectedFood.brand}</small>}<small>{formatCarbohydrate(selectedFood.availableCarbs100g!)} g CH / 100 g</small></span><ArrowLeft size={18} /></button><div className="amount-label"><span>Mennyiség</span><small>grammban</small></div><div className="amount-control"><button onClick={() => adjustAmount(-5)} aria-label="5 grammal kevesebb" disabled={isSaving}><Minus size={21} /></button><label><input type="text" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} aria-label="Mennyiség grammban" aria-invalid={Boolean(amountError)} aria-describedby={amountError ? 'amount-error' : undefined} disabled={isSaving} /><span>g</span></label><button onClick={() => adjustAmount(5)} aria-label="5 grammal több" disabled={isSaving}><Plus size={21} /></button></div>{amountError && <p id="amount-error" className="input-error" role="alert">{amountError}</p>}{error && <p className="input-error" role="alert">{error}</p>}<div className="quick-amounts"><span>Gyors választás</span>{[50, 100, 150].map((value) => <button key={value} className={amountGrams === value ? 'active' : ''} onClick={() => setAmount(String(value))} disabled={isSaving}>{value} g</button>)}</div>{carbs !== null ? <div className="calculation-result"><div><p className="eyebrow">Ezzel a mennyiséggel</p><strong>{formatCarbohydrate(carbs)} <small>g CH</small></strong></div><span className="result-check"><Check size={18} /></span></div> : <p className="calculation-error" role="status">A CH csak érvényes mennyiség és elérhető tápérték mellett számítható.</p>}<button className="confirm-button" onClick={onAdd} disabled={carbs === null || isSaving}>{isSaving ? 'Mentés…' : mode === 'edit' ? 'Mentés' : 'Mentés a mai naphoz'} <Plus size={19} /></button></div>}
+    {!selectedFood ? <><label className="search-field"><Search size={20} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Keress egy ételt…" aria-label="Étel keresése" /></label><div className="food-list">{normalizedQuery.length < 2 && <p className="search-state">Írj be legalább 2 karaktert a kereséshez.</p>}{normalizedQuery.length >= 2 && (isDebouncing || searchQuery.isPending) && <p className="search-state">Keresés…</p>}{normalizedQuery.length >= 2 && !isDebouncing && searchQuery.isError && <p className="search-state error">Az ételkeresés most nem elérhető. Próbáld újra később.</p>}{normalizedQuery.length >= 2 && !isDebouncing && searchQuery.isSuccess && foods.length === 0 && <p className="search-state">Nincs találat erre a keresésre.</p>}{foods.map((food) => <button className="food-option" key={food.id} onClick={() => food.carbsAvailable && setSelectedFood(food)} disabled={!food.carbsAvailable} aria-disabled={!food.carbsAvailable}><FoodMedia food={food} /><span className="food-copy"><strong>{food.name}</strong>{food.originalName && food.originalName !== food.name && <small className="food-source-name">{food.originalName}</small>}<small className="food-kind">{food.categoryLabel}</small>{food.brand && <small>{food.brand}</small>}{food.carbsAvailable ? <small>{formatCarbohydrate(food.availableCarbs100g!)} g CH / 100 g</small> : <small className="unavailable">CH adat nem elérhető</small>}</span><ChevronRight size={18} /></button>)}</div></> : <div className="amount-step"><button className="selected-food-card" onClick={() => setSelectedFood(null)} disabled={isSaving}><FoodMedia food={selectedFood} /><span><strong>{selectedFood.name}</strong>{selectedFood.originalName && selectedFood.originalName !== selectedFood.name && <small className="food-source-name">{selectedFood.originalName}</small>}<small className="food-kind">{selectedFood.categoryLabel}</small>{selectedFood.brand && <small>{selectedFood.brand}</small>}<small>{formatCarbohydrate(selectedFood.availableCarbs100g!)} g CH / 100 g</small></span><ArrowLeft size={18} /></button><label className="category-field"><span>Étkezés</span><select value={mealCategory} onChange={(event) => setMealCategory(event.target.value as MealCategory)} disabled={isSaving}>{MEAL_CATEGORIES.map((category) => <option key={category} value={category}>{CATEGORY_LABELS[category]}</option>)}</select></label><div className="amount-label"><span>Mennyiség</span><small>grammban</small></div><div className="amount-control"><button onClick={() => adjustAmount(-5)} aria-label="5 grammal kevesebb" disabled={isSaving}><Minus size={21} /></button><label><input type="text" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} aria-label="Mennyiség grammban" aria-invalid={Boolean(amountError)} aria-describedby={amountError ? 'amount-error' : undefined} disabled={isSaving} /><span>g</span></label><button onClick={() => adjustAmount(5)} aria-label="5 grammal több" disabled={isSaving}><Plus size={21} /></button></div>{amountError && <p id="amount-error" className="input-error" role="alert">{amountError}</p>}{error && <p className="input-error" role="alert">{error}</p>}<div className="quick-amounts"><span>Gyors választás</span>{[50, 100, 150].map((value) => <button key={value} className={amountGrams === value ? 'active' : ''} onClick={() => setAmount(String(value))} disabled={isSaving}>{value} g</button>)}</div>{carbs !== null ? <div className="calculation-result"><div><p className="eyebrow">Ezzel a mennyiséggel</p><strong>{formatCarbohydrate(carbs)} <small>g CH</small></strong></div><span className="result-check"><Check size={18} /></span></div> : <p className="calculation-error" role="status">A CH csak érvényes mennyiség és elérhető tápérték mellett számítható.</p>}<button className="confirm-button" onClick={onAdd} disabled={carbs === null || isSaving}>{isSaving ? 'Mentés…' : mode === 'edit' ? 'Mentés' : 'Mentés a naplóba'} <Plus size={19} /></button></div>}
   </section></div>
+}
+
+function GoalSheet({ localDate, todayDate, goal, onClose, onSave, isSaving, error }: { localDate: string; todayDate: string; goal?: GoalSummary; onClose: () => void; onSave: (payload: { effective_date: string; daily_target_g: number | null; meal_targets: Partial<Record<MealCategory, number>>; allow_past: boolean }) => void; isSaving: boolean; error: string | null }) {
+  const [daily, setDaily] = useState(goal?.dailyTargetG == null ? '' : String(goal.dailyTargetG))
+  const [targets, setTargets] = useState<Partial<Record<MealCategory, string>>>({})
+  const [confirmPast, setConfirmPast] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+  useEffect(() => { setDaily(goal?.dailyTargetG == null ? '' : String(goal.dailyTargetG)); const next: Partial<Record<MealCategory, string>> = {}; goal?.categories.forEach((category) => { if (category.targetG != null) next[category.key] = String(category.targetG) }); setTargets(next) }, [goal])
+  const past = localDate < todayDate
+  const dailyNumber = daily.trim() ? Number(daily.replace(',', '.')) : null
+  const categoryTargetTotal = Object.values(targets).reduce((sum, value) => { const number = value?.trim() ? Number(value.replace(',', '.')) : 0; return Number.isFinite(number) ? sum + number : sum }, 0)
+  const targetMismatch = dailyNumber !== null && Number.isFinite(dailyNumber) && categoryTargetTotal > 0 && Math.abs(categoryTargetTotal - dailyNumber) > 0.0005
+  const submit = () => {
+    if (past && !confirmPast) { setLocalError('Jelöld meg, hogy szándékosan korábbi nap célját módosítod.'); return }
+    const dailyValue = daily.trim() ? Number(daily.replace(',', '.')) : null
+    if (dailyValue !== null && (!Number.isFinite(dailyValue) || dailyValue <= 0)) { setLocalError('A napi cél 0-nál nagyobb, véges szám legyen.'); return }
+    const mealTargets: Partial<Record<MealCategory, number>> = {}
+    for (const category of MEAL_CATEGORIES) { const value = targets[category]; if (value?.trim()) { const number = Number(value.replace(',', '.')); if (!Number.isFinite(number) || number <= 0) { setLocalError('A rész-célok 0-nál nagyobb, véges számok legyenek.'); return }; mealTargets[category] = number } }
+    setLocalError(null); onSave({ effective_date: localDate, daily_target_g: dailyValue, meal_targets: mealTargets, allow_past: past })
+  }
+  return <div className="sheet-backdrop" onMouseDown={isSaving ? undefined : onClose}><section className="add-sheet goal-sheet" role="dialog" aria-modal="true" aria-labelledby="goal-title" onMouseDown={(event: MouseEvent<HTMLElement>) => event.stopPropagation()}><div className="sheet-handle" /><div className="sheet-header"><div><p className="eyebrow">{past ? 'Korábbi nap célja' : 'Felhasználói cél'}</p><h2 id="goal-title">{past ? localDate : 'Napi CH-cél'}</h2></div><button className="close-button" onClick={onClose} disabled={isSaving} aria-label="Bezárás"><X size={20} /></button></div>{past && <label className="goal-confirm"><input type="checkbox" checked={confirmPast} onChange={(event) => setConfirmPast(event.target.checked)} disabled={isSaving} /> Tudatosan módosítom ennek a korábbi napnak a célját.</label>}<label className="goal-input"><span>Napi cél grammban</span><input inputMode="decimal" value={daily} onChange={(event) => setDaily(event.target.value)} placeholder="Nincs cél" disabled={isSaving} /></label><p className="goal-help">Üresen hagyva nincs napi cél; ilyenkor az összeg látható marad, de nincs százalék vagy maradék.</p><div className="goal-targets"><p className="eyebrow">Opcionális étkezési rész-célok</p>{MEAL_CATEGORIES.map((category) => <label className="goal-input" key={category}><span>{CATEGORY_LABELS[category]}</span><input inputMode="decimal" value={targets[category] ?? ''} onChange={(event) => setTargets((current) => ({ ...current, [category]: event.target.value }))} placeholder="—" disabled={isSaving} /></label>)}{targetMismatch && <p className="goal-help">A rész-célok összege eltér a napi céltól; a megadott értékek változatlanul maradnak.</p>}</div>{(localError || error) && <p className="input-error" role="alert">{localError || error}</p>}<button className="confirm-button" onClick={submit} disabled={isSaving}>{isSaving ? 'Mentés…' : 'Cél mentése'} <Check size={19} /></button></section></div>
 }
 
 function FoodMedia({ food }: { food: Food }) { return food.imageUrl ? <span className="food-media"><img className="food-image" src={food.imageUrl} alt="" loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none' }} /><span className="food-icon" aria-hidden="true"><Utensils size={20} /></span></span> : <span className="food-icon" aria-hidden="true"><Utensils size={20} /></span> }

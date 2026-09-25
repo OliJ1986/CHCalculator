@@ -72,3 +72,21 @@ class MealEntry(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
     )
+
+
+class GoalVersion(Base):
+    __tablename__ = "goal_versions"
+    __table_args__ = (
+        UniqueConstraint("profile_id", "effective_date", name="uq_goal_versions_profile_effective_date"),
+        Index("ix_goal_versions_profile_effective_date", "profile_id", "effective_date"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    profile_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
+    effective_date: Mapped[date] = mapped_column(Date, nullable=False)
+    daily_target_g: Mapped[float | None] = mapped_column(Numeric(12, 3), nullable=True)
+    meal_targets: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )

@@ -32,6 +32,7 @@ export type Meal = {
 }
 
 export type MealList = { items: Meal[]; totalCarbsG: number }
+export type MealCategory = 'breakfast' | 'morning_snack' | 'lunch' | 'afternoon_snack' | 'dinner' | 'other'
 
 type MealSnapshotResponse = {
   snapshot_version: number
@@ -138,7 +139,7 @@ export type CreateMealPayload = {
   food_id: string
   amount_g: number
   local_date: string
-  meal_category: 'other'
+  meal_category: MealCategory
   idempotency_key: string
   client_carbs_g?: number
 }
@@ -150,6 +151,7 @@ export async function createMeal(payload: CreateMealPayload): Promise<Meal> {
 export type UpdateMealPayload = {
   amount_g: number
   food_id?: string
+  meal_category?: MealCategory
 }
 
 export async function updateMeal(mealId: string, payload: UpdateMealPayload): Promise<Meal> {

@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a valódi PostgreSQL-, kalkulátor- és snapshot-napló kapu sikeres. M4: **TODO**, a sorrend nem lett megkerülve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a valódi PostgreSQL-, kalkulátor- és snapshot-napló kapu sikeres. M4: **DONE**, a hatálynapos cél- és kategóriakapuk bizonyítottak.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -92,3 +92,11 @@ A korábbi IN PROGRESS és integrációs újranyitási bejegyzések megőrzött 
 - D24: A profil az M3–M4 scope-ban szerver által kiválasztott `default-profile`; kliens nem adhat meg tetszőleges profilazonosítót. Nyilvános, többfelhasználós kiadás előtt külön auth-döntés szükséges.
 - D25: A kliens előnézeti CH-ja csak konzisztencia-ellenőrzésre szolgál. A mentett értéket a szerver a snapshotból számolja, az idempotencia-kulcs pedig ugyanazon kérés ismétlését egyetlen rekordra korlátozza.
 - D26: Az explicit offset nélküli `consumed_at` érték elutasított. A UTC pillanat, a rögzített IANA-zóna és a helyi nap együtt kezeli a DST/éjfél eseteket és megőrzi a történeti napbesorolást.
+
+
+## 2026-09-25 — M4 megvalósítási döntések
+
+- D27: A célverzió kulcsa `(profile_id, effective_date)`. A nap mindig a legutolsó, nem későbbi verziót örökli; múltbeli írás csak explicit `allow_past` kéréssel engedélyezett.
+- D28: A hat étkezési kategória stabil angol kulcsot és magyar címkét kap, és független a Food domain-kategóriáitól. A korábbi M3 rekordok `other` értéke megmarad, automatikus átsorolás nincs.
+- D29: A cél nélküli és a nulla cél különbözik. Az üres PUT tombstone-verziót tárol; a rész-célok összege eltérhet a napi céltól, ezt a UI semleges tájékoztatással jelzi, automatikus újraosztás nélkül.
+- D30: A múltbeli napló CH-ja kizárólag a MealEntry snapshotból számítódik. A cél- és kategóriamutáció nem ír át korábbi étkezési snapshotot, csak az adott nap összesítő nézetét változtatja.

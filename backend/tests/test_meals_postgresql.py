@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.main import app
 from app.db import get_db
-from app.models import Food, MealEntry
+from app.models import Food, GoalVersion, MealEntry
 
 
 POSTGRES_TEST_URL = os.environ.get("CHILL_TEST_DATABASE_URL", "")
@@ -123,5 +123,69 @@ def test_meal_api_crud_snapshot_and_timezone_on_real_postgresql() -> None:
         with Session(engine) as db:
             db.execute(delete(MealEntry).where(MealEntry.food_id == food_id))
             db.execute(delete(Food).where(Food.id == food_id))
+            db.commit()
+        engine.dispose()
+
+
+@pytest.mark.skipif(
+    not POSTGRES_TEST_URL.startswith(("postgresql", "postgres")),
+    reason="CHILL_TEST_DATABASE_URL nincs izolált PostgreSQL test DB-re állítva",
+)
+def test_goal_versions_and_categories_on_real_postgresql() -> None:
+    if "test" not in POSTGRES_TEST_URL.rsplit("/", 1)[-1].lower():
+        pytest.skip("A PostgreSQL cél adatbázis nevében szerepeljen a test jelölés")
+    engine = create_engine(POSTGRES_TEST_URL, future=True)
+    effective_dates = [date(2020, 1, 1), date(2099, 1, 1), date(2099, 1, 2)]
+
+    def override_get_db():
+        with Session(engine) as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            denied = client.put(
+                "/api/goals",
+                json={"effective_date": "2020-01-01", "daily_target_g": 120, "meal_targets": {}},
+            )
+            assert denied.status_code == 422
+            first = client.put(
+                "/api/goals",
+                json={
+                    "effective_date": "2099-01-01",
+                    "daily_target_g": 160,
+                    "meal_targets": {"breakfast": 50, "lunch": 40},
+                },
+            )
+            assert first.status_code == 200, first.text
+            assert first.json()["has_goal"] is True
+            second = client.put(
+                "/api/goals",
+                json={"effective_date": "2099-01-02", "daily_target_g": 175, "meal_targets": {}},
+            )
+            assert second.status_code == 200
+            old = client.get("/api/goals/summary", params={"local_date": "2099-01-01"})
+            assert old.status_code == 200
+            assert old.json()["daily_target_g"] == 160
+            assert old.json()["progress_ratio"] == 0
+            current = client.get("/api/goals/summary", params={"local_date": "2099-01-02"})
+            assert current.status_code == 200
+            assert current.json()["daily_target_g"] == 175
+            assert len(current.json()["categories"]) == 6
+            past = client.put(
+                "/api/goals",
+                json={"effective_date": "2020-01-01", "daily_target_g": 120, "meal_targets": {}, "allow_past": True},
+            )
+            assert past.status_code == 200
+            cleared = client.put(
+                "/api/goals",
+                json={"effective_date": "2099-01-02", "daily_target_g": None, "meal_targets": {}},
+            )
+            assert cleared.status_code == 200
+            assert cleared.json()["has_goal"] is False
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        with Session(engine) as db:
+            db.query(GoalVersion).filter(GoalVersion.effective_date.in_(effective_dates)).delete(synchronize_session=False)
             db.commit()
         engine.dispose()

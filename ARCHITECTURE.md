@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapu bizonyított. M4: **TODO**, ez a következő sorrendi bővítés.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3, M2 és M3: **DONE**, a PostgreSQL-, kalkulátor- és snapshot-napló kapu bizonyított. M4: **DONE**, a célverziózás és kategóriás napló lezárva.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M4 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -42,7 +42,7 @@ Az alkalmazás a `public/manifest.webmanifest` manifestet és a `public/sw.js` e
 
 Étel keresése → query normalizálás/alias → lokális Food cache → USDA + OFF provider → mapping/upsert → deduplikáció/ranking → backend Food DTO → frontend kiválasztás → gramm bevitele → `calculateCarbohydrate` → kerekített UI érték → frontend state-ben új napi bejegyzés.
 
-## M1.3–M4 célarchitektúra [M1.3–M3 kész; M4 tervezett]
+## M1.3–M4 célarchitektúra [M1.3–M4 kész]
 
 ### Adatbázis és migráció
 
@@ -66,6 +66,12 @@ Numerikus tárolás és számítás: Decimal/Numeric, forrásértékek vesztesé
 Tervezett szerződés (pontos route-neveket a megvalósításkor rögzíteni): napló GET nap szerint, POST új tétel, PATCH tétel, DELETE tétel; napi összesítő; hatálynapos cél GET/mentés. Validációs hibák és nem létező/tiltott rekordok egyértelmű válaszok. Mutáció után TanStack Query invalidálja az érintett régi és új napot is. Snapshotot/összeget a kliens nem írhat felül ellenőrzés nélkül. Offline írás sorba állítása nincs ebben a scope-ban.
 
 M3-tól a flow: kiválasztás → gramm/előnézet → szervervalidáció és snapshot → tranzakciós mentés → szerverösszesítő → UI. M4-ben ehhez a napra hatályos cél és kategóriaösszegek társulnak. A service worker csak a megfelelő statikus erőforrásokat cache-elje; személyes API-adat ne kerüljön általános cache-first tárolóba.
+
+### M4 tényleges komponensei
+
+- A `GoalVersion` és az `0003_goal_versions` migráció a profil + hatálynap egyediségét, nullable napi célt és JSON rész-célokat tárol; egy PUT tranzakcióban ír vagy tombstone-olja a célverziót.
+- A `goals` service a legutolsó, nem későbbi verziót választja, a múltbeli írást `allow_past` nélkül elutasítja, és `Decimal` alapú kategória-/napi összesítést ad. A progress arány adatérték, a vizuális sáv 0–100%-ra clampelt.
+- A frontend `src/api/goals.ts` adaptere és az `App.tsx` cél-lapja ugyanazokat a stabil kategóriakulcsokat használja. A dátumnavigáció külön napra kérdezi le a naplót és az összesítőt; személyes API-adatot a service worker nem cache-el.
 
 ### M3 tényleges komponensei
 

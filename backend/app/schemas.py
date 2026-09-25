@@ -45,13 +45,16 @@ class CarbohydrateCalculationResponse(BaseModel):
     carbs_g: float
 
 
+MealCategory = Literal["breakfast", "morning_snack", "lunch", "afternoon_snack", "dinner", "other"]
+
+
 class MealCreateRequest(BaseModel):
     food_id: str = Field(min_length=1, max_length=36)
     amount_g: float
     consumed_at: datetime | None = None
     local_date: date | None = None
     timezone: str | None = Field(default=None, min_length=1, max_length=64)
-    meal_category: Literal["other"] = "other"
+    meal_category: MealCategory = "other"
     idempotency_key: str = Field(min_length=8, max_length=128)
     client_carbs_g: float | None = None
 
@@ -62,7 +65,7 @@ class MealUpdateRequest(BaseModel):
     consumed_at: datetime | None = None
     local_date: date | None = None
     timezone: str | None = Field(default=None, min_length=1, max_length=64)
-    meal_category: Literal["other"] | None = None
+    meal_category: MealCategory | None = None
 
 
 class MealResponse(BaseModel):
@@ -82,3 +85,36 @@ class MealResponse(BaseModel):
 class MealListResponse(BaseModel):
     items: list[MealResponse]
     total_carbs_g: float
+
+
+class GoalUpsertRequest(BaseModel):
+    effective_date: date
+    daily_target_g: float | None = None
+    meal_targets: dict[str, float] = Field(default_factory=dict)
+    allow_past: bool = False
+
+
+class GoalResponse(BaseModel):
+    local_date: date
+    effective_date: date | None
+    daily_target_g: float | None
+    meal_targets: dict[str, float]
+    has_goal: bool
+
+
+class GoalCategorySummary(BaseModel):
+    key: str
+    label: str
+    consumed_carbs_g: float
+    target_g: float | None
+    remaining_g: float | None
+
+
+class GoalSummaryResponse(BaseModel):
+    local_date: date
+    consumed_carbs_g: float
+    daily_target_g: float | None
+    remaining_carbs_g: float | None
+    progress_ratio: float | None
+    progress_percent: float | None
+    categories: list[GoalCategorySummary]

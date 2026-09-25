@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 — M4 saját CH-célok és étkezési kategóriák — 2026-09-25
+
+- Az `0003_goal_versions` migráció napra hatályos, profilhoz kötött napi és opcionális étkezési célokat tárol; a célok módosítása és törlése idempotens, a múltbeli naphoz explicit megerősítés kell.
+- A napló hat stabil étkezési kategóriát kezel, a szerver kategóriánként és naponta a mentett CH-snapshotokból számol. A hiányzó cél nem nulla, a túllépés negatív maradékkal és 100%-ban korlátozott vizuális sávval jelenik meg.
+- A mobil UI dátumnavigációt, cél-szerkesztést, rész-célokat, eltérésjelzést és kategória-részösszegeket kapott.
+- Ellenőrzés: valós PostgreSQL-lel 70 backend teszt, frontend typecheck/lint/7 unit teszt/build és 390/360 px mobil render/interakció sikeres.
+
 ## 0.3.0 — M3 tartós étkezési napló — 2026-09-25
 
 - Az Alembic `0002_meal_log_snapshot` migráció létrehozza a profil- és naplósémát PostgreSQL-en; a `/api/meals` létrehozás, listázás, módosítás, törlés és napi összesítés végpontjai szerveroldali validációval működnek.
