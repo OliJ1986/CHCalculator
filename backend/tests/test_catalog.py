@@ -42,6 +42,8 @@ def test_custom_food_recipe_plan_and_shopping_snapshot():
     assert meal.custom_food_id == own.id and meal.calculated_carbs_g == 12.5
     logged = log_recipe_meal(db, "p1", recipe.id, RecipeMealRequest(quantity=1, idempotency_key="recipe-meal-1", local_date=date(2026, 9, 25)), "Europe/Budapest")
     assert float(logged.calculated_carbs_g) == 52.5
+    retry = log_recipe_meal(db, "p1", recipe.id, RecipeMealRequest(quantity=1, idempotency_key="recipe-meal-1", local_date=date(2026, 9, 25)), "Europe/Budapest")
+    assert retry.id == logged.id
 
 
 def test_profile_isolation_for_custom_foods():
