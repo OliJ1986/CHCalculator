@@ -11,6 +11,7 @@
 - A szolgáltatás-root munkakönyvtárakat külön TOML-regressziós teszt rögzíti: backend `/backend` alatt nincs `cd backend`, frontend `/frontend` alatt nincs `cd frontend`; a repo-root fallback előtagja megmarad.
 - A backendhez `backend/nixpacks.toml` és `.python-version` rögzíti a Python 3.12 + `requirements.txt` telepítést; a frontend Node 22.12.0 engine/nvmrc beállítást kapott.
 - A frontend Railway build parancsa `npm run build` lett, mert a Nixpacks install fázisa már futtatja az `npm ci`-t; az egyszeri `NO_CACHE=1` tiszta build eljárását a staging útmutató dokumentálja.
+- A Railway backend `preDeployCommand` értéke TOML-tömbre váltott (`["alembic upgrade head"]`), mert a korábbi stringes alak mellett a staging konténer migráció nélkül indult, és helyesen leállt hiányzó PostgreSQL-séma miatt.
 
 ## 0.4.0 — M4 saját CH-célok és étkezési kategóriák — 2026-09-25
 

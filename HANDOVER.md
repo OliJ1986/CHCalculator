@@ -221,3 +221,11 @@ A backend build-probléma oka a projektgyökérből történő felismerés és a
 A frontend hibát a `frontend/railway.toml` második `npm ci`-je okozhatta: Nixpacks már az install fázisban telepít, ezért a build most csak `npm run build`. A Vite-kompatibilis Node 22.12.0 az `engines` és `.nvmrc` fájlban rögzített. Az EBUSY utáni első staging buildhez Dashboard Variables között ideiglenes `NO_CACHE=1` szükséges; sikeres build után törlendő.
 
 `.dockerignore` és `.railwayignore` nem került be, mert a `.gitignore` már kizárja a `node_modules`, `dist` és `.env` fájlokat, és a GitHub-forrású Railway build nem ezeket szállítja. Valós Railway rebuildet ebből a munkamenetből nem futtattam.
+
+## Railway staging napló utáni javítás — 2026-09-25
+
+A csatolt Railway napló build utáni futási hibát mutatott: a konténer azonnal az Uvicornnal indult, majd az `app/db.py` helyesen megállította az alkalmazást, mert a PostgreSQL-ben nem volt `foods` tábla. A pre-deploy Alembic futására semmilyen naplóbejegyzés nem utalt.
+
+A tényleges konfigurációs hiba a `preDeployCommand` stringes TOML-alakja volt. A `backend/railway.toml` és a repo-root fallback most tömböt használ (`["alembic upgrade head"]`, illetve `["cd backend && alembic upgrade head"]`), amely megfelel a Railway config-as-code jelenlegi példájának. A konfigurációs regressziós teszt ezt a típust és a parancsokat is ellenőrzi.
+
+Nyitott külső lépés: a Railway Dashboardban deployáld az új commitot, és a Deployment Details nézetben ellenőrizd, hogy a pre-deploy parancs a `/backend/railway.toml` fájlból származik, sikeresen lefutott, és csak utána jelenik meg a `Starting Container` sor. A staging adatbázisba más műveletet nem kell végrehajtani; helyi titkokhoz nem nyúltam.

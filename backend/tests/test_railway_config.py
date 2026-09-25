@@ -18,9 +18,9 @@ def load_json(path: str) -> dict:
 def test_backend_service_commands_use_backend_root_directory() -> None:
     deploy = load_config("backend/railway.toml")["deploy"]
 
-    assert deploy["preDeployCommand"] == "alembic upgrade head"
+    assert deploy["preDeployCommand"] == ["alembic upgrade head"]
     assert deploy["startCommand"].startswith("uvicorn app.main:app")
-    assert "cd backend" not in deploy["preDeployCommand"]
+    assert all("cd backend" not in command for command in deploy["preDeployCommand"])
     assert "cd backend" not in deploy["startCommand"]
 
 
@@ -48,5 +48,5 @@ def test_frontend_service_commands_use_frontend_root_directory() -> None:
 
 def test_repository_root_fallback_keeps_its_explicit_backend_directory() -> None:
     deploy = load_config("railway.toml")["deploy"]
-    assert deploy["preDeployCommand"].startswith("cd backend &&")
+    assert deploy["preDeployCommand"] == ["cd backend && alembic upgrade head"]
     assert deploy["startCommand"].startswith("cd backend &&")

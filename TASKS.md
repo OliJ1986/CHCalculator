@@ -59,6 +59,11 @@ A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel b
 - [ ] Módosított UI: legalább 360 és 390 px szélességen, világos/sötét témában használható; billentyűzetfókusz, feliratok, hibák, érintési célok és vízszintes túlcsordulás ellenőrizve. Ha nincs böngészős QA, ez nyitott ellenőrzés marad.
 - [ ] TASKS, HANDOVER, CHANGELOG és érintett architektúra/döntések frissítve; csak az adott munkához tartozó fájlokból érthető helyi commit. A commit hash és a tényleges teszteredmény az átadásban szerepel.
 
+### Railway staging utólagos naplóellenőrzés — 2026-09-25
+
+- A staging konténer naplója szerint az Alembic pre-deploy lépés nem futott le; az Uvicorn importja hiányzó PostgreSQL-séma miatt állt le.
+- A backend és a repo-root fallback `preDeployCommand` mezői Railway-kompatibilis TOML-tömbök lettek. A következő staging deploymentben a migráció sikerét az alkalmazás konténer indulása előtt kell ellenőrizni.
+
 ## M1.3 — PostgreSQL / Alembic / Railway-előkészítés [DONE]
 
 ### Megvalósítás

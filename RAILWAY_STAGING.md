@@ -110,3 +110,9 @@ Ez a védelem egyetlen privát staging profilhoz és megosztott Basic Auth-hoz k
 Ha a staging hozzáférést vissza kell vonni, töröld vagy cseréld a frontend Basic Auth változóit, állítsd le a frontend domaint/szolgáltatást, majd cseréld a backend `STAGING_PROXY_TOKEN` értékét is. Ne töröld és ne állítsd vissza a helyi vagy production adatbázist ebből a folyamatból.
 
 Railway dokumentáció: [monorepo root directory](https://docs.railway.com/deployments/monorepo), [build és deploy konfiguráció](https://docs.railway.com/builds/build-configuration), [pre-deploy parancs](https://docs.railway.com/deployments/pre-deploy-command), [staging izoláció](https://docs.railway.com/guides/isolate-staging-production), [privát hálózat](https://docs.railway.com/networking/private-networking), [frontend környezeti változók](https://docs.railway.com/guides/frontend-environment-variables).
+
+### PostgreSQL-séma hiba a konténer indulásakor
+
+Ha a naplóban a `PostgreSQL séma hiányzik; futtasd az alembic upgrade head parancsot` hiba jelenik meg, miközben a konténer közvetlenül az Uvicornnal indul, akkor a pre-deploy migráció nem futott le. A backend konfigurációban a Railway jelenlegi TOML-sémájával összhangban a `preDeployCommand` tömb: `["alembic upgrade head"]`. A Dashboard Deployment Details nézetében ellenőrizd, hogy a pre-deploy parancs forrása a `/backend/railway.toml` legyen, majd új deploymentet indíts.
+
+A Railway pre-deploy parancs külön konténerben, az alkalmazás indítása előtt fut; sikertelen migráció esetén a deploymentnek meg kell állnia. A logban a migráció sikerét jelző részt az alkalmazás konténer `Starting Container` sora előtt kell látni. Ne tedd a migrációt az alkalmazás importidejére vagy a helyi cache-importot a deploy hookba.
