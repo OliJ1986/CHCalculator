@@ -47,6 +47,8 @@ def test_custom_food_recipe_plan_and_shopping_snapshot():
     create_item(db, "p1", ShoppingItemCreateRequest(name="Rizs", quantity=1, unit="db"))
     items = generate_from_plans(db, "p1", date(2026, 9, 25), date(2026, 9, 25))
     assert len([item for item in items if item.name == "Rizs"]) == 2
+    items = generate_from_plans(db, "p1", date(2026, 9, 25), date(2026, 9, 25))
+    assert [item.quantity for item in items if item.name == "Rizs" and item.source == "planner"] == [100.0]
     assert len(list_custom_foods(db, "p1")) == 1
     meal = create_meal(db, MealCreateRequest(custom_food_id=own.id, amount_g=100, local_date=date(2026, 9, 25), idempotency_key="custom-meal-1"), "p1")
     assert meal.custom_food_id == own.id and meal.calculated_carbs_g == 12.5

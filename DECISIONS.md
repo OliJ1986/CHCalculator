@@ -131,3 +131,6 @@ A gyors hozzáadás külön útvonal helyett navigációs műveletként nyitja m
 
 ## D-M13-01 — Főtt CH csak megadott tömegből
 A rendszer nem becsüli a főtt sűrűséget nyers hozzávalókból. A főtt CH/100 g mező null marad, ha a felhasználó nem ad meg főtt össztömeget.
+
+## D-M14-01 — Terv másolás és lista-idempotencia
+A tervmásolás cél-nap és forrásadat alapján meglévő egyező rekordot ad vissza; a planner forrású bevásárlótétel mennyisége újrageneráláskor frissül, nem összeadódik.

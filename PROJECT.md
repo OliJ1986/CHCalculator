@@ -114,3 +114,6 @@ Az M5 vendég IndexedDB naplót és regisztrált user réteget ad. A meal/goal A
 
 ### M12 állapot
 A mobil UX 2.0 automatikus kapui teljesültek; böngészős mobil és PWA QA környezeti okból nyitott.
+
+### M14 állapot
+A heti tervező automatikus kapui teljesültek. Mobil böngészős QA nélkül az M14 státusza implementált, a vizuális kapu nyitott.

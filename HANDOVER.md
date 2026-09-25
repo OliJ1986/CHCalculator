@@ -275,3 +275,12 @@ A backend publikus domain nélkül marad. A vendégadatok IndexedDB-ben maradnak
 - A recept-hozzávaló- és receptnapló-snapshotok megmaradnak; teljes adag naplózható, vendég és hitelesített módban is. A szerkesztő elhagyásakor megerősítés védi a félkész változásokat.
 - Új backend regressziók igazolják a főtt CH/100 g számítást és a tervmásolás idempotenciáját. A teljes backendkészlet PostgreSQL-lel 84 passed; frontend 9 unit passed, typecheck és build passed.
 - Korlát: a böngésző nélküli környezetben mobil érintési, fókusz- és vizuális QA nem futott.
+
+## M14 — Planner 2.0 [IMPLEMENTED — böngészős QA nyitott]
+
+- A Tervező heti nézetet kapott hétfő–vasárnap napválasztóval, előző/következő hét navigációval, aktuális nap kiemeléssel és helyi dátumformátummal. A lekérés egy heti tervtartományra történik, a kiválasztott nap tényleges naplója külön marad.
+- A napi terv mutatja a tervezett és tényleges CH-t, valamint a napi cél jelenlegi verzióját. A terv külön adat marad a naplótól; egy művelettel naplózható, idempotencia-kulccsal.
+- A terv áthelyezhető, következő napra másolható duplikációvédelemmel, és a heti bevásárlólista frissíthető. A planner által generált tételek újragenerálása mennyiséget cserél, kézi tételeket és azok jelölését megőrzi.
+- Vendég módban az IndexedDB-lista idempotensen frissül; hitelesített módban a meglévő PostgreSQL API-k és profil-szigetelés maradnak érvényben.
+- Új regresszió igazolja a planner bevásárlólista ismételt generálásának stabil mennyiségét; a teljes backend PostgreSQL-készlet 84 passed, frontend 9 unit passed, typecheck/build passed.
+- Korlát: nincs elérhető böngészővezérlés, ezért a 360/390 px-es mobil vizuális, fókusz- és PWA telepítési QA nyitott marad; ezt nem jelölöm automatizáltan sikeresnek.

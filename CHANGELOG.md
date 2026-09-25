@@ -167,3 +167,6 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 ### M13 receptek 2.0
 - Teljes mobil receptszerkesztő, többforrású hozzávalók, determinisztikus CH, főtt tömeg alapú opcionális CH/100 g, snapshot és naplózás készült.
+
+### M14 planner 2.0
+- Heti tervnézet, napmozgatás/másolás, tervezett-tényleges CH összegzés és idempotens heti bevásárlólista-frissítés készült.

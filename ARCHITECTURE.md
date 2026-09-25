@@ -113,3 +113,6 @@ A frontend alsó navigációja öt fix célból áll; a Hozzáadás elem lokáli
 
 ## M13 receptszámítás
 A recept API a hozzávalók pillanatfelvételéből számol; a főtt CH/100 g kizárólag explicit total_weight_g esetén készül, a nyers összegből nincs becslés.
+
+## M14 heti tervezés
+A terv és a napló külön marad; a heti UI tartományos tervlekérést használ, a copy végpont azonos tartalomra idempotens, a planner bevásárlólista-generálás pedig a kézi tételeket érintetlenül hagyja.
