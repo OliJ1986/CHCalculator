@@ -2,9 +2,9 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**, M5: **IN PROGRESS** (a kód és automatizált kapuk elkészültek, a böngészős UI-kapu nyitott); M6–M7 további scope.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**, M5 és M8–M11: **IN PROGRESS** (a kód és automatizált kapuk elkészültek, a böngészős UI-kapu nyitott); M6–M7 további scope.
 
-Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
+Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 és M8–M11 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
 Módosítás előtt kötelező elolvasni: `PROJECT.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TASKS.md`, `HANDOVER.md`.
 
@@ -16,7 +16,7 @@ Módosítás előtt kötelező elolvasni: `PROJECT.md`, `ARCHITECTURE.md`, `DECI
 - A vizuális minőség és a mobil használhatóság nem opcionális.
 - A CH-számítás maradjon determinisztikus és tesztelt.
 
-## Autonóm fejlesztés M1.3-tól M5-ig
+## Autonóm fejlesztés M1.3-tól M11-ig
 
 1. Olvasd el mind a nyolc dokumentumot, majd ellenőrizd a kódot, Git-státuszt és rendelkezésre álló futtatókörnyezetet. A TASKS részletes kapui az aktuális terv; lezárt M1.2.3 történetet ne írj át és ne futtasd újra fejlesztési feladatként. Valós regressziót természetesen javíts és dokumentálj.
 2. Haladj M1.3 → M2 → M3 → M4 → M5 sorrendben; ne állj meg pusztán egy részfeladat vagy mérföldkő végén. Rutin kódmódosításhoz, új releváns teszthez, helyi fejlesztési migrációhoz és commitokhoz nem kell ismételt engedély. A scope-on belüli technikai döntéseket önállóan, kis változtatásokkal hozd meg.

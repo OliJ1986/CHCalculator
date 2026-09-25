@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja elkészült, a böngészős UI-kapu miatt **IN PROGRESS**.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 és M8–M11 kódja elkészült, a böngészős UI-kapu miatt **IN PROGRESS**.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -102,3 +102,8 @@ A teljes Railway felületi eljárás, változólista, ellenőrzőlista és vissz
 A User és Profile.user_id köti a meal/goal adatot tulajdonoshoz; a régi default-profile user nélkül megmarad. A UserSession, verification/reset token és LoginAttempt migrációval készül. A session cookie HttpOnly/SameSite, a DB csak digestet tárol, külön CSRF-cookie/header ellenőrzött, staging/prod módban Secure. A jelszó szabványos hashlib.scrypt.
 
 A vendég data layer az IndexedDB chill-guest-v1 tárban dolgozik: a lekérdezés három napra korlátozott, exportkor minden rekord megmarad. A /api/auth/import-guest szerveroldali CH-számolással és guest:<id> idempotenciakulccsal tranzakciós; helyi törlés csak siker után.
+# M8–M11 bővítés — 2026-09-25
+
+A profilhoz kötött saját ételek, receptek, étkezéstervek és bevásárlótételek PostgreSQL-ben külön táblákban élnek (`custom_foods`, `recipes`, `recipe_ingredients`, `meal_plan_entries`, `shopping_items`). Minden recept- és naplóbejegyzés számítási snapshotot rögzít, ezért a későbbi katalógus-frissítés nem írja át a múltat. A vendég mód ugyanennek a minimális adatmodellnek az IndexedDB 2-es, additive tároló-verzióját használja; a háromnapos naplóablak csak megjelenítési korlát.
+
+Az API-k minden személyes lekérdezést hitelesített user profiljára szűrnek, módosításkor CSRF-védelmet használnak. A tervező különálló domain a tényleges naplótól, a bevásárlólista aggregációja név és kompatibilis egység szerint történik. Az új Alembic revíziók sorrendje `0006_custom_foods` → `0007_recipes` → `0008_meal_plans` → `0009_shopping_list`.

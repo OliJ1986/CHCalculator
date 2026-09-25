@@ -2,9 +2,19 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja és automatizált kapui elkészültek, de a böngészős UI-kapu miatt **IN PROGRESS**. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja és automatizált kapui elkészültek, de a böngészős UI-kapu miatt **IN PROGRESS**. M8–M11 backend/frontend automatizált kapui elkészültek, a böngészős mobil QA miatt ezek státusza **IN PROGRESS** marad. A korábbi blokkolt állapot története megmarad, az új ellenőrzések külön vannak rögzítve.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
+
+## M8–M11 átadás — 2026-09-25
+
+Elkészült a profilhoz kötött saját étel- és receptkatalógus, a determinisztikus hozzávaló- és receptnapló-snapshot, a napi étkezéstervező és a bevásárlólista. A vendég mód IndexedDB-je a korábbi `chill-guest-v1` adatokat megtartva új, 2-es sémaverzióban additive módon kezeli ezeket a rekordokat; regisztrált módban az API-k PostgreSQL profilra szűrnek.
+
+Az új Alembic lánc `0006_custom_foods`–`0009_shopping_list`; a helyi `chill_dev` és izolált `chill_test` adatbázis headre migrálva lett. A saját étel CH-validációja 0–100 g/100 g, a recept össz- és adagonkénti CH-ja snapshotból készül, tervmódosításkor újraszámolódik, a bevásárlólista csak azonos név és kompatibilis egység szerint aggregál.
+
+Ellenőrzések: `test_catalog.py` 2 passed; célzott backend regresszió 14 passed; valódi PostgreSQL meal/goal/import integráció 3 passed; frontend typecheck, 9 unit teszt és production build sikeres; lintben csak a korábbi React effect figyelmeztetések maradtak. A teljes backend futtatását a korábban ismert Windows pytest-temp könyvtár ACL-hibák három setup errorral megszakították (a funkcionális tesztek 73 passed, 3 skipped).
+
+Nyitott korlát: a browser-control környezet nem biztosít böngészőt, ezért a 360/390 px vizuális mobil QA, fókusz/túlcsordulás-ellenőrzés és PWA telepítés nem futott le. Következő lépés egy valódi telefonon vagy elérhető böngészős runnerben a `/`, `/receptek`, `/kedvencek` vendég és bejelentkezett flow ellenőrzése, majd csak sikeres kapu után lehet M5/M8–M11 státuszt DONE-ra váltani.
 
 ## Jelenlegi állapot
 

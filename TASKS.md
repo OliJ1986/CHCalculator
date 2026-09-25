@@ -48,7 +48,35 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - [TODO] M6 — Vonalkód és OCR
 - [TODO] M7 — AI funkciók
 
-M0, M1.1, M1.2, M1.3, M2, M3 és M4 lezárva; M5 kódja elkészült, a módosított UI böngészős kapuja nyitott; az M1.2 élő USDA/OFF combined smoke-ja lezárt történet.
+M0, M1.1, M1.2, M1.3, M2, M3 és M4 lezárva; M5 kódja elkészült, a módosított UI böngészős kapuja nyitott; az M1.2 élő USDA/OFF combined smoke-ja lezárt történet. 2026-09-25-én az új katalógus/tervező scope automatikus és PostgreSQL kapui elkészültek; a böngészős mobil QA továbbra is nyitott.
+
+## M8 — Saját ételek [AUTOMATIZÁLT KAPUK TELJESÜLTEK]
+
+- [x] Profilhoz kötött saját étel CRUD, kedvenc kapcsoló és CH/100 g validáció.
+- [x] Saját ételek meal-snapshot forrásként használhatók; más profil rekordja nem olvasható.
+- [x] Vendég saját ételek IndexedDB-ben, additive adatbázis-verziófrissítéssel.
+- [x] Backend unit/regresszió és frontend persistence teszt sikeres.
+
+## M9 — Receptek és receptnapló [AUTOMATIZÁLT KAPUK TELJESÜLTEK]
+
+- [x] Profilhoz kötött recept/hozzávaló CRUD, determinisztikus össz- és adagonkénti CH.
+- [x] Hozzávaló-snapshot és receptnapló-snapshot rögzül; hiányzó CH elutasítva.
+- [x] Gramm- és adag-alapú receptnaplózás, idempotencia-kulcs.
+- [x] Vendég recepttár IndexedDB-ben és mobil katalógusnézet.
+
+## M10 — Étkezéstervező [AUTOMATIZÁLT KAPUK TELJESÜLTEK]
+
+- [x] Profilhoz kötött napi terv saját ételhez vagy recepthez, kategóriával és CH-snapshot-tal.
+- [x] Terv CRUD és mennyiségmódosítás újraszámítással; a terv nem írja át a naplót.
+- [x] Vendég tervek IndexedDB-ben, mobil tervezőnézetben kezelhetők.
+
+## M11 — Bevásárlólista [AUTOMATIZÁLT KAPUK TELJESÜLTEK]
+
+- [x] Kézi lista CRUD és tervből generált, név+kompatibilis mértékegység szerint aggregált tételek.
+- [x] Profil-szigetelés, checked/source mezők és vendég IndexedDB tárolás.
+- [x] API, unit és frontend persistence ellenőrzések sikeresek.
+
+Közös nyitott kapu: a jelenlegi környezetben nincs böngészővezérlés, ezért az M5 és az M8–M11 módosított mobil UI-jának 360/390 px vizuális, fókusz- és PWA-telepítési ellenőrzése nem jelölhető sikeresnek.
 
 ## Közös teljesítési kapu
 

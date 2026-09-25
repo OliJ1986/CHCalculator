@@ -2,7 +2,7 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja elkészült, de a böngészős UI-kapu miatt **IN PROGRESS**.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja elkészült, de a böngészős UI-kapu miatt **IN PROGRESS**. M8–M11 katalógus/tervező kód és automatizált kapuk elkészültek, böngészős mobil QA miatt **IN PROGRESS**.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
@@ -57,6 +57,12 @@ Két külön helyi PostgreSQL 18 adatbázison (`chill_dev`, `chill_test`) az Ale
 ## M2 — Teljes CH-kalkulátor — lezárva
 
 A CH-számítás backend- és frontend-oldalon determinisztikus, kerekítés nélküli értékből indul, a megjelenítés egy tizedesre formáz. A mennyiség 0-nál nagyobb, véges és legfeljebb 100 000 g lehet; a 0–100 g/100 g közötti CH-adat, beleértve a valid 0-t, számolható. A hiányzó vagy érvénytelen CH és minden hibás mennyiség tiltja a mentést. A frontend elfogadja a magyar tizedesvesszőt és a pontot, és a `POST /api/carbs/calculate` szerződés ugyanezt a numerikus szabályt ellenőrzi. A mobil keresés–kiválasztás–mennyiség–eredmény flow 390 és 360 px szélességen túlcsordulás nélkül működik.
+
+## M8–M11 — Saját katalógus, receptek, tervező és bevásárlólista
+
+A saját ételek és receptek a regisztrált profilhoz kötött PostgreSQL-adatok, vendég módban pedig additive IndexedDB-tárban élnek. A recept minden hozzávalóról CH-snapshotot őriz, így a korábbi receptnapló külső adatfrissítéstől nem változik. A tervező külön kezeli a jövőbeli tervet és a tényleges naplót; a bevásárlólista kézi és tervből generált tételeket kezel, mértékegység-kompatibilis aggregációval.
+
+Az új backend migrációk `0006_custom_foods`–`0009_shopping_list`, a frontend tároló verziója 2. A funkcionális és PostgreSQL tesztek sikeresek, de az új mobil UI böngészős ellenőrzése a környezetben elérhető browser runner hiánya miatt még nyitott.
 
 ## M0 scope
 

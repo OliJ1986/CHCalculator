@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — M8–M11 saját katalógus, tervezés és bevásárlólista — 2026-09-25
+
+- Profilhoz kötött saját étel CRUD és kedvenc kezelés készült szerveroldali CH-validációval; vendég módban az adatok IndexedDB-ben maradnak.
+- A receptek hozzávaló-snapshotból számítják az össz- és adagonkénti CH-t, a recept étkezésként naplózható gramm vagy adag szerint.
+- Napi étkezéstervező és bevásárlólista API készült, a tervből generált tételek csak azonos név és kompatibilis egység esetén aggregálódnak.
+- Az Alembic `0006`–`0009` migrációk és a lokális SQLite additive kompatibilitás elkészült; dev/test PostgreSQL head ellenőrizve.
+- A vendég IndexedDB 2-es verziója additive módon tárol saját ételeket, recepteket, terveket és bevásárlótételeket; a korábbi napló/cél adatok megmaradnak.
+- Ellenőrzés: backend célzott 14 passed, PostgreSQL integráció 3 passed, frontend 9 unit teszt, typecheck és build sikeres. A teljes backend futásban a korábban ismert Windows pytest-temp ACL-hiba maradt; browseres mobil QA nem futott böngésző hiányában.
+
 ## Unreleased — Railway staging előkészítés — 2026-09-25
 
 - Külön Railway build/deploy konfiguráció készült a backendhez és a frontendhez; a backend Alembic pre-deploy migrációt és adatbázis-readiness healthchecket használ.

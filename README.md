@@ -2,11 +2,13 @@
 
 ## Aktuális tervezési állapot — 2026-09-25
 
-M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 kódja elkészült, de a böngészős UI-kapu miatt **IN PROGRESS**.
+M0–M1.2, benne M1.2.1–M1.2.3: **DONE**, a lezárt történet megőrizve. M1.3–M4: **DONE**; M5 és M8–M11 kódja és automatizált kapui elkészültek, de a böngészős UI-kapu miatt **IN PROGRESS**.
 
 Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben szereplő SQLite, frontend-state napló és M0-scope a korábbi vagy jelenlegi megvalósítást írják le; nem tiltják az M1.3–M5 bővítéseit. A részletes elfogadási feltételek forrása a `TASKS.md`.
 
 Mobil-first szénhidrátszámláló PWA prototípus. A CHill célja egy gyors, egyszerű és vizuálisan karakteres napi CH-áttekintő.
+
+A Receptek nézetben profilhoz kötött saját ételek és receptek kezelhetők; a Kedvencek nézet a napi tervezőt és a bevásárlólistát tartalmazza. Vendég módban ezek az adatok az eszköz IndexedDB-jében maradnak, bejelentkezve PostgreSQL profiladatként tárolódnak.
 
 ## Stack
 

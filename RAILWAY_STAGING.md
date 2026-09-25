@@ -10,6 +10,8 @@ Ez az útmutató privát, elkülönített staging környezet előkészítésére
 
 A staging adatbázis üresen indul. A backend pre-deploy lépése csak az Alembic sémát futtatja; a helyi cache-import szándékosan nincs deploy-hookba kötve.
 
+Az aktuális Alembic head a `0009_shopping_list`, amely a saját ételek, receptek, étkezéstervek és bevásárlólista tábláit is létrehozza. Stagingen ezek profilhoz kötött adatai üres adatbázisból indulnak; vendég adatok nem kerülnek automatikusan PostgreSQL-be.
+
 ## 2. Backend szolgáltatás
 
 Adj hozzá egy GitHubból telepített szolgáltatást ugyanebből a repóból, majd a szolgáltatás beállításaiban állítsd:
