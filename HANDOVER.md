@@ -12,7 +12,7 @@ Elkészült a profilhoz kötött saját étel- és receptkatalógus, a determini
 
 Az új Alembic lánc `0006_custom_foods`–`0009_shopping_list`; a helyi `chill_dev` és izolált `chill_test` adatbázis headre migrálva lett. A saját étel CH-validációja 0–100 g/100 g, a recept össz- és adagonkénti CH-ja snapshotból készül, tervmódosításkor újraszámolódik, a bevásárlólista csak azonos név és kompatibilis egység szerint aggregál.
 
-Ellenőrzések: `test_catalog.py` 2 passed; célzott backend regresszió 14 passed; valódi PostgreSQL meal/goal/import integráció 3 passed; frontend typecheck, 9 unit teszt és production build sikeres; lintben csak a korábbi React effect figyelmeztetések maradtak. A teljes backend futtatását a korábban ismert Windows pytest-temp könyvtár ACL-hibák három setup errorral megszakították (a funkcionális tesztek 73 passed, 3 skipped).
+Ellenőrzések: `test_catalog.py` 2 passed; célzott backend regresszió 14 passed; valódi PostgreSQL meal/goal/import integráció 3 passed; teljes backend regresszió `78 passed, 3 skipped`; frontend typecheck, 9 unit teszt és production build sikeres; lintben csak a korábbi React effect figyelmeztetések maradtak. A teljes csomag emelt helyi jogosultsággal futott a Windows pytest-temp ACL miatt, külső deploy nélkül.
 
 Nyitott korlát: a browser-control környezet nem biztosít böngészőt, ezért a 360/390 px vizuális mobil QA, fókusz/túlcsordulás-ellenőrzés és PWA telepítés nem futott le. Következő lépés egy valódi telefonon vagy elérhető böngészős runnerben a `/`, `/receptek`, `/kedvencek` vendég és bejelentkezett flow ellenőrzése, majd csak sikeres kapu után lehet M5/M8–M11 státuszt DONE-ra váltani.
 
