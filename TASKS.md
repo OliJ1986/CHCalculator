@@ -72,6 +72,7 @@ A mérföldkő csak akkor DONE, ha az összes kötelező elfogadási feltétel b
 - [x] Regisztráció → email-megerősítés → login → CSRF → logout, jelszócsere/reset és rate limit tesztelt.
 - [x] Auth/regresszió 15 passed; PostgreSQL meal/goal integráció 2 passed; frontend typecheck, 8 unit teszt, build sikeres.
 - [x] Dev/test PostgreSQL Alembic head 0005_user_role; helyi adatot nem töröltünk.
+- [x] A vendég indulás auth-válasz nélkül is használható; a PWA manifest és az API-válaszokat kizáró service-worker szabály ellenőrzött.
 
 Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsordulás-ellenőrzése a környezetben elérhető böngészővezérlés hiánya miatt nem futott le; staging/prod email-delivery adapter és valós Railway deploy sincs bekötve/végrehajtva. M5 csak ezek után jelölhető DONE-nak.
 

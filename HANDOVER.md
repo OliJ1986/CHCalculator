@@ -238,4 +238,6 @@ A vendég napló az IndexedDB chill-guest-v1 tárat használja, a látható abla
 
 A vendégimport szerveroldalon újraszámol, snapshotot/célverziót őriz, idempotens és konfliktusnál rollbackel; a kliens csak siker után töröl. Ellenőrzés: auth 15 passed, PostgreSQL meal/goal 2 passed, Alembic 0005 head dev/test, frontend typecheck/8 unit/build sikeres. A teljes backend futás 73 passed, 3 skipped, 3 Windows pytest-temp ACL error volt.
 
+A vendég indulási útvonal módosítása után az IndexedDB étkezés- és céllekérdezése auth-válasz nélkül is elindul; a sikeres auth később fiókos adatra válthat. Az új ellenőrzés: backend auth/config/health `9 passed`, valódi PostgreSQL `2 passed`, frontend typecheck/unit/build sikeres, PWA manifest és API-kizáró service-worker statikusan ellenőrzött.
+
 Korlát: a 360/390 px-es böngészős UI-ellenőrzés nem futott le, mert a környezetben nincs elérhető böngészővezérlés; staging/prod email-delivery adapter és valós Railway deploy sincs bekötve. A következő lépés a böngészős QA, majd csak siker esetén az M5 lezárása.
