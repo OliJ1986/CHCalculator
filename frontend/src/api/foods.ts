@@ -40,6 +40,20 @@ type FoodResponse = {
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
 
+export type FoodLookupErrorKind = 'invalid' | 'authentication' | 'rate_limit' | 'provider' | 'network'
+
+export class FoodLookupError extends Error {
+  readonly kind: FoodLookupErrorKind
+  readonly status: number | null
+
+  constructor(kind: FoodLookupErrorKind, message: string, status: number | null = null) {
+    super(message)
+    this.kind = kind
+    this.status = status
+    this.name = 'FoodLookupError'
+  }
+}
+
 function mapFood(food: FoodResponse): Food {
   return {
     id: food.id,
@@ -71,9 +85,24 @@ export async function searchFoods(query: string, signal?: AbortSignal): Promise<
 
 export async function lookupFoodBarcode(barcode: string, signal?: AbortSignal): Promise<Food | null> {
   const normalized = barcode.trim()
-  if (!/^\d{8,14}$/.test(normalized)) throw new Error('Érvénytelen vonalkód.')
-  const response = await fetch(`${apiBaseUrl}/foods/barcode/${encodeURIComponent(normalized)}`, { signal, credentials: 'include' })
-  if (!response.ok) throw new Error('A vonalkódos keresés átmenetileg nem elérhető.')
+  if (!/^\d{8,14}$/.test(normalized)) throw new FoodLookupError('invalid', 'Érvénytelen vonalkód.')
+  let response: Response
+  try {
+    response = await fetch(`${apiBaseUrl}/foods/barcode/${encodeURIComponent(normalized)}`, { signal, credentials: 'include' })
+  } catch (value) {
+    // Keep explicit caller cancellation cancellable; classify other failures.
+    if (value instanceof DOMException && value.name === 'AbortError') throw value
+    throw new FoodLookupError('network', 'A vonalkódos szolgáltatás hálózati hibát jelzett.')
+  }
+  // A gateway may expose an unknown product as HTTP 404. This is a normal
+  // empty lookup, equivalent to FastAPI's 200/null response.
+  if (response.status === 404) return null
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) throw new FoodLookupError('authentication', 'A vonalkódos szolgáltatás hitelesítése nem sikerült.', response.status)
+    if (response.status === 429) throw new FoodLookupError('rate_limit', 'A vonalkódos szolgáltatás elérte a lekérdezési korlátot. Próbáld később újra.', response.status)
+    if (response.status >= 500) throw new FoodLookupError('provider', 'A vonalkódos szolgáltató átmenetileg nem érhető el.', response.status)
+    throw new FoodLookupError('invalid', 'A vonalkódos kérés nem fogadható el.', response.status)
+  }
   const payload = await response.json() as FoodResponse | null
   return payload ? mapFood(payload) : null
 }

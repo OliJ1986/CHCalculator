@@ -3,6 +3,7 @@ from typing import Any
 import httpx
 
 from ..domain.foods import FoodCandidate, map_open_food_facts_product, normalize_query
+from .base import FoodProviderError
 from .http import request_json
 
 
@@ -92,12 +93,20 @@ class OpenFoodFactsProvider:
         return await self.get_by_barcode(external_id)
 
     async def get_by_barcode(self, barcode: str) -> FoodCandidate | None:
-        payload = await self._get(
-            f"{self.base_url}/api/v3/product/{barcode}",
-            params={"fields": self.fields},
-            request_type="barcode",
-            query=barcode,
-        )
+        try:
+            payload = await self._get(
+                f"{self.base_url}/api/v3/product/{barcode}",
+                params={"fields": self.fields},
+                request_type="barcode",
+                query=barcode,
+            )
+        except FoodProviderError as exc:
+            # OFF uses both a JSON status=0 and HTTP 404 for an unknown code.
+            # Neither is a provider outage, so the service returns a normal
+            # empty result and lets the caller keep using cached products.
+            if exc.status_code == 404:
+                return None
+            raise
         if payload.get("status") == 0:
             return None
         return self._candidate(payload.get("product", payload))

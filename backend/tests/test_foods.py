@@ -10,6 +10,7 @@ from app.domain.foods import FoodCandidate, map_open_food_facts_product, normali
 from app.main import app
 from app.models import Base, Food
 from app.providers.open_food_facts import OpenFoodFactsProvider
+from app.providers.base import FoodProviderError
 from app.services.foods import FoodService
 
 
@@ -176,3 +177,60 @@ def test_search_endpoint_returns_internal_food_dto() -> None:
     assert item["available_carbs_100g"] == 11.4
     assert item["carbs_available"] is True
     assert "nutriments" not in item
+
+
+def test_barcode_endpoint_unknown_product_is_empty_not_server_error() -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    from app import main
+    from app.db import get_db
+
+    def override_db():
+        with Session(engine) as db:
+            yield db
+
+    original_service = main.food_service
+    main.food_service = FoodService(FakeProvider([]))
+    app.dependency_overrides[get_db] = override_db
+    try:
+        response = TestClient(app).get("/api/foods/barcode/5997420103990")
+    finally:
+        main.food_service = original_service
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() is None
+
+
+def test_barcode_endpoint_maps_provider_failure_to_503() -> None:
+    class ErrorProvider(FakeProvider):
+        async def get_by_barcode(self, barcode: str) -> FoodCandidate | None:
+            raise FoodProviderError("OFF unavailable", source="open_food_facts", request_type="barcode", status_code=503, kind="service_unavailable", retryable=True)
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    from app import main
+    from app.db import get_db
+
+    def override_db():
+        with Session(engine) as db:
+            yield db
+
+    original_service = main.food_service
+    main.food_service = FoodService(ErrorProvider([]))
+    app.dependency_overrides[get_db] = override_db
+    try:
+        response = TestClient(app).get("/api/foods/barcode/5997420103990")
+    finally:
+        main.food_service = original_service
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 503

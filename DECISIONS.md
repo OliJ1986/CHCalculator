@@ -149,4 +149,10 @@ AI is disabled by default and is reachable only through a backend provider with 
 
 ## D-M15-18-02 - Stable camera element and local barcode retries (2026-09-26)
 
+## D-M15-18-03 – OCR mezők és vonalkód státuszok (2026-09-26)
+
+- Az OCR eredményét tápanyagsorok szerint, külön mezőkben tároljuk; a 100 g, 100 ml és adag alap nem konvertálódik automatikusan. A hiányzó érték `null`, a nulla megmarad nulla.
+- A kézi javítás az OCR kötelező része: saját étel csak névvel és ellenőrzött, 100 g-os CH-val menthető. Kép- és OCR-adat nem kerül külső szerverre vagy tartós snapshotba.
+- OFF 404 és `status=0` ismeretlen termék; 429, 5xx és timeout átmeneti szolgáltatói hiba. A frontend a HTTP-státusz alapján külön üzenetet ad, és a cache-találatot provider-hívás nélkül használja.
+
 The video element remains mounted in an idle host so permission and stream attachment do not depend on a state transition rendering the element. Every start, retry, switch, close and unmount path owns explicit track cleanup. Barcode image decoding may use bounded local canvas variants, but only checksum-valid EAN-8/EAN-13 values are sent to the existing lookup service; manual entry remains the fallback.

@@ -275,6 +275,17 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 
 ## 2026-09-26 - M15-M18 camera regression fix
 
+## 2026-09-26 – Nutrition OCR 2.0 és vonalkódos hibakezelés
+
+- [x] A tápérték-parser magyar és angol sorokat táblázatos sorlogikával értelmez: szénhidrát, ebből cukrok, rost, fehérje és zsír külön mező; a hiányzó adat `null`, a nulla érvényes érték marad.
+- [x] A 100 g, 100 ml és adag alapú adatok nem keverednek. A saját étel mentése csak felülvizsgált 100 g-os CH-val engedélyezett, átszámítás nélkül.
+- [x] A NutritionScanner helyi képkivágást, méretezést és opcionális kontrasztjavítást ad; minden OCR-mező és a tápértékalap szerkeszthető. Sikertelen OCR után kézi saját étel menthető.
+- [x] Hozzáadtuk a Koch's Original Majonéz magyar/angol fixture-t, parser-regressziókat, Chromium/WebKit mobil tesztet 360, 375 és 390 px-en; a képek nem kerülnek külső szolgáltatóhoz.
+- [x] Az OFF 404-es ismeretlen vonalkód normál üres találat, a frontend pedig külön kezeli a 401/403, 429, 5xx és hálózati hibákat. A 200-as cache-találat változatlanul elsőbbséget élvez.
+- [x] Frontend kapuk: 24 Vitest teszt, typecheck, lint (5 meglévő React-figyelmeztetés), production build; Chromium 9/9 és WebKit 9/9 mobil kamera/OCR teszt.
+- [x] Backend célzott provider-kapu és barcode endpoint-kapu: 16 teszt sikeres; teljes regresszióban 85 teszt sikeres és 4 skip, 3 cache-import tesztet a Windows pytest ideiglenes könyvtár ACL-je blokkolt (implementációs hiba nélkül).
+- [ ] Valós iPhone Safari OCR-kamera és élő Railway/OFF smoke ebben a munkamenetben nem futott; ez külön eszköz- és staging-hozzáférést igényel.
+
 - [x] BarcodeScanner keeps its video element mounted in an idle host, so the start action can request permission before activation. Start, detected-result delivery, explicit stop, close and unmount all release ZXing controls and media tracks; startup failures produce an actionable alert.
 - [x] CameraCapture attaches the returned stream before marking the preview active, awaits Safari-compatible `video.play()`, uses the requested facing mode for camera switching, and detaches/stops every track on switch, capture, close and unmount.
 - [x] Local barcode image processing now tries scaled, centered-crop, contrast and 90/180/270 degree orientation variants. Results are accepted only after EAN-8/EAN-13 checksum validation; unsuccessful recognition leaves the manual input available and never uploads the image.

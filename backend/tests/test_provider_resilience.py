@@ -100,6 +100,24 @@ def test_off_authentication_error_is_not_retried() -> None:
     assert error.value.status_code == 403
 
 
+def test_off_unknown_barcode_404_is_an_empty_result_without_retry() -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(404, text="not found")
+
+    provider = OpenFoodFactsProvider(
+        transport=httpx.MockTransport(handler),
+        max_retries=2,
+        retry_base_delay=0,
+    )
+
+    assert asyncio.run(provider.get_by_barcode("5997420103990")) is None
+    assert calls == 1
+
+
 def test_network_error_is_retried_only_with_a_bounded_budget() -> None:
     calls = 0
 

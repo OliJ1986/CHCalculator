@@ -182,6 +182,13 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 
 ## Unreleased - M15-M18 CHill Camera (2026-09-26)
 
+### Nutrition OCR 2.0 és vonalkódos hibakezelés
+
+- A helyi OCR most magyar és angol tápértéksorokat, külön tápanyagmezőket és 100 g/100 ml/adag alapot kezel.
+- A képkivágás, nagyítás és kontrasztjavítás mobilon állítható; OCR-hiba esetén minden adat kézzel javítható és ellenőrzött 100 g-os CH-val saját étel menthető.
+- Az OFF 404 ismeretlen termék üres találatként jelenik meg. A frontend a 401/403, 429, 5xx és hálózati hibákat eltérő, érthető üzenettel kezeli.
+- Magyar majonéz fixture, frontend API/parser regressziók és Chromium/WebKit mobil OCR tesztek kerültek be.
+
 - Added an integrated Camera panel with barcode, nutrition-label and food-photo modes.
 - Added ZXing EAN scanning through the existing OFF barcode endpoint, with manual and image-upload fallbacks.
 - Added local Tesseract.js nutrition parsing with explicit 100 g/100 ml/serving handling and manual review before custom-food save.

@@ -84,6 +84,15 @@ async function openBarcodePanel(page: Page) {
   await expect(page.getByRole('button', { name: 'Olvasás indítása' })).toBeVisible()
 }
 
+async function openNutritionPanel(page: Page) {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Hozzáadás', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Hozzáadás', exact: true }).click()
+  await page.getByRole('button', { name: /^Kamera/ }).click()
+  await page.getByRole('tab', { name: 'Tápérték', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
+}
+
 for (const viewport of viewports) {
   test.describe(`camera ${viewport.width}px`, () => {
     test.use({ viewport })
@@ -130,6 +139,33 @@ for (const viewport of viewports) {
       await manual.fill('4006381333932')
       await page.getByRole('button', { name: 'Keresés' }).click()
       await expect(page.locator('.input-error').filter({ hasText: 'érvényes EAN' })).toBeVisible()
+    })
+
+    test('crops a Hungarian label locally and allows manual correction after uncertain OCR', async ({ page }) => {
+      const barcodeRequests: string[] = []
+      await mockCamera(page)
+      await mockApi(page, barcodeRequests)
+      await page.addInitScript(() => {
+        ;(window as Window & { __CHILL_NUTRITION_OCR_TEXT?: string }).__CHILL_NUTRITION_OCR_TEXT = "Koch's Original Majonéz\nTápérték / Nutrition declaration\n100 g\nSzénhidrát / Carbohydrate 7,1 g\nebből cukrok / of which sugars 6,1 g\nFehérje / Protein 1,0 g\nZsír / Fat 52 g"
+      })
+      await openNutritionPanel(page)
+      await page.locator('input[type="file"]').setInputFiles(path.join(import.meta.dirname, 'fixtures', 'ean13-4006381333931.svg'))
+      await expect(page.getByRole('button', { name: 'Kivágás és felismerés' })).toBeVisible()
+      await page.getByRole('button', { name: 'Kivágás és felismerés' }).click()
+      await expect(page.getByLabel('Élelmiszer neve')).toHaveValue("Koch's Original Majonéz")
+      await expect(page.getByLabel('Szénhidrát / 100 g')).toHaveValue('7.1')
+      await expect(page.getByLabel('Ebből cukrok / 100 g')).toHaveValue('6.1')
+      await expect(page.getByLabel('Rost / 100 g')).toHaveValue('')
+      await expect(page.getByRole('button', { name: 'Saját étel létrehozása' })).toBeEnabled()
+
+      await page.getByRole('button', { name: 'Új kép' }).click()
+      await page.evaluate(() => { (window as Window & { __CHILL_NUTRITION_OCR_TEXT?: string }).__CHILL_NUTRITION_OCR_TEXT = 'not a nutrition table' })
+      await page.locator('input[type="file"]').setInputFiles(path.join(import.meta.dirname, 'fixtures', 'ean13-4006381333931.svg'))
+      await page.getByRole('button', { name: 'Kivágás és felismerés' }).click()
+      await page.getByLabel('Élelmiszer neve').fill('Kézzel javított majonéz')
+      await page.getByLabel('Tápértékalap').selectOption('100g')
+      await page.getByLabel('Szénhidrát / 100 g').fill('7,1')
+      await expect(page.getByRole('button', { name: 'Saját étel létrehozása' })).toBeEnabled()
     })
   })
 }

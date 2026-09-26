@@ -137,4 +137,10 @@ Environment variables: `VISION_ENABLED`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `VISI
 
 ## Camera lifecycle regression boundary (2026-09-26)
 
+## Nutrition OCR and barcode error boundary (2026-09-26)
+
+Nutrition OCR stays in the browser. `NutritionScanner` creates a local cropped and optionally contrast-enhanced image, then lazy-loads Tesseract with `hun+eng`; raw images are not uploaded or persisted. `parseNutritionLabel` returns nutrient values in the detected basis and only projects values to the legacy `*100g` fields when the basis is explicitly 100 g. Product names are selected from the heading before the first nutrient row, never from an arbitrary later OCR line.
+
+Barcode lookup keeps the existing cache-first `FoodService` boundary. Open Food Facts HTTP 404 and JSON `status=0` are unknown products; provider 429/5xx/timeouts remain provider failures and are mapped to a 503 by FastAPI. The frontend maps the gateway status to a user-facing category without exposing provider details or secrets.
+
 Camera components keep a mounted video host separate from their active-state presentation. This lets permission requests and stream attachment happen in a stable DOM node, including Safari, while cleanup always stops tracks and clears `srcObject`. ZXing remains lazy-loaded and image decoding stays in local canvas memory; only checksum-valid EAN-8/EAN-13 values cross the existing barcode lookup boundary.
