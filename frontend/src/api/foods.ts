@@ -68,3 +68,12 @@ export async function searchFoods(query: string, signal?: AbortSignal): Promise<
   const payload = (await response.json()) as { items: FoodResponse[] }
   return payload.items.map(mapFood)
 }
+
+export async function lookupFoodBarcode(barcode: string, signal?: AbortSignal): Promise<Food | null> {
+  const normalized = barcode.trim()
+  if (!/^\d{8,14}$/.test(normalized)) throw new Error('Érvénytelen vonalkód.')
+  const response = await fetch(`${apiBaseUrl}/foods/barcode/${encodeURIComponent(normalized)}`, { signal, credentials: 'include' })
+  if (!response.ok) throw new Error('A vonalkódos keresés átmenetileg nem elérhető.')
+  const payload = await response.json() as FoodResponse | null
+  return payload ? mapFood(payload) : null
+}

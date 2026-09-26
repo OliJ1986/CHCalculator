@@ -21,7 +21,7 @@ describe('frontend source encoding', () => {
 
   it('keeps the key Hungarian labels as real Unicode text', () => {
     const app = readFileSync(join(sourceRoot, 'App.tsx'), 'utf8')
-    for (const label of ['Tízórai', 'Ebéd', 'Egyéb', 'Étkezés hozzáadása', 'Következő nap']) {
+    for (const label of ['Tízórai', 'Ebéd', 'Egyéb', 'Étkezés hozzáadása', 'Következő nap', 'Vonalkód', 'Tápérték', 'Étel fotó']) {
       expect(app).toContain(label)
     }
   })
