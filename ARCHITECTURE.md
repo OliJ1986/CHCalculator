@@ -134,3 +134,7 @@ Barcode lookup uses the existing FoodService and OFF provider. OCR keeps nutrien
 `/api/vision/food` is a multipart backend endpoint. `GeminiFoodVisionProvider` is server-side only, feature-flagged, size-limited and rate-limited, and its structured prompt forbids nutrient estimation. Missing flag/key returns a fail-closed 503; `MockFoodVisionProvider` is test-only.
 
 Environment variables: `VISION_ENABLED`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `VISION_MAX_IMAGE_BYTES`, `VISION_RATE_LIMIT_PER_MINUTE`, `VISION_DAILY_LIMIT`. Real keys belong only in Railway secret storage.
+
+## Camera lifecycle regression boundary (2026-09-26)
+
+Camera components keep a mounted video host separate from their active-state presentation. This lets permission requests and stream attachment happen in a stable DOM node, including Safari, while cleanup always stops tracks and clears `srcObject`. ZXing remains lazy-loaded and image decoding stays in local canvas memory; only checksum-valid EAN-8/EAN-13 values cross the existing barcode lookup boundary.

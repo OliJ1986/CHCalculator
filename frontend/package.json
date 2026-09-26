@@ -13,6 +13,7 @@
     "lint": "oxlint",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "test:camera": "playwright test --config=playwright.config.ts",
     "test:gateway": "node scripts/gateway-smoke.mjs",
     "preview": "vite preview"
   },

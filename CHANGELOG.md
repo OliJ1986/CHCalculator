@@ -186,3 +186,10 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Added ZXing EAN scanning through the existing OFF barcode endpoint, with manual and image-upload fallbacks.
 - Added local Tesseract.js nutrition parsing with explicit 100 g/100 ml/serving handling and manual review before custom-food save.
 - Added a disabled-by-default, rate-limited Gemini adapter and a deterministic mock provider; AI never supplies CH values.
+
+### M15-M18 camera regression fix - 2026-09-26
+
+- Fixed the barcode start lifecycle: the video ref exists before the user starts scanning, permission and device errors are visible, and all streams are stopped on close, retry, switch, capture and unmount.
+- Fixed shared camera stream attachment and stale facing-mode switching for Safari-style media lifecycles.
+- Added local multi-pass barcode image preprocessing with EAN-8/EAN-13 checksum validation and a manual-entry fallback. Images never leave the device.
+- Added deterministic Chromium/WebKit camera regression coverage at 360, 375 and 390 px, including denial/retry, cleanup, valid EAN image recognition and invalid manual input.

@@ -307,3 +307,11 @@ The backend `/api/vision/food` endpoint is fail-closed when `VISION_ENABLED=fals
 Playwright Chromium/WebKit at 360x800, 375x812 and 390x844 showed all three camera tabs and no horizontal overflow. The local backend was not running during the UI smoke, so live OFF, OCR worker and AI provider data paths were not claimed by that browser run.
 
 The focused food-vision/provider suite is green (`5 passed`). Goal regressions now use the Budapest-local test date and pass; the full backend run reaches `85 passed, 4 skipped, 1 warning` with an isolated workspace temp directory. Real iPhone Safari/PWA camera permission is manual QA; a real Gemini call remains intentionally disabled.
+
+## 2026-09-26 - M15-M18 camera regression fix handover
+
+The two reported camera regressions are fixed. Both camera components keep a video host mounted while idle, attach streams before activating the UI, and stop tracks plus detach `srcObject` on every close, switch, capture and unmount path. Barcode start now reports missing refs and permission/device failures instead of silently returning. Camera switching passes the new facing mode directly, avoiding a stale React state value.
+
+Barcode image recognition is local and bounded to scaled, centered-crop, contrast and 90/180/270 degree orientation canvas variants. Only checksum-valid EAN-8/EAN-13 values are submitted to the existing OFF lookup; a failed attempt leaves manual entry available and no image is uploaded or persisted.
+
+Validation completed: `npm run test -- --run` (16 passed), `npm run typecheck`, `npm run build`, `npm run lint` (exit 0, five pre-existing warnings), and `npm run test:camera -- --workers=1` (12 passed: Chromium/WebKit at 360x800, 375x812 and 390x844). The Playwright camera fixture includes a Safari-compatible mock MediaStream because Playwright WebKit does not expose a native MediaStream constructor. Physical iPhone permission/autofocus and live backend/provider traffic remain manual QA.

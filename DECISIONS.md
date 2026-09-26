@@ -146,3 +146,7 @@ A mobil kártyafejécek 420 px alatt tördelhetők; a műveleti gombok így nem 
 Barcode lookup reuses the existing OFF provider endpoint, so no parallel product mapping was introduced. OCR runs locally, keeps nutrient bases distinct, and does not convert 100 ml or serving values to 100 g.
 
 AI is disabled by default and is reachable only through a backend provider with a secret key. Image size, rate and daily limits protect the guest endpoint. Images are not persistently stored, and deterministic CH calculation remains the only source of logged carbohydrate values.
+
+## D-M15-18-02 - Stable camera element and local barcode retries (2026-09-26)
+
+The video element remains mounted in an idle host so permission and stream attachment do not depend on a state transition rendering the element. Every start, retry, switch, close and unmount path owns explicit track cleanup. Barcode image decoding may use bounded local canvas variants, but only checksum-valid EAN-8/EAN-13 values are sent to the existing lookup service; manual entry remains the fallback.

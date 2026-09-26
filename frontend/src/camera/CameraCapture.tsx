@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Camera, Check, X } from '../components/icons'
 
 export type CameraCaptureProps = {
@@ -11,8 +11,9 @@ export type CameraCaptureProps = {
 }
 
 function cameraError(value: unknown): string {
-  if (value instanceof DOMException && value.name === 'NotAllowedError') return 'A kameraengedély nélkül is folytathatod feltöltéssel.'
+  if (value instanceof DOMException && value.name === 'NotAllowedError') return 'A kameraengedélyt elutasítottad. Feltöltéssel folytathatod.'
   if (value instanceof DOMException && value.name === 'NotFoundError') return 'Nem található használható kamera ezen az eszközön.'
+  if (value instanceof DOMException && value.name === 'NotReadableError') return 'A kamera foglalt vagy nem olvasható. Zárd be a másik kamerát használó alkalmazást, majd próbáld újra.'
   return 'A kamera most nem indítható. Próbáld a képfeltöltést.'
 }
 
@@ -24,40 +25,58 @@ export function CameraCapture({ title, description, captureLabel = 'Fénykép k�
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
   const [error, setError] = useState<string | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const operationRef = useRef(0)
 
-  const stop = () => {
+  const stop = useCallback(() => {
+    operationRef.current += 1
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
-    if (videoRef.current) videoRef.current.srcObject = null
+    const video = videoRef.current
+    if (video) {
+      video.pause()
+      video.srcObject = null
+    }
     setActive(false)
-  }
+  }, [])
 
-  const start = async () => {
+  const start = useCallback(async (requestedFacingMode: 'environment' | 'user' = facingMode) => {
     setError(null)
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('A böngésző nem támogatja a kamerát. Használd a képfeltöltést.')
       return
     }
+    const video = videoRef.current
+    if (!video) {
+      setError('A kameraelőnézet nem érhető el. Használd a képfeltöltést.')
+      return
+    }
     stop()
+    const operation = operationRef.current + 1
+    operationRef.current = operation
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: requestedFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+      if (operation !== operationRef.current) {
+        stream.getTracks().forEach((track) => track.stop())
+        return
       }
+      streamRef.current = stream
+      video.srcObject = stream
       setActive(true)
+      await video.play()
     } catch (value) {
+      if (operation !== operationRef.current) return
+      stop()
       setError(cameraError(value))
     }
-  }
+  }, [facingMode, stop])
 
-  const submit = async (blob: Blob) => {
+  const submit = useCallback(async (blob: Blob) => {
     setError(null)
+    stop()
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(URL.createObjectURL(blob))
     await onCapture(blob)
-  }
+  }, [onCapture, previewUrl, stop])
 
   const capture = () => {
     const video = videoRef.current
@@ -82,15 +101,16 @@ export function CameraCapture({ title, description, captureLabel = 'Fénykép k�
   useEffect(() => () => {
     stop()
     if (previewUrl) URL.revokeObjectURL(previewUrl)
-  }, [previewUrl])
+  }, [previewUrl, stop])
 
   return <section className="camera-capture" aria-label={title}>
     <div className="camera-capture-header"><div><p className="eyebrow">Kamera</p><h3>{title}</h3>{description && <p className="goal-help">{description}</p>}</div>{onClose && <button className="close-button" onClick={onClose} aria-label="Kamera bezárása"><X size={18} /></button>}</div>
-    {active ? <div className="camera-view"><video ref={videoRef} autoPlay playsInline muted aria-label="Kamera előnézete" /><div className="camera-guide" aria-hidden="true" /></div> : previewUrl ? <img className="camera-preview" src={previewUrl} alt="Kiválasztott kép előnézete" /> : <div className="camera-placeholder"><Camera size={28} /><span>A kamera csak a gomb megnyomása után indul.</span></div>}
+    <div className={'camera-view ' + (active ? '' : 'camera-view-idle')}><video ref={videoRef} autoPlay playsInline muted aria-label="Kamera előnézete" />{active && <div className="camera-guide" aria-hidden="true" />}</div>
+    {!active && (previewUrl ? <img className="camera-preview" src={previewUrl} alt="Kiválasztott kép előnézete" /> : <div className="camera-placeholder"><Camera size={28} /><span>A kamera csak a gomb megnyomása után indul.</span></div>)}
     {error && <p className="input-error" role="alert">{error}</p>}
     <input ref={fileRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={fileSelected} />
     <div className="camera-actions">
-      {active ? <><button className="confirm-button" onClick={capture} disabled={busy}><Camera size={18} />{captureLabel}</button><button className="secondary-action" onClick={() => { setFacingMode((value) => value === 'environment' ? 'user' : 'environment'); void start() }} disabled={busy}>Kamera váltása</button><button className="secondary-action" onClick={stop} disabled={busy}>Leállítás</button></> : <button className="confirm-button" onClick={() => void start()} disabled={busy}><Camera size={18} />Kamera engedélyezése</button>}
+      {active ? <><button className="confirm-button" onClick={capture} disabled={busy}><Camera size={18} />{captureLabel}</button><button className="secondary-action" onClick={() => { const next = facingMode === 'environment' ? 'user' : 'environment'; setFacingMode(next); void start(next) }} disabled={busy}>Kamera váltása</button><button className="secondary-action" onClick={stop} disabled={busy}>Leállítás</button></> : <button className="confirm-button" onClick={() => void start()} disabled={busy}><Camera size={18} />Kamera engedélyezése</button>}
       <button className="secondary-action" onClick={() => fileRef.current?.click()} disabled={busy}>Kép feltöltése</button>
     </div>
     {busy && <p className="search-state" role="status">Feldolgozás…</p>}

@@ -272,3 +272,12 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - M18: the backend `/api/vision/food` adapter and deterministic mock provider are implemented. Gemini credentials are backend-only, the feature is disabled by default, and image size, per-minute and daily limits are enforced. AI returns names and possible ingredients only; it never estimates CH.
 - Checks: frontend 14 unit tests passed, typecheck/build/lint passed (five existing React warnings); backend food-vision mock/provider tests 5 passed. Playwright Chromium/WebKit checks passed at 360x800, 375x812 and 390x844 for the camera panel, three tabs and horizontal overflow.
 - Open gates: the stale goal regression dates are now derived from the Budapest-local test date; the full backend suite reaches `85 passed, 4 skipped` with one existing Starlette/httpx deprecation warning when run in an isolated workspace temp directory. Real Gemini calls were intentionally not run; physical iPhone camera permission remains manual QA.
+
+## 2026-09-26 - M15-M18 camera regression fix
+
+- [x] BarcodeScanner keeps its video element mounted in an idle host, so the start action can request permission before activation. Start, detected-result delivery, explicit stop, close and unmount all release ZXing controls and media tracks; startup failures produce an actionable alert.
+- [x] CameraCapture attaches the returned stream before marking the preview active, awaits Safari-compatible `video.play()`, uses the requested facing mode for camera switching, and detaches/stops every track on switch, capture, close and unmount.
+- [x] Local barcode image processing now tries scaled, centered-crop, contrast and 90/180/270 degree orientation variants. Results are accepted only after EAN-8/EAN-13 checksum validation; unsuccessful recognition leaves the manual input available and never uploads the image.
+- [x] Added deterministic EAN validation tests and Playwright camera tests with mocked streams, permission denial/retry, close/reopen cleanup, a known EAN-13 fixture, invalid-code fallback, Chromium and WebKit at 360x800, 375x812 and 390x844.
+- [x] Frontend gates: Vitest `16 passed`, `typecheck`, production build, and `test:camera` `12 passed`. Lint exits successfully with the five pre-existing React effect/dependency warnings.
+- [ ] Physical iPhone Safari camera permission and device autofocus remain manual QA; no real device or provider call was used by the deterministic browser tests.
