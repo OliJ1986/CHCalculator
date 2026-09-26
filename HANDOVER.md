@@ -250,6 +250,8 @@ Nyitott külső lépés: a Railway Dashboardban deployáld az új commitot, és 
 
 Az OCR most helyben futó `hun+eng` Tesseract-feldolgozást használ, kézi kivágással, méretezéssel és opcionális kontrasztjavítással. A `nutrition.ts` táblázatsorokból külön olvassa a szénhidrátot, cukrokat, rostot, fehérjét és zsírt; a 100 g/100 ml/adag alapok nem konvertálódnak. A felülvizsgálati képernyő minden mezőt és az alapot szerkeszthetővé teszi, sikertelen OCR után is menthető a saját étel, de csak 100 g-os CH megadásával. A Koch's Original Majonéz fixture a 7,1 g CH, 6,1 g cukor, 1,0 g fehérje és 52 g zsír értékeket igazolja; rost hiányos marad.
 
+Automatikus perspektívakorrekciót nem kapcsoltunk be: a telefonon megbízható sarokpontok nélkül ez bizonytalan lenne. A kézi kivágás, méretezés és kontrasztjavítás maradt a determinisztikus helyi előfeldolgozás.
+
 Az OFF vonalkód-provider HTTP 404-et ismeretlen termékként kezeli, nem 503-ként. A frontend 404/üres választ üres találatnak, 401/403-at hitelesítési hibának, 429-et korlátozásnak, 5xx-et szolgáltatói hibának és hálózati kivételt hálózati hibának mutat. A helyi cache-találat továbbra is provider-hívás nélkül visszatér.
 
 Ellenőrzés: frontend 24 unit teszt, typecheck, lint (öt korábbi React-figyelmeztetés), build; Chromium 9/9 és WebKit 9/9 mobil teszt 360/375/390 px-en; backend célzott provider és endpoint 16 teszt. A teljes backend futás 83 passed, 4 skipped és 3 setup error volt; a három cache-import teszt setupját a Windows pytest ideiglenes könyvtár hozzáférési hibája blokkolta, ezért a teljes kapu nem tekinthető hibamentesnek. Élő Railway/OFF és valódi iPhone Safari teszt ebben a munkamenetben nem futott.
