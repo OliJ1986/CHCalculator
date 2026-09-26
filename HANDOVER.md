@@ -252,7 +252,7 @@ Az OCR most helyben futó `hun+eng` Tesseract-feldolgozást használ, kézi kiv�
 
 Az OFF vonalkód-provider HTTP 404-et ismeretlen termékként kezeli, nem 503-ként. A frontend 404/üres választ üres találatnak, 401/403-at hitelesítési hibának, 429-et korlátozásnak, 5xx-et szolgáltatói hibának és hálózati kivételt hálózati hibának mutat. A helyi cache-találat továbbra is provider-hívás nélkül visszatér.
 
-Ellenőrzés: frontend 24 unit teszt, typecheck, lint (öt korábbi React-figyelmeztetés), build; Chromium 9/9 és WebKit 9/9 mobil teszt 360/375/390 px-en; backend célzott provider és endpoint 16 teszt. A teljes backend futás 85 passed, 4 skipped; három cache-import teszt setupját a Windows pytest ideiglenes könyvtár hozzáférési hibája blokkolta, ezért a teljes kapu nem tekinthető hibamentesnek. Élő Railway/OFF és valódi iPhone Safari teszt ebben a munkamenetben nem futott.
+Ellenőrzés: frontend 24 unit teszt, typecheck, lint (öt korábbi React-figyelmeztetés), build; Chromium 9/9 és WebKit 9/9 mobil teszt 360/375/390 px-en; backend célzott provider és endpoint 16 teszt. A teljes backend futás 83 passed, 4 skipped és 3 setup error volt; a három cache-import teszt setupját a Windows pytest ideiglenes könyvtár hozzáférési hibája blokkolta, ezért a teljes kapu nem tekinthető hibamentesnek. Élő Railway/OFF és valódi iPhone Safari teszt ebben a munkamenetben nem futott.
 
 A vendég napló az IndexedDB chill-guest-v1 tárat használja, a látható ablak három nap; régebbi rekord importig megmarad. A személyes API-k user profile-t, sessiont és íráskor CSRF-t kérnek. A backend scrypt jelszóhash-t, lejáró tokeneket, HttpOnly/SameSite sessiont, rate limitet és user/registered role-t ad.
 

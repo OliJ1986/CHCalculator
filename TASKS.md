@@ -283,7 +283,7 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - [x] Hozzáadtuk a Koch's Original Majonéz magyar/angol fixture-t, parser-regressziókat, Chromium/WebKit mobil tesztet 360, 375 és 390 px-en; a képek nem kerülnek külső szolgáltatóhoz.
 - [x] Az OFF 404-es ismeretlen vonalkód normál üres találat, a frontend pedig külön kezeli a 401/403, 429, 5xx és hálózati hibákat. A 200-as cache-találat változatlanul elsőbbséget élvez.
 - [x] Frontend kapuk: 24 Vitest teszt, typecheck, lint (5 meglévő React-figyelmeztetés), production build; Chromium 9/9 és WebKit 9/9 mobil kamera/OCR teszt.
-- [x] Backend célzott provider-kapu és barcode endpoint-kapu: 16 teszt sikeres; teljes regresszióban 85 teszt sikeres és 4 skip, 3 cache-import tesztet a Windows pytest ideiglenes könyvtár ACL-je blokkolt (implementációs hiba nélkül).
+- [x] Backend célzott provider-kapu és barcode endpoint-kapu: 16 teszt sikeres; a teljes futásban 83 teszt sikeres és 4 skip, 3 cache-import teszt setupját a Windows pytest ideiglenes könyvtár ACL-je blokkolta (implementációs hiba nélkül).
 - [ ] Valós iPhone Safari OCR-kamera és élő Railway/OFF smoke ebben a munkamenetben nem futott; ez külön eszköz- és staging-hozzáférést igényel.
 
 - [x] BarcodeScanner keeps its video element mounted in an idle host, so the start action can request permission before activation. Start, detected-result delivery, explicit stop, close and unmount all release ZXing controls and media tracks; startup failures produce an actionable alert.
