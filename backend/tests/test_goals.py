@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy import create_engine
@@ -11,6 +12,8 @@ from app.models import Base, Food
 from app.schemas import GoalUpsertRequest, MealCreateRequest
 from app.services.goals import GoalError, summary, upsert_goal
 from app.services.meals import create_meal
+
+TEST_DATE = datetime.now(ZoneInfo("Europe/Budapest")).date()
 
 
 @pytest.fixture
@@ -38,13 +41,14 @@ def db() -> Session:
     engine.dispose()
 
 
-def _meal(key: str, amount: float, category: str, local_date: str = "2026-09-25") -> MealCreateRequest:
+def _meal(key: str, amount: float, category: str, local_date: str | None = None) -> MealCreateRequest:
+    local_date = local_date or TEST_DATE.isoformat()
     return MealCreateRequest.model_validate(
         {
             "food_id": "goal-food",
             "amount_g": amount,
             "local_date": local_date,
-            "consumed_at": "2026-09-25T12:00:00+02:00",
+            "consumed_at": f"{local_date}T12:00:00+02:00",
             "timezone": "Europe/Budapest",
             "meal_category": category,
             "idempotency_key": key,
@@ -58,13 +62,13 @@ def test_goal_summary_is_deterministic_and_categories_reconcile(db: Session) -> 
     goal = upsert_goal(
         db,
         GoalUpsertRequest(
-            effective_date=date(2026, 9, 25),
+            effective_date=TEST_DATE,
             daily_target_g=160,
             meal_targets={"breakfast": 50, "lunch": 40},
         ),
     )
     assert goal.has_goal is True
-    result = summary(db, date(2026, 9, 25))
+    result = summary(db, TEST_DATE)
     assert result.consumed_carbs_g == pytest.approx(84)
     assert result.remaining_carbs_g == pytest.approx(76)
     assert result.progress_ratio == pytest.approx(0.525)
@@ -74,7 +78,7 @@ def test_goal_summary_is_deterministic_and_categories_reconcile(db: Session) -> 
     assert breakfast.target_g == pytest.approx(50)
     assert breakfast.remaining_g == pytest.approx(0)
     create_meal(db, _meal("goal-overrun", 91, "other"))
-    overrun = summary(db, date(2026, 9, 25))
+    overrun = summary(db, TEST_DATE)
     assert overrun.consumed_carbs_g == pytest.approx(175)
     assert overrun.remaining_carbs_g == pytest.approx(-15)
     assert overrun.progress_ratio == pytest.approx(1.09375)
@@ -84,22 +88,22 @@ def test_goal_summary_is_deterministic_and_categories_reconcile(db: Session) -> 
 def test_goal_versions_preserve_previous_days_and_explicit_past(db: Session) -> None:
     with pytest.raises(GoalError, match="Múltbeli"):
         upsert_goal(db, GoalUpsertRequest(effective_date=date(2020, 1, 1), daily_target_g=120))
-    upsert_goal(db, GoalUpsertRequest(effective_date=date(2026, 9, 25), daily_target_g=160))
-    upsert_goal(db, GoalUpsertRequest(effective_date=date(2026, 9, 26), daily_target_g=175))
-    assert summary(db, date(2026, 9, 25)).daily_target_g == pytest.approx(160)
-    assert summary(db, date(2026, 9, 26)).daily_target_g == pytest.approx(175)
+    upsert_goal(db, GoalUpsertRequest(effective_date=TEST_DATE, daily_target_g=160))
+    upsert_goal(db, GoalUpsertRequest(effective_date=TEST_DATE + timedelta(days=1), daily_target_g=175))
+    assert summary(db, TEST_DATE).daily_target_g == pytest.approx(160)
+    assert summary(db, TEST_DATE + timedelta(days=1)).daily_target_g == pytest.approx(175)
     upsert_goal(db, GoalUpsertRequest(effective_date=date(2020, 1, 1), daily_target_g=100, allow_past=True))
     assert summary(db, date(2020, 1, 2)).daily_target_g == pytest.approx(100)
 
 
 def test_goal_deletion_and_invalid_values_are_not_zero_targets(db: Session) -> None:
-    upsert_goal(db, GoalUpsertRequest(effective_date=date(2026, 9, 25), daily_target_g=160))
-    upsert_goal(db, GoalUpsertRequest(effective_date=date(2026, 9, 25), daily_target_g=None, meal_targets={}))
-    result = summary(db, date(2026, 9, 25))
+    upsert_goal(db, GoalUpsertRequest(effective_date=TEST_DATE, daily_target_g=160))
+    upsert_goal(db, GoalUpsertRequest(effective_date=TEST_DATE, daily_target_g=None, meal_targets={}))
+    result = summary(db, TEST_DATE)
     assert result.daily_target_g is None
     assert result.remaining_carbs_g is None
     assert result.progress_ratio is None
     with pytest.raises(GoalError):
-        upsert_goal(db, GoalUpsertRequest(effective_date=date(2026, 9, 25), daily_target_g=0))
+        upsert_goal(db, GoalUpsertRequest(effective_date=TEST_DATE, daily_target_g=0))
     with pytest.raises(GoalError):
-        upsert_goal(db, GoalUpsertRequest(effective_date=date(2026, 9, 25), meal_targets={"unknown": 10}))
+        upsert_goal(db, GoalUpsertRequest(effective_date=TEST_DATE, meal_targets={"unknown": 10}))

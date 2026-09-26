@@ -306,4 +306,4 @@ The backend `/api/vision/food` endpoint is fail-closed when `VISION_ENABLED=fals
 
 Playwright Chromium/WebKit at 360x800, 375x812 and 390x844 showed all three camera tabs and no horizontal overflow. The local backend was not running during the UI smoke, so live OFF, OCR worker and AI provider data paths were not claimed by that browser run.
 
-The focused food-vision/provider suite is green (`5 passed`). The full backend run is `79 passed, 4 skipped, 3 failed, 3 errors`: the failures are three old hardcoded-date goal tests and the errors are three Windows pytest-temp ACL errors. Real iPhone Safari/PWA camera permission is manual QA; a real Gemini call remains intentionally disabled.
+The focused food-vision/provider suite is green (`5 passed`). Goal regressions now use the Budapest-local test date and pass; the full backend run reaches `85 passed, 4 skipped, 1 warning` with an isolated workspace temp directory. Real iPhone Safari/PWA camera permission is manual QA; a real Gemini call remains intentionally disabled.
