@@ -179,3 +179,10 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Reszponzív tördelés került a kis képernyős kártyafejécekhez, így a bevásárlólista és a heti tervező műveleti gombjai nem lógnak ki.
 - A service worker cache-verziója `chill-m14-v1` lett, a régi cache-ek aktiváláskor törlődnek, és az API-válaszok továbbra sem cache-elődnek.
 - Új encoding- és PWA-regressziótesztek készültek; Chromium/WebKit mobil QA sikeres 360×800 és 390×844 méreten.
+
+## Unreleased - M15-M18 CHill Camera (2026-09-26)
+
+- Added an integrated Camera panel with barcode, nutrition-label and food-photo modes.
+- Added ZXing EAN scanning through the existing OFF barcode endpoint, with manual and image-upload fallbacks.
+- Added local Tesseract.js nutrition parsing with explicit 100 g/100 ml/serving handling and manual review before custom-food save.
+- Added a disabled-by-default, rate-limited Gemini adapter and a deterministic mock provider; AI never supplies CH values.

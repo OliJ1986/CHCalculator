@@ -297,3 +297,13 @@ A 420 px alatti kártyafejécek tördelése javult: a bevásárlólista fejléc�
 A service worker cache-verziója `chill-m14-v1`; aktiváláskor a régi cache-ek törlődnek, a regisztráció megkerüli a böngésző script-cache-ét, az `/api/` válaszok kizárva maradnak. A helyi frontend-ellenőrzés Chromium és WebKit alatt 360×800 és 390×844 méreten átment: nem volt vízszintes túlcsordulás, hibás kódolási minta vagy hiányzó alsó navigáció. A helyi Vite proxy az el nem indított backend miatt `/api/auth/me` esetén kapcsolatmegtagadást jelzett; ezért az API-adatfolyamot és a regisztrált fiók működését ez a futás nem bizonyítja.
 
 Átadási állapot: a frontend teszt, typecheck és build sikeres; a lint öt, korábban is meglévő React warningot hagyott. A változások külön helyi commitban készülnek, push és deploy nem történt.
+
+## 2026-09-26 - CHill Camera M15-M18 handover
+
+The Add sheet now contains a Camera panel with three modes. `CameraCapture` owns getUserMedia lifecycle, permission fallback, image preview, capture, upload and stream cleanup. Barcode uses ZXing and the existing OFF barcode endpoint. Nutrition OCR uses local Tesseract.js and an editable review step; it never converts 100 ml or serving values to 100 g. Guest custom foods remain in IndexedDB and registered custom foods use the existing PostgreSQL API.
+
+The backend `/api/vision/food` endpoint is fail-closed when `VISION_ENABLED=false` or no Gemini key exists. The provider is isolated, the mock is deterministic, and limits cover image size, requests per minute and requests per day. The response contains food names, possible ingredients and confidence only; it does not contain invented nutrients.
+
+Playwright Chromium/WebKit at 360x800, 375x812 and 390x844 showed all three camera tabs and no horizontal overflow. The local backend was not running during the UI smoke, so live OFF, OCR worker and AI provider data paths were not claimed by that browser run.
+
+The focused food-vision/provider suite is green (`5 passed`). The full backend run is `79 passed, 4 skipped, 3 failed, 3 errors`: the failures are three old hardcoded-date goal tests and the errors are three Windows pytest-temp ACL errors. Real iPhone Safari/PWA camera permission is manual QA; a real Gemini call remains intentionally disabled.

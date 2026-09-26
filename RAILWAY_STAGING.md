@@ -122,3 +122,16 @@ A Railway pre-deploy parancs külön konténerben, az alkalmazás indítása el�
 ## M5 auth konfiguráció
 
 A privát backend + tokenezett frontend gateway marad. A DATABASE_URL és STAGING_PROXY_TOKEN mellett az email delivery szerződéshez AUTH_EMAIL_DELIVERY_URL konfigurálható; staging/prod token nem jelenik meg API-válaszban. Deploy után ellenőrizd a ready, auth/me, opcionális register/verify/login, CSRF meal/goal és vendégimport flow-t. Külső email-szolgáltató és deploy ebben a munkamenetben nem történt.
+
+## M15-M18 camera environment variables
+
+Barcode and OCR run in the frontend and need no Railway secret. The AI endpoint is disabled by default. If a separate security and cost decision enables it, configure only backend Variables:
+
+- `VISION_ENABLED=false` (recommended default)
+- `GEMINI_API_KEY` (Railway secret; never a Vite variable)
+- `GEMINI_MODEL=gemini-2.5-flash-lite`
+- `VISION_MAX_IMAGE_BYTES=4194304`
+- `VISION_RATE_LIMIT_PER_MINUTE=3`
+- `VISION_DAILY_LIMIT=5`
+
+Billing, a live AI call, a new domain or deployment were not activated in this cycle.

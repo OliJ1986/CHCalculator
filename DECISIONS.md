@@ -140,3 +140,9 @@ A tervmásolás cél-nap és forrásadat alapján meglévő egyező rekordot ad 
 A magyar karakterhibát nem adatbázis- vagy API-átalakítással kezeltük: az App.tsx-ben tárolt, UTF-8/Windows-1250 félredekódolt literálokat célzottan fordítottuk vissza, majd forrásszintű regresszióteszttel védjük. Ez megőrzi az IndexedDB- és PostgreSQL-snapshotok kompatibilitását.
 
 A mobil kártyafejécek 420 px alatt tördelhetők; a műveleti gombok így nem kényszerítik túl a kártya szélességét. A service worker cache-verziót kapott (`chill-m14-v1`), a régi cache-ek aktiváláskor törlődnek, az API-kizárás változatlan.
+
+## D-M15-18-01 - Camera, OCR and AI boundaries (2026-09-26)
+
+Barcode lookup reuses the existing OFF provider endpoint, so no parallel product mapping was introduced. OCR runs locally, keeps nutrient bases distinct, and does not convert 100 ml or serving values to 100 g.
+
+AI is disabled by default and is reachable only through a backend provider with a secret key. Image size, rate and daily limits protect the guest endpoint. Images are not persistently stored, and deterministic CH calculation remains the only source of logged carbohydrate values.

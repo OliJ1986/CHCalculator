@@ -1,8 +1,10 @@
 import logging
+import time
+from collections import defaultdict, deque
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -16,6 +18,7 @@ from .domain.carbs import CarbohydrateInputError, calculate_carbohydrate
 from .domain.foods import CATEGORY_OTHER, category_label, normalize_query
 from .models import Food, User
 from .providers.base import FoodProviderError
+from .providers.food_vision import DisabledFoodVisionProvider, FoodVisionError, FoodVisionProvider, GeminiFoodVisionProvider
 from .providers.open_food_facts import OpenFoodFactsProvider
 from .providers.usda import USDAProvider
 from .schemas import (
@@ -44,6 +47,7 @@ from .schemas import (
     MealPlanCreateRequest, MealPlanUpdateRequest, MealPlanCopyRequest, MealPlanResponse,
     ShoppingItemCreateRequest, ShoppingItemUpdateRequest, ShoppingItemResponse,
     PlanLogMealRequest,
+    FoodVisionResponse, FoodVisionSuggestionResponse,
 )
 from .services.foods import FoodService
 from .services.meals import (
@@ -89,6 +93,37 @@ food_service = FoodService(
     OpenFoodFactsProvider(),
     USDAProvider(settings.usda_api_key, base_url=settings.usda_base_url),
 )
+food_vision_provider: FoodVisionProvider = GeminiFoodVisionProvider(
+    settings.gemini_api_key,
+    settings.gemini_model,
+    timeout=settings.vision_timeout_seconds,
+) if settings.vision_enabled and settings.gemini_api_key.strip() else DisabledFoodVisionProvider()
+_vision_requests: dict[str, deque[float]] = defaultdict(deque)
+_vision_daily: dict[str, tuple[int, int]] = {}
+
+
+def _vision_rate_key(request: Request, user: User | None) -> str:
+    if user is not None:
+        return f"user:{user.id}"
+    # Do not log or persist this value; it is only an in-process guest bucket.
+    return f"guest:{request.client.host if request.client else 'unknown'}"
+
+
+def _check_vision_limit(key: str) -> None:
+    now = time.monotonic()
+    window = _vision_requests[key]
+    while window and now - window[0] >= 60:
+        window.popleft()
+    if len(window) >= max(1, settings.vision_rate_limit_per_minute):
+        raise HTTPException(status_code=429, detail="A képfelismerési kérési korlátot elérted")
+    day = int(time.time() // 86400)
+    previous_day, count = _vision_daily.get(key, (day, 0))
+    if previous_day != day:
+        count = 0
+    if settings.vision_daily_limit > 0 and count >= settings.vision_daily_limit:
+        raise HTTPException(status_code=429, detail="A napi képfelismerési korlátot elérted")
+    window.append(now)
+    _vision_daily[key] = (day, count + 1)
 create_tables()
 app.add_middleware(
     CORSMiddleware,
@@ -423,6 +458,34 @@ async def get_food_by_barcode(barcode: str, db: Session = Depends(get_db)) -> Fo
     except FoodProviderError as exc:
         raise HTTPException(status_code=503, detail="A vonalkódos ételkeresés átmenetileg nem elérhető") from exc
     return _food_response(food) if food else None
+
+
+@app.post("/api/vision/food", response_model=FoodVisionResponse)
+async def identify_food_from_image(
+    request: Request,
+    image: UploadFile = File(...),
+    user: User | None = Depends(current_user),
+) -> FoodVisionResponse:
+    if not settings.vision_enabled or isinstance(food_vision_provider, DisabledFoodVisionProvider):
+        raise HTTPException(status_code=503, detail="Az AI-ételelemzés jelenleg ki van kapcsolva")
+    content_type = (image.content_type or "").lower()
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=415, detail="Csak képfájl tölthető fel")
+    key = _vision_rate_key(request, user)
+    _check_vision_limit(key)
+    payload = await image.read(settings.vision_max_image_bytes + 1)
+    if len(payload) > settings.vision_max_image_bytes:
+        raise HTTPException(status_code=413, detail="A kép túl nagy")
+    try:
+        result = await food_vision_provider.identify(payload, content_type)
+    except FoodVisionError as exc:
+        status = 429 if exc.kind == "rate_limit" else 504 if exc.kind == "timeout" else 502
+        raise HTTPException(status_code=status, detail="A képfelismerés most nem sikerült") from exc
+    return FoodVisionResponse(
+        suggestions=[FoodVisionSuggestionResponse(name=item.name, confidence=item.confidence, possible_ingredients=list(item.possible_ingredients)) for item in result.suggestions],
+        uncertain=result.uncertain,
+        provider=result.provider,
+    )
 
 
 def _catalog_error(exc: ValueError) -> HTTPException:

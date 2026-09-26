@@ -263,3 +263,12 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - A service worker `chill-m14-v1` cache-verziót használ, aktiváláskor eltávolítja a régi verziókat, a regisztráció `updateViaCache: 'none'`, és az `/api/` válaszok továbbra sem kerülnek cache-be. Ezt a `pwa.test.ts` ellenőrzi.
 - Playwright QA: Chromium és WebKit, 360×800 és 390×844; főképernyő, Ételek, Tervező, Profil, alsó navigáció, magyar szöveg és vízszintes túlcsordulás sikeres. A helyi backend nem futott, ezért az API/provider- és fiókfolyamatok élő böngészős ellenőrzése nincs állítva sikeresnek.
 - Ellenőrzések: frontend unit 12 passed, typecheck passed, production build passed, lint passed 5 meglévő React warninggel. A Playwright futtatás ideiglenes scriptjei törölve lettek.
+
+## M15-M18 - CHill Camera [IMPLEMENTED - integration gate open]
+
+- M15: the Add sheet has a Camera panel with Barcode, Nutrition and Food photo modes. The shared camera component requests permission only after an explicit action, supports rear/front camera switching, image capture and file upload, handles permission errors, and stops streams on close.
+- M16: ZXing supports EAN-8/EAN-13 live, image and manual input. The code uses the existing `/api/foods/barcode/{barcode}` OFF provider/cache path; unknown or CH-missing products are not logged automatically.
+- M17: Tesseract.js is loaded locally only when OCR starts. The parser keeps carbohydrates, sugars, fibre, 100 g, 100 ml and serving bases separate and accepts decimal commas. Only user-reviewed 100 g data can create a custom food; no raw image is persisted.
+- M18: the backend `/api/vision/food` adapter and deterministic mock provider are implemented. Gemini credentials are backend-only, the feature is disabled by default, and image size, per-minute and daily limits are enforced. AI returns names and possible ingredients only; it never estimates CH.
+- Checks: frontend 14 unit tests passed, typecheck/build/lint passed (five existing React warnings); backend food-vision mock/provider tests 5 passed. Playwright Chromium/WebKit checks passed at 360x800, 375x812 and 390x844 for the camera panel, three tabs and horizontal overflow.
+- Open gates: the full backend suite still contains three pre-existing hardcoded 2026-09-25 goal tests that are past-date on 2026-09-26, plus three Windows pytest-temp ACL errors. Real Gemini calls were intentionally not run; physical iPhone camera permission remains manual QA.

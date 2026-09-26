@@ -22,6 +22,13 @@ class Settings(BaseSettings):
     auth_cookie_name: str = "chill_session"
     auth_csrf_cookie_name: str = "chill_csrf"
     auth_email_delivery_url: str = ""
+    vision_enabled: bool = False
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash-lite"
+    vision_max_image_bytes: int = 4 * 1024 * 1024
+    vision_rate_limit_per_minute: int = 3
+    vision_daily_limit: int = 5
+    vision_timeout_seconds: float = 20.0
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

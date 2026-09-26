@@ -117,3 +117,7 @@ A mobil UX 2.0 automatikus kapui teljesültek; böngészős mobil és PWA QA kö
 
 ### M14 állapot
 A heti tervező automatikus kapui teljesültek. Mobil böngészős QA nélkül az M14 státusza implementált, a vizuális kapu nyitott.
+
+## M15-M18 current state
+
+The CHill Camera UI, ZXing barcode scanning, local Tesseract.js nutrition OCR and disabled-by-default limited Gemini adapter are implemented. AI does not calculate CH or save automatically; the user confirms data through the existing search/custom-food flow. Physical camera permission and real Gemini calls remain manual/external gates.

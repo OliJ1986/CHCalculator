@@ -124,3 +124,13 @@ A frontend statikus magyar feliratai UTF-8 forrásként kezelendők. A 2026-09-2
 A 420 px alatti `.section-heading` fejécek flex-tördelést használnak. Ez a bevásárlólista és a heti tervező műveleteit több sorba engedi rendezni, miközben a kártya belső szélességén maradnak.
 
 A service worker verziózott statikus cache-t használ (`chill-m14-v1`), aktiváláskor eltávolítja az eltérő régi cache-kulcsokat, és az `/api/` útvonalakat kizárja. A kliens regisztrációja `updateViaCache: 'none'` beállítással kéri az új worker ellenőrzését.
+
+## CHill Camera architecture (M15-M18, 2026-09-26)
+
+The camera UI is part of the existing Add sheet. `CameraCapture` manages getUserMedia, camera facing mode, capture, upload fallback and cleanup. `BarcodeScanner` lazy-loads ZXing; `NutritionScanner` lazy-loads Tesseract.js only when OCR starts; `VisionScanner` displays backend identification suggestions.
+
+Barcode lookup uses the existing FoodService and OFF provider. OCR keeps nutrient bases separate and requires reviewed 100 g data before custom-food creation. The existing guest IndexedDB and authenticated PostgreSQL catalog layers remain the persistence boundary.
+
+`/api/vision/food` is a multipart backend endpoint. `GeminiFoodVisionProvider` is server-side only, feature-flagged, size-limited and rate-limited, and its structured prompt forbids nutrient estimation. Missing flag/key returns a fail-closed 503; `MockFoodVisionProvider` is test-only.
+
+Environment variables: `VISION_ENABLED`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `VISION_MAX_IMAGE_BYTES`, `VISION_RATE_LIMIT_PER_MINUTE`, `VISION_DAILY_LIMIT`. Real keys belong only in Railway secret storage.

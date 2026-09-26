@@ -418,3 +418,15 @@ class ShoppingItemResponse(BaseModel):
     source: str
     created_at: datetime
     updated_at: datetime
+
+
+class FoodVisionSuggestionResponse(BaseModel):
+    name: str
+    confidence: float | None = None
+    possible_ingredients: list[str] = Field(default_factory=list)
+
+
+class FoodVisionResponse(BaseModel):
+    suggestions: list[FoodVisionSuggestionResponse] = Field(default_factory=list)
+    uncertain: bool = True
+    provider: str
