@@ -134,3 +134,9 @@ A rendszer nem becsüli a főtt sűrűséget nyers hozzávalókból. A főtt CH/
 
 ## D-M14-01 — Terv másolás és lista-idempotencia
 A tervmásolás cél-nap és forrásadat alapján meglévő egyező rekordot ad vissza; a planner forrású bevásárlótétel mennyisége újrageneráláskor frissül, nem összeadódik.
+
+## D-MOB-01 — Célzott kódolás-javítás és mobil cache-frissítés (2026-09-26)
+
+A magyar karakterhibát nem adatbázis- vagy API-átalakítással kezeltük: az App.tsx-ben tárolt, UTF-8/Windows-1250 félredekódolt literálokat célzottan fordítottuk vissza, majd forrásszintű regresszióteszttel védjük. Ez megőrzi az IndexedDB- és PostgreSQL-snapshotok kompatibilitását.
+
+A mobil kártyafejécek 420 px alatt tördelhetők; a műveleti gombok így nem kényszerítik túl a kártya szélességét. A service worker cache-verziót kapott (`chill-m14-v1`), a régi cache-ek aktiváláskor törlődnek, az API-kizárás változatlan.

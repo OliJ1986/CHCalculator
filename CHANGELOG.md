@@ -172,3 +172,10 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Heti tervnézet, napmozgatás/másolás, tervezett-tényleges CH összegzés és idempotens heti bevásárlólista-frissítés készült.
 
 - A gyors hozzáadás kedvenc saját ételeket és recepteket is kínál.
+
+## 2026-09-26 — Mobil QA hibajavítás
+
+- Javítva a frontend App.tsx hibásan dekódolt magyar szövege; az érintett feliratok most valódi Unicode karaktereket tartalmaznak.
+- Reszponzív tördelés került a kis képernyős kártyafejécekhez, így a bevásárlólista és a heti tervező műveleti gombjai nem lógnak ki.
+- A service worker cache-verziója `chill-m14-v1` lett, a régi cache-ek aktiváláskor törlődnek, és az API-válaszok továbbra sem cache-elődnek.
+- Új encoding- és PWA-regressziótesztek készültek; Chromium/WebKit mobil QA sikeres 360×800 és 390×844 méreten.

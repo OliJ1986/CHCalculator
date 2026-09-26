@@ -253,3 +253,13 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 
 ### M12 gyors hozzáadás kiegészítés
 - A gyors sheet üres keresési állapotban kedvenc saját ételeket és kedvenc recepteket kínál; a recept egy adaggal, az adott napra és kiválasztott kategóriával naplózható.
+
+## 2026-09-26 — Mobil QA hibajavítás
+
+- Az App.tsx-ben feltárt ok: több magyar felirat UTF-8 tartalma Windows-1250-ként dekódolva került a forrásba (például `TĂ­zĂłrai`, `EbĂ©d`, `EgyĂ©b`). A javítás célzott, visszafordítható mojibake-táblával történt; vak globális karaktercsere nem történt.
+- A teljes `frontend/src` forrás átvizsgálása után azonos jellegű kódolási hiba csak az App.tsx-ben volt. Backend-forrásban és a tesztelt API-adatútban ilyen forráskódolási jel nem jelent meg. A meglévő IndexedDB-, PostgreSQL- és snapshot-adatokhoz nem nyúltunk.
+- Új `encoding.test.ts` regresszió tiltja a gyakori UTF-8/Windows-1250 mojibake-mintákat, és ellenőrzi a kulcsfontosságú magyar feliratokat.
+- A kis képernyős kártyafejécek reszponzív tördelést kaptak. A bevásárlólista műveleti gombjai 360 és 390 px-en a kártyán belül maradnak; a heti tervező hasonló fejlécét is ellenőriztük.
+- A service worker `chill-m14-v1` cache-verziót használ, aktiváláskor eltávolítja a régi verziókat, a regisztráció `updateViaCache: 'none'`, és az `/api/` válaszok továbbra sem kerülnek cache-be. Ezt a `pwa.test.ts` ellenőrzi.
+- Playwright QA: Chromium és WebKit, 360×800 és 390×844; főképernyő, Ételek, Tervező, Profil, alsó navigáció, magyar szöveg és vízszintes túlcsordulás sikeres. A helyi backend nem futott, ezért az API/provider- és fiókfolyamatok élő böngészős ellenőrzése nincs állítva sikeresnek.
+- Ellenőrzések: frontend unit 12 passed, typecheck passed, production build passed, lint passed 5 meglévő React warninggel. A Playwright futtatás ideiglenes scriptjei törölve lettek.

@@ -287,3 +287,13 @@ A backend publikus domain nélkül marad. A vendégadatok IndexedDB-ben maradnak
 
 ### M12 gyors hozzáadás kiegészítés
 - A gyors sheet üres keresési állapotban kedvenc saját ételeket és kedvenc recepteket kínál; a recept egy adaggal, az adott napra és kiválasztott kategóriával naplózható.
+
+## 2026-09-26 — Mobil QA javítás átadása
+
+A frontend App.tsx-ben javítva lett a Windows-1250/UTF-8 félredekódolásból származó magyar szöveg (`Tízórai`, `Ebéd`, `Egyéb` és a többi érintett felirat). A javítás csak a ténylegesen hibás literálokat érintette. Új regresszióteszt védi a forrást a jellegzetes `Ă`/`Â`/`â` mintáktól és ellenőrzi a kulcsfeliratokat.
+
+A 420 px alatti kártyafejécek tördelése javult: a bevásárlólista fejlécének `Heti lista frissítése` és `Tétel` gombjai, valamint a heti tervező műveletei nem lógnak ki. Az IndexedDB-sémát és az adatokat nem módosítottuk.
+
+A service worker cache-verziója `chill-m14-v1`; aktiváláskor a régi cache-ek törlődnek, a regisztráció megkerüli a böngésző script-cache-ét, az `/api/` válaszok kizárva maradnak. A helyi frontend-ellenőrzés Chromium és WebKit alatt 360×800 és 390×844 méreten átment: nem volt vízszintes túlcsordulás, hibás kódolási minta vagy hiányzó alsó navigáció. A helyi Vite proxy az el nem indított backend miatt `/api/auth/me` esetén kapcsolatmegtagadást jelzett; ezért az API-adatfolyamot és a regisztrált fiók működését ez a futás nem bizonyítja.
+
+Átadási állapot: a frontend teszt, typecheck és build sikeres; a lint öt, korábban is meglévő React warningot hagyott. A változások külön helyi commitban készülnek, push és deploy nem történt.

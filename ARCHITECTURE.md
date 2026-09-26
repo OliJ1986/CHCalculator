@@ -116,3 +116,11 @@ A recept API a hozzávalók pillanatfelvételéből számol; a főtt CH/100 g ki
 
 ## M14 heti tervezés
 A terv és a napló külön marad; a heti UI tartományos tervlekérést használ, a copy végpont azonos tartalomra idempotens, a planner bevásárlólista-generálás pedig a kézi tételeket érintetlenül hagyja.
+
+## Mobil QA — kódolás, cache-frissítés és kis képernyős fejécek (2026-09-26)
+
+A frontend statikus magyar feliratai UTF-8 forrásként kezelendők. A 2026-09-26-i hibajavítás egy korábban Windows-1250-ként félredekódolt App.tsx-részletet állított helyre; API-válaszok, IndexedDB-adatok és PostgreSQL-snapshotok nem változtak. Az `encoding.test.ts` forrásszintű őrszemként tiltja a gyakori mojibake-mintákat.
+
+A 420 px alatti `.section-heading` fejécek flex-tördelést használnak. Ez a bevásárlólista és a heti tervező műveleteit több sorba engedi rendezni, miközben a kártya belső szélességén maradnak.
+
+A service worker verziózott statikus cache-t használ (`chill-m14-v1`), aktiváláskor eltávolítja az eltérő régi cache-kulcsokat, és az `/api/` útvonalakat kizárja. A kliens regisztrációja `updateViaCache: 'none'` beállítással kéri az új worker ellenőrzését.
