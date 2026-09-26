@@ -6,12 +6,20 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
 node_modules
 dist
 dist-ssr
 *.local
-
+# Playwright generated output and local browser downloads
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/ms-playwright/
+/.local-browsers/
+# Saved authentication state (may contain cookies and tokens)
+/playwright/.auth/
+# Keep Playwright config, tests, fixtures and reference snapshots in Git.
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,10 +30,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Playwright test artifacts
-playwright-report/
-test-results/
-blob-report/
-playwright/.cache/
-playwright/.auth/
