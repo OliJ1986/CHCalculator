@@ -100,6 +100,9 @@ def test_gemini_provider_sends_image_server_side_and_maps_structured_response() 
         body = json.loads(request.content)
         assert body["contents"][0]["parts"][1]["inline_data"]["data"]
         prompt = body["contents"][0]["parts"][0]["text"]
+        assert "human-facing value in the name and possible_ingredients fields in Hungarian" in prompt
+        assert "Keep the JSON field names exactly as specified" in prompt
+        assert "Never invent carbohydrate, calorie, gram or serving values" in prompt
         assert "Do not repeat the same food" in prompt
         assert body["generationConfig"]["maxOutputTokens"] == 1024
         assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}

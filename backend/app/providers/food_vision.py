@@ -161,6 +161,8 @@ class GeminiFoodVisionProvider:
         prompt = (
             "Identify the single photographed food for a nutrition app. Return JSON only, with this shape: "
             '{"suggestions":[{"name":"...","confidence":0.0,"possible_ingredients":["..."]}],"uncertain":true}. '
+            "Return every human-facing value in the name and possible_ingredients fields in Hungarian. "
+            "Keep the JSON field names exactly as specified and do not translate or rename those fields. "
             "Return at most three suggestions and include only materially different foods. "
             "Do not repeat the same food because of spelling, language, capitalization, brand or package wording; "
             "merge such duplicates into one canonical name. "

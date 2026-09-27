@@ -1,4 +1,5 @@
-export type FoodVisionSuggestion = { name: string; confidence: number | null; possibleIngredients: string[] }
+export type FoodVisionIngredient = { name: string; uncertain: boolean }
+export type FoodVisionSuggestion = { name: string; confidence: number | null; possibleIngredients: FoodVisionIngredient[] }
 export type FoodVisionResult = { suggestions: FoodVisionSuggestion[]; uncertain: boolean; provider: string }
 export type FoodVisionErrorCode =
   | 'vision_disabled'
@@ -59,6 +60,12 @@ export class FoodVisionError extends Error {
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
 
+export function mapVisionIngredient(value: string): FoodVisionIngredient {
+  const text = value.trim()
+  const marker = text.match(/^uncertain\s*:\s*(.*)$/i)
+  return marker ? { name: marker[1].trim(), uncertain: true } : { name: text, uncertain: false }
+}
+
 export async function identifyFoodImage(image: Blob, signal?: AbortSignal): Promise<FoodVisionResult> {
   const form = new FormData()
   const extension = image.type === 'image/png' ? 'png' : image.type === 'image/webp' ? 'webp' : 'jpg'
@@ -72,5 +79,5 @@ export async function identifyFoodImage(image: Blob, signal?: AbortSignal): Prom
     }
     throw new FoodVisionError('unknown', messageForVisionCode('unknown'), response.status)
   }
-  return { suggestions: (body.suggestions ?? []).map((item) => ({ name: item.name, confidence: item.confidence ?? null, possibleIngredients: item.possible_ingredients ?? [] })), uncertain: body.uncertain ?? true, provider: body.provider ?? 'unknown' }
+  return { suggestions: (body.suggestions ?? []).map((item) => ({ name: item.name, confidence: item.confidence ?? null, possibleIngredients: (item.possible_ingredients ?? []).filter((value): value is string => typeof value === 'string').map(mapVisionIngredient) })), uncertain: body.uncertain ?? true, provider: body.provider ?? 'unknown' }
 }

@@ -371,3 +371,13 @@ The local CA issue is resolved without weakening TLS. `truststore>=0.10,<1` is n
 The single permitted live Gemini smoke passed (`1 passed`). It established TLS 1.3 using the Windows trust store, received a provider response, parsed the structured JSON, and validated provider identity, uncertainty type, distinct suggestion count and parser shape. No key, raw provider response, image content or user data was printed. The model contract has no nutrient fields and the prompt forbids nutrient/calorie/gram/serving estimates.
 
 The full backend suite against the isolated PostgreSQL test URL is now `102 passed, 1 skipped, 2 warnings`; `pip check` reports no broken requirements. The M19 deployment checklist is in `RAILWAY_STAGING.md`. Production variables, production databases, Railway deployment and push were not touched.
+
+## M19 magyar ételfelismerés - 2026-09-27
+
+The Gemini prompt now requires Hungarian human-facing food names and ingredient values while preserving the existing JSON field names and the backend `possible_ingredients: list[str]` wire shape. The existing `uncertain: ` marker remains machine-readable; the frontend maps it to structured ingredient state and renders natural Hungarian uncertainty text without exposing the marker or an exact confidence percentage.
+
+Vision suggestions now open a local confirmation editor before the existing food search callback runs. The name and ingredient text can be corrected or confirmed, and the original image/retry path remains intact. Ingredient edits are review context only because the current catalog search callback accepts a food name; no nutrient or gram value is inferred or persisted from Gemini, and confirming a suggestion does not make another provider request.
+
+Validation after the change: backend Vision tests `13 passed, 1 warning`; frontend unit tests `28 passed`; typecheck and production build passed; lint passed with the existing non-fatal React hook warnings; the full camera E2E suite passed in Chromium and WebKit at 360, 375 and 390 px (`36 passed`).
+
+The full backend command was also attempted with the configured isolated test database. It reached `98 passed, 1 skipped`, but four cache/import tests could not create or clean pytest temporary directories because Windows denied access to the existing `%TEMP%\pytest-of-W11` ACL; the retry with a repository-local basetemp hit the same ACL at session cleanup. This is an environment limitation and is separate from the changed Vision tests.

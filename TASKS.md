@@ -342,3 +342,11 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [x] Full backend regression against the isolated PostgreSQL test database: `102 passed, 1 skipped, 2 warnings`; dependency check reports no broken requirements.
 - [x] Added the M19 Railway staging checklist to `RAILWAY_STAGING.md`.
 - [ ] Railway staging deployment and real device QA remain separate user-controlled gates. No push or deploy was performed.
+
+## M19 magyar ételfelismerési eredmények - 2026-09-27
+
+- [x] A Gemini promptja minden embernek szánt `name` és `possible_ingredients` értéket magyarul kér, miközben a JSON mezőnevek (`suggestions`, `name`, `confidence`, `possible_ingredients`, `uncertain`) változatlanok maradnak.
+- [x] A stabil `uncertain: ` wire-marker megmaradt a backend kompatibilitásához. A frontend ezt strukturált `{ name, uncertain }` értékké alakítja, és természetes magyar jelzést jelenít meg; nyers marker és százalékos confidence nem látható.
+- [x] A javaslat kiválasztása külön megerősítési lépésre került. Az étel neve és az összetevőlista helyben szerkeszthető, a megerősítés nem indít új Gemini-hívást és nem fogad el tápérték-becslést.
+- [x] A backend prompt- és frontend API-regressziók, valamint a kamera E2E ellenőrzés lefedi a magyar tartalmat, a bizonytalanságot, a százalék elhagyását és a megerősítési folyamatot; a teljes Chromium/WebKit csomag 36/36 tesztje zöld.
+- [x] A teljes backend-futtatás 98 tesztet teljesített; négy cache/import tesztet a Windows pytest-temp ACL blokkolt, miközben a módosított Vision-teszt 13/13 sikeres.

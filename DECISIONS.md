@@ -196,3 +196,7 @@ The Gemini httpx client receives a `truststore` system `SSLContext` with certifi
 ## D-M19-08 - Live provider gate result (2026-09-27)
 
 The one permitted live Gemini smoke passed after the trust-store integration. It verified TLS, a valid provider response and structured parser output. The result contract still contains no nutrient values, and the deployment checklist remains preparatory only; no Railway or production operation was performed.
+
+## D-M19-09 - Hungarian vision values with compatible uncertainty marker (2026-09-27)
+
+The Gemini prompt requires Hungarian values only for human-facing food names and ingredient strings; JSON keys and the list-based `possible_ingredients` wire type remain unchanged. The backend keeps the stable `uncertain: ` marker for compatibility, while the frontend normalizes it into structured ingredient state and renders qualitative Hungarian uncertainty text. Suggestion names and ingredient text are locally editable/confirmable before the existing name-based search callback runs. This avoids an additional Gemini call and prevents model output from becoming CH or nutrient data.

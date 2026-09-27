@@ -236,3 +236,11 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - The single live Gemini smoke passed with a valid structured response and parser validation. No raw response or secret was recorded, and nutrient estimation remains prohibited by the prompt and response contract.
 - Full backend regression with the isolated PostgreSQL test database: `102 passed, 1 skipped, 2 warnings`; `pip check` is clean.
 - Added the Railway M19 staging deployment checklist. No push or deployment was performed.
+
+## 2026-09-27 - M19 Hungarian food-vision results
+
+- Gemini now requests Hungarian food names and ingredient values without changing the established JSON field names or allowing nutrient estimates.
+- Frontend uncertainty is structured locally, shown in natural Hungarian, and no exact confidence percentage or raw `uncertain:` marker is rendered.
+- Added a local editable confirmation step for the suggested food name and ingredient text; confirming reuses the existing search flow and does not issue another Gemini request.
+- Added API, prompt and Chromium/WebKit mobile regressions for the new mapping and confirmation flow.
+- The complete camera suite passes in Chromium and WebKit at 360, 375 and 390 px (`36 passed`).

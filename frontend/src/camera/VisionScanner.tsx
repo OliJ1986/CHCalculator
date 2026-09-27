@@ -7,6 +7,9 @@ type VisionState = 'empty' | 'selected' | 'processing' | 'success' | 'error'
 
 export function VisionScanner({ onSuggestion, onClose }: { onSuggestion: (name: string) => void; onClose?: () => void }) {
   const [result, setResult] = useState<FoodVisionResult | null>(null)
+  const [selectedSuggestion, setSelectedSuggestion] = useState<FoodVisionSuggestion | null>(null)
+  const [draftName, setDraftName] = useState('')
+  const [draftIngredients, setDraftIngredients] = useState('')
   const [sourceImage, setSourceImage] = useState<Blob | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<FoodVisionError | Error | null>(null)
@@ -19,6 +22,7 @@ export function VisionScanner({ onSuggestion, onClose }: { onSuggestion: (name: 
     requestRef.current = requestId
     setSourceImage(image)
     setResult(null)
+    setSelectedSuggestion(null)
     setBusy(true)
     setError(null)
     try {
@@ -36,14 +40,42 @@ export function VisionScanner({ onSuggestion, onClose }: { onSuggestion: (name: 
   const reset = () => {
     requestRef.current += 1
     setResult(null)
+    setSelectedSuggestion(null)
     setSourceImage(null)
     setError(null)
     setBusy(false)
   }
 
+  const chooseSuggestion = (item: FoodVisionSuggestion) => {
+    setSelectedSuggestion(item)
+    setDraftName(item.name)
+    setDraftIngredients(item.possibleIngredients.map((ingredient) => ingredient.name).join(', '))
+  }
+
+  const confirmSuggestion = () => {
+    const name = draftName.trim()
+    if (name) onSuggestion(name)
+  }
+
+  const confidenceLabel = (item: FoodVisionSuggestion) => {
+    const uncertain = result?.uncertain || item.possibleIngredients.some((ingredient) => ingredient.uncertain)
+    if (uncertain || item.confidence === null || item.confidence < 0.65) return 'Bizonytalan egyezés'
+    if (item.confidence < 0.85) return 'Valószínű egyezés'
+    return 'Erős egyezés'
+  }
+
+  const ingredientLabel = (item: FoodVisionSuggestion) => item.possibleIngredients.map((ingredient) => ingredient.uncertain ? `Lehetséges összetevő: ${ingredient.name}` : ingredient.name).join(', ')
+
   if (result) return <section className="camera-capture vision-result" aria-label="Étel fotó eredménye" data-vision-state={state}>
-    <div className="camera-capture-header"><div><p className="eyebrow">Étel fotó · Javaslatok</p><h3>Válassz kereshető élelmiszert</h3>{result.uncertain && <p className="goal-help">A javaslat vagy az összetevők bizonytalanok. Ellenőrizd a találatot.</p>}</div>{onClose && <button className="close-button" onClick={onClose} aria-label="Étel fotó bezárása"><X size={18} /></button>}</div>
-    {result.suggestions.length === 0 ? <p className="search-state">Nem érkezett használható javaslat. Folytasd kézi kereséssel.</p> : <div className="vision-suggestions">{result.suggestions.map((item: FoodVisionSuggestion) => <button className="food-option" key={item.name} onClick={() => onSuggestion(item.name)}><span className="food-copy"><strong>{item.name}</strong>{item.confidence !== null && <small>{Math.round(item.confidence * 100)}% bizonyosság</small>}{item.possibleIngredients.length > 0 && <small>{item.possibleIngredients.join(', ')}</small>}</span><Check size={18} /></button>)}</div>}
+    <div className="camera-capture-header"><div><p className="eyebrow">Étel fotó · Javaslatok</p><h3>{selectedSuggestion ? 'Ellenőrizd a javaslatot' : 'Válassz kereshető élelmiszert'}</h3>{result.uncertain && <p className="goal-help">A javaslat vagy egy összetevő bizonytalan. Ellenőrizd és szükség esetén javítsd.</p>}</div>{onClose && <button className="close-button" onClick={onClose} aria-label="Étel fotó bezárása"><X size={18} /></button>}</div>
+    {result.suggestions.length === 0 ? <p className="search-state">Nem érkezett használható javaslat. Folytasd kézi kereséssel.</p> : selectedSuggestion ? <div className="vision-confirmation">
+      <label className="goal-input"><span>Étel neve</span><input aria-label="Étel neve" value={draftName} onChange={(event) => setDraftName(event.target.value)} /></label>
+      <label className="goal-input vision-ingredients"><span>Összetevők ellenőrzése</span><textarea aria-label="Összetevők ellenőrzése" value={draftIngredients} onChange={(event) => setDraftIngredients(event.target.value)} rows={3} /></label>
+      <p className="goal-help">Az összetevők csak ellenőrzési információk. A CH-értéket kizárólag a kiválasztott adatforrás adataiból számítjuk.</p>
+      {selectedSuggestion.possibleIngredients.some((ingredient) => ingredient.uncertain) && <p className="goal-help">Lehetséges összetevő: {selectedSuggestion.possibleIngredients.filter((ingredient) => ingredient.uncertain).map((ingredient) => ingredient.name).join(', ')}</p>}
+      {(selectedSuggestion.possibleIngredients.some((ingredient) => ingredient.uncertain) || result.uncertain) && <p className="goal-help" role="status">Egy vagy több összetevő csak lehetséges. Erősítsd meg vagy javítsd a nevet a keresés előtt.</p>}
+      <div className="camera-actions"><button className="confirm-button" onClick={confirmSuggestion} disabled={!draftName.trim()}><Check size={18} />Étel megerősítése és keresése</button><button className="secondary-action" onClick={() => setSelectedSuggestion(null)}>Vissza a javaslatokhoz</button></div>
+    </div> : <div className="vision-suggestions">{result.suggestions.map((item: FoodVisionSuggestion) => <button className="food-option" key={item.name} onClick={() => chooseSuggestion(item)}><span className="food-copy"><strong>{item.name}</strong><small>{confidenceLabel(item)}</small>{item.possibleIngredients.length > 0 && <small>{ingredientLabel(item)}</small>}</span><Check size={18} /></button>)}</div>}
     <div className="camera-actions"><button className="secondary-action" onClick={reset}>Új kép</button>{sourceImage && <button className="secondary-action" onClick={() => void process(sourceImage)}>Elemzés újra</button>}</div>
   </section>
 

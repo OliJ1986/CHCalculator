@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { identifyFoodImage } from './vision'
+import { identifyFoodImage, mapVisionIngredient } from './vision'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -28,7 +28,13 @@ describe('food vision API client', () => {
     await expect(identifyFoodImage(new Blob(['image'], { type: 'image/webp' }))).resolves.toEqual({
       provider: 'mock',
       uncertain: true,
-      suggestions: [{ name: 'Alma', confidence: 0.8, possibleIngredients: ['uncertain: fahéj'] }],
+      suggestions: [{ name: 'Alma', confidence: 0.8, possibleIngredients: [{ name: 'fahéj', uncertain: true }] }],
     })
+  })
+
+  it('keeps uncertainty structured while preserving the wire marker', () => {
+    expect(mapVisionIngredient('uncertain: fahéj')).toEqual({ name: 'fahéj', uncertain: true })
+    expect(mapVisionIngredient('tej')).toEqual({ name: 'tej', uncertain: false })
+    expect(mapVisionIngredient(' UNCERTAIN: vanília ')).toEqual({ name: 'vanília', uncertain: true })
   })
 })

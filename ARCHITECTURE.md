@@ -176,3 +176,9 @@ The additive `0010_vision_usage` migration was applied to the isolated PostgreSQ
 The backend Gemini provider uses `truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)` as the httpx verification context. The context requires certificates and hostnames to verify. This allows local Windows system roots while retaining normal CA validation on deployment platforms. No `verify=False` path exists.
 
 The single live smoke established TLS, returned a valid Gemini response and parsed the existing structured contract. The provider result exposes only names, confidence and possible ingredients; carbohydrate, calorie, gram and serving estimates remain outside the response model. Railway-specific steps are recorded in `RAILWAY_STAGING.md` and were not executed automatically.
+
+## M19 Hungarian vision presentation boundary (2026-09-27)
+
+The Gemini JSON contract remains backward-compatible: the server still returns the existing field names and `possible_ingredients` string list. The prompt requires Hungarian human-facing values, while the server keeps the stable `uncertain: ` marker for clients that need to distinguish uncertain ingredients. The frontend converts each wire value to `{ name, uncertain }`, uses qualitative confidence labels, and never renders the marker or a numeric percentage.
+
+`VisionScanner` does not send a suggestion straight into search. It keeps a local draft for the food name and ingredient text and requires confirmation. The existing `onSuggestion(name)` callback is then used unchanged, so the ingredient draft is review-only and cannot alter catalog nutrition data. No extra Gemini request is made and no CH, gram or calorie value is accepted from the model.

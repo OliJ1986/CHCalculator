@@ -182,7 +182,13 @@ for (const viewport of viewports) {
 
       await page.getByRole('button', { name: 'Elemzés újra' }).click()
       await expect(page.getByRole('button', { name: /Alma/ })).toBeVisible()
-      await expect(page.getByText('bizonytalan', { exact: false })).toBeVisible()
+      await expect(page.getByText('bizonytalan', { exact: false }).first()).toBeVisible()
+      await expect(page.getByText('70%', { exact: false })).toHaveCount(0)
+      await expect(page.getByText('uncertain:', { exact: false })).toHaveCount(0)
+      await page.getByRole('button', { name: /Alma/ }).click()
+      await expect(page.getByRole('textbox', { name: 'Étel neve' })).toHaveValue('Alma')
+      await expect(page.getByText('Lehetséges összetevő', { exact: false })).toBeVisible()
+      await page.getByRole('button', { name: /Étel megerősítése és keresése/ }).click()
       expect(visionCalls).toBe(2)
     })
 
