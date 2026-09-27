@@ -22,6 +22,8 @@ export type ChefWorkflowProps = {
   selectedDate: string
   initialName: string
   initialIngredients: FoodVisionIngredient[]
+  initialInstructions?: string
+  initialServings?: number
   mealCategory: MealCategory
   onExit: () => void
   onCompleted: (message: string) => void
@@ -83,9 +85,10 @@ function emptyRow(item?: FoodVisionIngredient): ChefIngredientDraft {
   return { id: makeId(), name: item?.name ?? '', uncertain: item?.uncertain ?? false, confirmed: false, food: null, quantity: '' }
 }
 
-export function ChefWorkflow({ guestMode, selectedDate, initialName, initialIngredients, mealCategory, onExit, onCompleted }: ChefWorkflowProps) {
+export function ChefWorkflow({ guestMode, selectedDate, initialName, initialIngredients, initialInstructions = '', initialServings = 1, mealCategory, onExit, onCompleted }: ChefWorkflowProps) {
   const [name, setName] = useState(initialName)
-  const [servings, setServings] = useState('1')
+  const [instructions, setInstructions] = useState(initialInstructions)
+  const [servings, setServings] = useState(String(initialServings))
   const [rows, setRows] = useState<ChefIngredientDraft[]>(() => initialIngredients.length > 0 ? initialIngredients.map(emptyRow) : [emptyRow()])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -117,10 +120,10 @@ export function ChefWorkflow({ guestMode, selectedDate, initialName, initialIngr
       if (guestMode) {
         const now = new Date().toISOString()
         const recipeId = makeId()
-        savedRecipe = { id: recipeId, name: name.trim(), instructions: null, prepMinutes: null, notes: 'CHill Chef által ellenőrzött összetevőkből', servings: servingNumber, totalWeightG: totalWeight, totalCarbsG: calculation.totalCarbsG, carbsPerServingG: calculation.totalCarbsG / servingNumber, carbsPer100gCookedG: null, isFavorite: false, ingredients: rows.map((row, index) => ({ id: makeId(), foodId: row.food?.source === 'custom' ? null : row.food?.id ?? null, customFoodId: row.food?.source === 'custom' ? row.food.sourceId : null, quantityG: validRows[index].quantityG ?? 0, calculatedCarbsG: calculateCarbohydrate(validRows[index].quantityG ?? 0, row.food?.availableCarbs100g ?? null) ?? 0, snapshot: { name: row.food?.name, source: row.food?.source, source_id: row.food?.sourceId, available_carbs_100g: row.food?.availableCarbs100g }, position: index })), createdAt: now, updatedAt: now }
+        savedRecipe = { id: recipeId, name: name.trim(), instructions: instructions.trim() || null, prepMinutes: null, notes: 'CHill Chef által ellenőrzött összetevőkből', servings: servingNumber, totalWeightG: totalWeight, totalCarbsG: calculation.totalCarbsG, carbsPerServingG: calculation.totalCarbsG / servingNumber, carbsPer100gCookedG: null, isFavorite: false, ingredients: rows.map((row, index) => ({ id: makeId(), foodId: row.food?.source === 'custom' ? null : row.food?.id ?? null, customFoodId: row.food?.source === 'custom' ? row.food.sourceId : null, quantityG: validRows[index].quantityG ?? 0, calculatedCarbsG: calculateCarbohydrate(validRows[index].quantityG ?? 0, row.food?.availableCarbs100g ?? null) ?? 0, snapshot: { name: row.food?.name, source: row.food?.source, source_id: row.food?.sourceId, available_carbs_100g: row.food?.availableCarbs100g }, position: index })), createdAt: now, updatedAt: now }
         await saveGuestRecipe(savedRecipe)
       } else {
-        savedRecipe = await createRecipe({ name: name.trim(), servings: servingNumber, total_weight_g: totalWeight, instructions: '', notes: 'CHill Chef által ellenőrzött összetevőkből', ingredients: ingredientPayload })
+        savedRecipe = await createRecipe({ name: name.trim(), servings: servingNumber, total_weight_g: totalWeight, instructions: instructions.trim(), notes: 'CHill Chef által ellenőrzött összetevőkből', ingredients: ingredientPayload })
       }
       if (mode === 'log') {
         if (guestMode) {
@@ -145,6 +148,7 @@ export function ChefWorkflow({ guestMode, selectedDate, initialName, initialIngr
     <label className="goal-input"><span>Recept neve</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
     <label className="goal-input"><span>Adagok száma</span><input value={servings} onChange={(event) => setServings(event.target.value)} inputMode="decimal" /></label>
     <label className="category-field"><span>Étkezés</span><select value={mealCategory} disabled><option value={mealCategory}>{mealCategory === 'breakfast' ? 'Reggeli' : mealCategory === 'lunch' ? 'Ebéd' : mealCategory === 'dinner' ? 'Vacsora' : mealCategory === 'morning_snack' ? 'Tízórai' : mealCategory === 'afternoon_snack' ? 'Uzsonna' : 'Egyéb'}</option></select></label>
+    <label className="goal-input"><span>Elkészítési útmutató</span><textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} rows={4} placeholder="A javaslat ellenőrzött lépései" /></label>
     <div className="chef-ingredients"><div className="section-heading"><h4>Összetevők</h4><button type="button" className="secondary-action compact-action" onClick={() => setRows((current) => [...current, emptyRow()])}>Összetevő hozzáadása</button></div>{rows.map((row) => <IngredientMatchRow key={row.id} row={row} guestMode={guestMode} onChange={(patch) => updateRow(row.id, patch)} onRemove={() => removeRow(row.id)} onConfirm={() => updateRow(row.id, { uncertain: false, confirmed: true })} />)}</div>
     {recipeSuggestions.length > 0 && <section className="chef-recipe-suggestions" aria-label="Meglévő receptjavaslatok"><p className="eyebrow">Meglévő receptjavaslatok</p>{recipeSuggestions.map((recipe) => <div className="chef-recipe-suggestion" key={recipe.id}><strong>{recipe.name}</strong><small>{formatCarbohydrate(recipe.carbsPerServingG)} g CH / adag · ellenőrzött katalógusadat</small></div>)}</section>}
     <div className="chef-summary"><p className="eyebrow">Determinisztikus CH-összesítés</p>{calculation.complete ? <strong>{formatCarbohydrate(calculation.totalCarbsG ?? 0)} g CH összesen · {formatCarbohydrate((calculation.totalCarbsG ?? 0) / Math.max(Number(servings.replace(',', '.')) || 1, 1))} g/adag</strong> : <><strong>Az ellenőrzött teljes CH még nem számítható.</strong><small>Ismert rész: {formatCarbohydrate(calculation.knownCarbsG)} g CH / {formatCarbohydrate(calculation.knownMassG)} g. Hiányzó adatok: {calculation.missingCount}.</small></>}</div>

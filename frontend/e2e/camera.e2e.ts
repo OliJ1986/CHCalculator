@@ -243,6 +243,57 @@ for (const viewport of viewports) {
       expect(visionCalls).toBe(1)
     })
 
+    test('builds a confirmed fridge inventory and requests new recipe ideas explicitly', async ({ page }) => {
+      test.setTimeout(45_000)
+      const barcodeRequests: string[] = []
+      let fridgeCalls = 0
+      let recipeCalls = 0
+      await mockCamera(page)
+      await mockApi(page, barcodeRequests)
+      await page.route('**/api/vision/fridge', async (route) => {
+        fridgeCalls += 1
+        const form = await route.request().postDataBuffer()
+        expect(form).not.toBeNull()
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ provider: 'mock', uncertain: true, suggestions: [{ name: 'Tej', confidence: null, possible_ingredients: [] }, { name: 'tej', confidence: null, possible_ingredients: [] }, { name: 'Tojás', confidence: null, possible_ingredients: ['uncertain: márka'] }] }) })
+      })
+      await page.route('**/api/chef/recipes/generate', async (route) => {
+        recipeCalls += 1
+        const payload = JSON.parse(route.request().postData() ?? '{}') as { ingredients?: string[] }
+        expect(payload.ingredients).toEqual(['Tej', 'Tojás'])
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ provider: 'mock', recipes: [{ name: 'Tejes omlett', description: 'Gyors vacsora.', ingredients: ['Tej', 'Tojás'], missing_ingredients: ['só'], instructions: ['Keverd össze.', 'Süsd meg.'], servings: 2, notes: null }] }) })
+      })
+      await page.route('**/api/foods/search*', async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [{ id: 'food-milk', name: 'Tej, nyers', original_name: 'Milk, raw', brand: null, barcode: null, source: 'usda', source_id: 'food-milk', available_carbs_100g: 5, serving_size_g: null, image_url: null, language: 'hu', country: null, is_generic: true, is_verified: true, category: 'dairy', category_label: 'Tejtermék', carbs_available: true }] }) })
+      })
+      await page.goto('/')
+      await page.getByRole('button', { name: /Hozz/ }).last().click()
+      await page.locator('.fridge-launch').click()
+      await expect(page.getByTestId('fridge-workflow')).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+      const gallery = page.locator('.fridge-workflow input[type="file"]')
+      await gallery.setInputFiles([
+        { name: 'fridge-1.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('one') },
+        { name: 'fridge-2.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('two') },
+      ])
+      await expect(page.locator('.fridge-photo')).toHaveCount(2)
+      await page.locator('.fridge-photo-remove').first().click()
+      await gallery.setInputFiles({ name: 'fridge-3.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('three') })
+      await expect(page.locator('.fridge-photo')).toHaveCount(2)
+      expect(fridgeCalls).toBe(0)
+      await page.locator('.fridge-workflow > .chef-actions .confirm-button').click()
+      await expect(page.locator('.fridge-inventory-row')).toHaveCount(2)
+      await expect(page.locator('.fridge-inventory-row.uncertain')).toBeVisible()
+      for (const row of await page.locator('.fridge-inventory-row').all()) await row.locator('.fridge-row-actions button').first().click()
+      await page.locator('.fridge-workflow > .chef-actions .confirm-button').click()
+      await page.locator('.fridge-workflow > .chef-actions .confirm-button').click()
+      await expect(page.locator('.fridge-recipe-card')).toHaveCount(1)
+      expect(recipeCalls).toBe(1)
+      await page.locator('.fridge-recipe-card .confirm-button').click()
+      await page.locator('.fridge-recipe-editor .confirm-button').click()
+      await expect(page.locator('.chef-workflow')).toBeVisible()
+      expect(fridgeCalls).toBe(1)
+    })
+
     test('blocks parallel vision submissions while an analysis is in flight', async ({ page }) => {
       const barcodeRequests: string[] = []
       await mockCamera(page)

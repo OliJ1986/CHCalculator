@@ -9,6 +9,8 @@ export type FoodVisionErrorCode =
   | 'rate_limit_global'
   | 'rate_limit_unavailable'
   | 'image_too_large'
+  | 'too_many_images'
+  | 'missing_ingredients'
   | 'unsupported_media_type'
   | 'provider_rate_limit'
   | 'provider_timeout'
@@ -28,6 +30,8 @@ const VISION_ERROR_MESSAGES: Record<FoodVisionErrorCode, string> = {
   rate_limit_global: 'A napi összesített képfelismerési keret elfogyott. Próbáld később újra.',
   rate_limit_unavailable: 'A képfelismerési korlát jelenleg nem ellenőrizhető.',
   image_too_large: 'A kép túl nagy. Válassz kisebb képet.',
+  too_many_images: 'Legfeljebb négy hűtőfotót adhatsz meg.',
+  missing_ingredients: 'Legalább egy jóváhagyott alapanyag szükséges.',
   unsupported_media_type: 'Csak képfájl tölthető fel.',
   provider_rate_limit: 'A képfelismerési szolgáltató elérte a korlátját. Próbáld később újra.',
   provider_timeout: 'A képfelismerési szolgáltató nem válaszolt időben. Próbáld újra.',
@@ -42,6 +46,24 @@ const VISION_ERROR_MESSAGES: Record<FoodVisionErrorCode, string> = {
 
 function messageForVisionCode(code: string): string {
   return VISION_ERROR_MESSAGES[code as FoodVisionErrorCode] ?? VISION_ERROR_MESSAGES.unknown
+}
+
+function messageForRecipeCode(code: string): string {
+  const messages: Partial<Record<FoodVisionErrorCode, string>> = {
+    vision_disabled: 'Az AI-receptgenerálás jelenleg ki van kapcsolva.',
+    vision_unconfigured: 'Az AI-receptgenerálás nincs konfigurálva.',
+    rate_limit_minute: 'A percenkénti receptgenerálási korlátot elérted. Próbáld később újra.',
+    rate_limit_daily: 'A napi receptgenerálási korlátot elérted. Próbáld később újra.',
+    rate_limit_global: 'A napi összesített AI-keret elfogyott. Próbáld később újra.',
+    provider_timeout: 'A receptgeneráló szolgáltató nem válaszolt időben. Próbáld újra.',
+    provider_unavailable: 'A receptgeneráló szolgáltató nem érhető el.',
+    provider_invalid_response: 'A receptgeneráló szolgáltató hibás választ adott.',
+    provider_authentication: 'A receptgeneráló szolgáltató hitelesítése sikertelen.',
+    provider_bad_request: 'A receptgenerálási kérés nem fogadható el.',
+    provider_error: 'A receptgenerálás átmenetileg nem sikerült.',
+    network_error: 'A receptgenerálás hálózati hiba miatt nem sikerült.',
+  }
+  return messages[code as FoodVisionErrorCode] ?? messageForVisionCode(code)
 }
 
 export class FoodVisionError extends Error {
@@ -80,4 +102,54 @@ export async function identifyFoodImage(image: Blob, signal?: AbortSignal): Prom
     throw new FoodVisionError('unknown', messageForVisionCode('unknown'), response.status)
   }
   return { suggestions: (body.suggestions ?? []).map((item) => ({ name: item.name, confidence: item.confidence ?? null, possibleIngredients: (item.possible_ingredients ?? []).filter((value): value is string => typeof value === 'string').map(mapVisionIngredient) })), uncertain: body.uncertain ?? true, provider: body.provider ?? 'unknown' }
+}
+
+export async function identifyFoodImages(images: Blob[], signal?: AbortSignal): Promise<FoodVisionResult> {
+  const form = new FormData()
+  images.forEach((image, index) => {
+    const extension = image.type === 'image/png' ? 'png' : image.type === 'image/webp' ? 'webp' : 'jpg'
+    form.append('images', image, `fridge-${index + 1}.${extension}`)
+  })
+  const response = await fetch(`${apiBaseUrl}/vision/fridge`, { method: 'POST', body: form, credentials: 'include', signal })
+  const body = await response.json().catch(() => ({})) as { detail?: string | { code?: string; message?: string }; suggestions?: Array<{ name: string; confidence?: number | null; possible_ingredients?: string[] }>; uncertain?: boolean; provider?: string }
+  if (!response.ok) {
+    if (typeof body.detail === 'object' && body.detail !== null) {
+      const code = (body.detail.code ?? 'unknown') as FoodVisionErrorCode
+      throw new FoodVisionError(code, messageForVisionCode(code), response.status)
+    }
+    throw new FoodVisionError('unknown', messageForVisionCode('unknown'), response.status)
+  }
+  return { suggestions: (body.suggestions ?? []).map((item) => ({ name: item.name, confidence: item.confidence ?? null, possibleIngredients: (item.possible_ingredients ?? []).filter((value): value is string => typeof value === 'string').map(mapVisionIngredient) })), uncertain: body.uncertain ?? true, provider: body.provider ?? 'unknown' }
+}
+
+export type ChefRecipeSuggestion = {
+  name: string
+  description: string
+  ingredients: string[]
+  missingIngredients: string[]
+  instructions: string[]
+  servings: number | null
+  notes: string | null
+}
+
+export type ChefRecipeGeneratePayload = {
+  ingredients: string[]
+  meal_type: string
+  servings: number
+  required_ingredients: string[]
+  excluded_ingredients: string[]
+  carbohydrate_limit_g: number | null
+}
+
+export async function generateChefRecipes(payload: ChefRecipeGeneratePayload, signal?: AbortSignal): Promise<{ recipes: ChefRecipeSuggestion[]; provider: string }> {
+  const response = await fetch(`${apiBaseUrl}/chef/recipes/generate`, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' }, credentials: 'include', signal })
+  const body = await response.json().catch(() => ({})) as { detail?: string | { code?: string; message?: string }; recipes?: Array<{ name: string; description?: string; ingredients?: string[]; missing_ingredients?: string[]; instructions?: string[]; servings?: number | null; notes?: string | null }>; provider?: string }
+  if (!response.ok) {
+    if (typeof body.detail === 'object' && body.detail !== null) {
+      const code = (body.detail.code ?? 'unknown') as FoodVisionErrorCode
+      throw new FoodVisionError(code, messageForRecipeCode(code), response.status)
+    }
+    throw new FoodVisionError('unknown', 'A receptgenerálás nem sikerült.', response.status)
+  }
+  return { provider: body.provider ?? 'unknown', recipes: (body.recipes ?? []).map((item) => ({ name: item.name, description: item.description ?? '', ingredients: Array.isArray(item.ingredients) ? item.ingredients.filter((value): value is string => typeof value === 'string') : [], missingIngredients: Array.isArray(item.missing_ingredients) ? item.missing_ingredients.filter((value): value is string => typeof value === 'string') : [], instructions: Array.isArray(item.instructions) ? item.instructions.filter((value): value is string => typeof value === 'string') : [], servings: item.servings ?? null, notes: item.notes ?? null })) }
 }
