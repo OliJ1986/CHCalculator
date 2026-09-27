@@ -129,9 +129,23 @@ Barcode and OCR run in the frontend and need no Railway secret. The AI endpoint 
 
 - `VISION_ENABLED=false` (recommended default)
 - `GEMINI_API_KEY` (Railway secret; never a Vite variable)
-- `GEMINI_MODEL=gemini-2.5-flash-lite`
+- `GEMINI_MODEL=gemini-3.8-flash`
 - `VISION_MAX_IMAGE_BYTES=4194304`
 - `VISION_RATE_LIMIT_PER_MINUTE=3`
 - `VISION_DAILY_LIMIT=5`
 
 Billing, a live AI call, a new domain or deployment were not activated in this cycle.
+
+## M19 telepítési ellenőrzőlista
+
+A helyi M19 kapu a Windows rendszer-tanúsítványtárból épített, ellenőrzött TLS-kontekstussal sikeres volt. A backend `requirements.txt` telepíti a `truststore` csomagot; a Gemini-kliens `CERT_REQUIRED` és hostname-ellenőrzést használ. `verify=false` nem része a konfigurációnak.
+
+Staging előtt ellenőrizd:
+
+1. Backend Root Directory `/backend`, config `/backend/railway.toml`, frontend Root Directory `/frontend`, config `/frontend/railway.toml`.
+2. Backend Variables között a `GEMINI_API_KEY` csak secretként szerepeljen; `GEMINI_MODEL=gemini-3.8-flash`, `VISION_ENABLED` és a Vision-korlátok legyenek tudatosan beállítva. Kulcs ne kerüljön `VITE_*` változóba.
+3. A backend staging PostgreSQL-adatbázisán fusson az Alembic migráció, és az `0010_vision_usage` legyen head. A helyi SQLite-ot és más környezet adatbázisát ne importáld automatikusan.
+4. `/api/ready` és a frontend `/healthz` legyen sikeres; a gateway továbbra is szerveroldali proxy-tokenen keresztül érje el a privát backendet.
+5. A stagingen, korlátozottan, egyszer futtasd az élő Vision-smoke ellenőrzést. Ellenőrizd a TLS-kapcsolatot, a Gemini JSON-válaszát, a legfeljebb három különböző javaslatot és azt, hogy tápanyagérték nem jelenik meg.
+6. Ellenőrizd a vendég fájlfeltöltést kameraengedély nélkül, a retry-t, a globális kvótát és a logok titokmentességét.
+7. Csak a fenti kapuk után indíts staging deploymentet. Éles környezetet, éles változókat és automatikus push/deploy műveletet ez a lista nem módosít.

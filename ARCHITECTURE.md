@@ -170,3 +170,9 @@ Migration `0010_vision_usage` is additive and was applied to local development P
 The Gemini adapter keeps normal certificate verification. Local Windows verification may require an approved OS trust source because httpx uses the certifi bundle by default; the M19 diagnostic showed certifi failure and successful verification with the Windows ROOT certificates. This is an environment configuration issue. The deployment image must provide its normal trusted CA bundle; no `verify=False`, bundled private certificate or secret is part of the application.
 
 The additive `0010_vision_usage` migration was applied to the isolated PostgreSQL test database. Row-locking was verified with concurrent guest reservations: with a global limit of three, ten simultaneous reservations create exactly three successful reservations and seven `rate_limit_global` responses. The development and production databases were not targeted by this check.
+
+## M19 final Gemini TLS boundary (2026-09-27)
+
+The backend Gemini provider uses `truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)` as the httpx verification context. The context requires certificates and hostnames to verify. This allows local Windows system roots while retaining normal CA validation on deployment platforms. No `verify=False` path exists.
+
+The single live smoke established TLS, returned a valid Gemini response and parsed the existing structured contract. The provider result exposes only names, confidence and possible ingredients; carbohydrate, calorie, gram and serving estimates remain outside the response model. Railway-specific steps are recorded in `RAILWAY_STAGING.md` and were not executed automatically.

@@ -334,3 +334,11 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [x] The dedicated `CHILL_TEST_DATABASE_URL` database initially lacked `vision_usage`. Alembic `0010_vision_usage` was applied only there; `alembic current` reports `0010_vision_usage (head)`.
 - [x] The isolated PostgreSQL durability/global-budget suite is now `2 passed`, including the parallel global-budget test. The full backend suite against the isolated test URL is `101 passed, 1 skipped, 2 warnings`.
 - [ ] Live Gemini verification remains open until the local CA chain is configured. The safe remediation is environment trust configuration (an approved PEM bundle/system trust integration); do not set `verify=False` or commit a certificate/private key.
+
+## M19 final Gemini integration gate - 2026-09-27
+
+- [x] Added the `truststore` dependency and passed a verified system trust `SSLContext` to httpx. Certificate validation and hostname checking remain enabled; no insecure fallback exists.
+- [x] The single real Gemini smoke test passed: TLS succeeded, the provider returned a valid response, the structured JSON was parsed, and the result contained at most three distinct food suggestions. The adapter contract still contains no nutrient fields and the prompt forbids nutrient estimation.
+- [x] Full backend regression against the isolated PostgreSQL test database: `102 passed, 1 skipped, 2 warnings`; dependency check reports no broken requirements.
+- [x] Added the M19 Railway staging checklist to `RAILWAY_STAGING.md`.
+- [ ] Railway staging deployment and real device QA remain separate user-controlled gates. No push or deploy was performed.

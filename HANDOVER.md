@@ -363,3 +363,11 @@ The live Gemini failure was isolated without sending a second keyed request. In 
 The `.env` supplied a dedicated `CHILL_TEST_DATABASE_URL`. Its database was initially at `0009_shopping_list`; `alembic upgrade head` was run only against that test URL and now reports `0010_vision_usage (head)`. The durability test and the new 10-request concurrent global-budget test both pass (`2 passed`). The complete backend suite against that isolated URL passes `101 tests`, with one expected skip and two deprecation warnings. No production or development data was targeted by this verification.
 
 Open gate: configure the local approved CA chain or OS trust integration and rerun the single live smoke. Keep certificate verification enabled. No code change is required for the current diagnosis, and no Railway deploy or push was performed.
+
+## M19 final Gemini integration - 2026-09-27
+
+The local CA issue is resolved without weakening TLS. `truststore>=0.10,<1` is now a backend dependency, and `GeminiFoodVisionProvider` creates a system-trust `SSLContext` with `CERT_REQUIRED` and hostname checking, passing it to httpx. The prompt, model selection and JSON parser were otherwise left unchanged.
+
+The single permitted live Gemini smoke passed (`1 passed`). It established TLS 1.3 using the Windows trust store, received a provider response, parsed the structured JSON, and validated provider identity, uncertainty type, distinct suggestion count and parser shape. No key, raw provider response, image content or user data was printed. The model contract has no nutrient fields and the prompt forbids nutrient/calorie/gram/serving estimates.
+
+The full backend suite against the isolated PostgreSQL test URL is now `102 passed, 1 skipped, 2 warnings`; `pip check` reports no broken requirements. The M19 deployment checklist is in `RAILWAY_STAGING.md`. Production variables, production databases, Railway deployment and push were not touched.

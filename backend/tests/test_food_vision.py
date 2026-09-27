@@ -1,5 +1,6 @@
 import asyncio
 import json
+import ssl
 import httpx
 import pytest
 from fastapi.testclient import TestClient
@@ -12,6 +13,12 @@ def test_food_vision_is_disabled_by_default(monkeypatch) -> None:
     monkeypatch.setattr(main.settings, "vision_enabled", False)
     response = TestClient(main.app).post("/api/vision/food", files={"image": ("food.jpg", b"image", "image/jpeg")})
     assert response.status_code == 503
+
+
+def test_gemini_provider_uses_verified_system_trust_context() -> None:
+    provider = GeminiFoodVisionProvider("test-secret", "gemini-test", transport=httpx.MockTransport(lambda request: httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": '{"suggestions":[],"uncertain":true}'}]}}]})))
+    assert provider.tls_context.verify_mode == ssl.CERT_REQUIRED
+    assert provider.tls_context.check_hostname is True
 
 
 def test_food_vision_mock_returns_suggestions_without_external_call(monkeypatch) -> None:

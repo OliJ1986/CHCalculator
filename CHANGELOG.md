@@ -229,3 +229,10 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Applied Alembic `0010_vision_usage` only to the dedicated PostgreSQL test database and added a concurrency regression proving the global daily budget is atomic (`2 passed`).
 - Full backend verification against the isolated test database: `101 passed, 1 skipped, 2 warnings`.
 - The live provider gate remains open until the local CA chain is configured; no production database, Railway deployment or push was used.
+
+## 2026-09-27 - M19 final Gemini integration gate
+
+- Added secure `truststore`-backed system certificate validation to the Gemini httpx client; hostname and certificate verification remain required.
+- The single live Gemini smoke passed with a valid structured response and parser validation. No raw response or secret was recorded, and nutrient estimation remains prohibited by the prompt and response contract.
+- Full backend regression with the isolated PostgreSQL test database: `102 passed, 1 skipped, 2 warnings`; `pip check` is clean.
+- Added the Railway M19 staging deployment checklist. No push or deployment was performed.

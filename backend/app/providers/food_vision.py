@@ -3,11 +3,13 @@ from __future__ import annotations
 import base64
 import json
 import re
+import ssl
 import unicodedata
 from dataclasses import dataclass
 from typing import Protocol
 
 import httpx
+import truststore
 
 
 class FoodVisionError(RuntimeError):
@@ -146,12 +148,14 @@ class GeminiFoodVisionProvider:
         timeout: float = 20.0,
         transport: httpx.AsyncBaseTransport | None = None,
         max_output_tokens: int = 1024,
+        tls_context: ssl.SSLContext | None = None,
     ) -> None:
         self.api_key = api_key
         self.model = model.strip().removeprefix("models/")
         self.timeout = timeout
         self.transport = transport
         self.max_output_tokens = max(1, int(max_output_tokens))
+        self.tls_context = tls_context or truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
     async def identify(self, image: bytes, mime_type: str) -> FoodVisionResult:
         prompt = (
@@ -176,7 +180,7 @@ class GeminiFoodVisionProvider:
             "generationConfig": generation_config,
         }
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport, verify=self.tls_context) as client:
                 response = await client.post(self.endpoint.format(model=self.model), headers={"x-goog-api-key": self.api_key}, json=payload)
         except httpx.TimeoutException as exc:
             raise FoodVisionError("A képfelismerő szolgáltatás időtúllépéssel válaszolt", kind="timeout") from exc

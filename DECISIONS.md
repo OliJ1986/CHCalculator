@@ -188,3 +188,11 @@ The Gemini client must retain certificate verification. The Windows diagnostic f
 ## D-M19-06 - Quota migration gate uses an isolated database (2026-09-27)
 
 `0010_vision_usage` is verified by applying it to the dedicated `CHILL_TEST_DATABASE_URL` database and running durability plus concurrent global-budget tests there. Production and development databases are outside this gate. The global row is protected by the same transactional row lock under concurrent reservations.
+
+## D-M19-07 - System trust without TLS bypass (2026-09-27)
+
+The Gemini httpx client receives a `truststore` system `SSLContext` with certificate and hostname verification required. This resolves local Windows trust-store differences without `verify=False`, custom untracked certificates or changes to the provider prompt/JSON semantics.
+
+## D-M19-08 - Live provider gate result (2026-09-27)
+
+The one permitted live Gemini smoke passed after the trust-store integration. It verified TLS, a valid provider response and structured parser output. The result contract still contains no nutrient values, and the deployment checklist remains preparatory only; no Railway or production operation was performed.
