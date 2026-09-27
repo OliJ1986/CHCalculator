@@ -259,3 +259,13 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Added up to three matching existing recipe suggestions from the current catalog/guest recipe store, without a new AI request or nutrient inference.
 - Added the full mobile Chef regression path. Final Playwright Chromium/WebKit coverage is 48/48 at 360, 375 and 390 px; frontend unit/typecheck/build gates pass.
 - Backend behavior was unchanged; its regression gate remains open until pytest is available in the local Python environment.
+
+## 2026-09-27 - M21 CHill Chef fridge recognition and recipe generation
+
+- Added a mobile-first CHill Chef fridge workflow with camera/gallery selection, up to four local photos, local downscaling, replace/remove actions and an explicit recognition button.
+- Added batched `POST /api/vision/fridge` recognition through the existing Gemini, TLS, error and PostgreSQL quota boundaries. One user action makes one provider request and no nutrient or quantity estimate is accepted.
+- Added a conservative editable inventory review with uncertainty markers, exact-name deduplication, explicit merge/split controls and per-item confirmation.
+- Added explicit `POST /api/chef/recipes/generate` generation for up to three structured Hungarian recipe ideas. Recipe responses are validated and contain no CH, calorie, gram or other nutrient estimates.
+- Reused the existing Chef catalog matching, deterministic CH calculation, recipe save, diary/planner and shopping-list flows. Missing shopping entries retain an unknown quantity.
+- Added API/provider/Vitest and Chromium/WebKit mobile regressions. Backend regression is `106 passed, 1 skipped, 2 warnings`; browser regression is `54 passed`.
+- No database migration, production database change, Railway deployment or push was performed.

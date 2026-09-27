@@ -354,7 +354,7 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 
 ## M20 - CHill Chef MVP (2026-09-27)
 
-### M20.1-M20.6 status: implemented; backend gate remains open
+### M20.1-M20.6 status: implemented; backend gate passed
 
 - [x] Approved Vision suggestions now enter a local editable Chef workflow. Food name and ingredients can be renamed, removed, replaced, or added; uncertain rows remain visibly distinct and require individual confirmation.
 - [x] Each ingredient reuses the existing search boundary: guest IndexedDB/custom foods, client cache, OFF and USDA results are grouped with source and CH. Results without verified CH are not selectable; a custom food requires user-entered CH per 100 g.
@@ -364,4 +364,19 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [x] calculation.test.ts covers valid zero CH, missing CH, and incomplete subtotals. A Chromium mobile E2E covers Vision -> source selection -> individual confirmation -> recipe and diary at 360, 375 and 390 px.
 - [x] M20.5 ingredient photo mode reuses the existing Vision endpoint and quota boundary; confirmed ingredients also show up to three matching existing, verified recipes without a new AI call.
 - [x] M20.6 mobile regression gate: the full Playwright suite is 48/48 in Chromium and WebKit at 360, 375 and 390 px.
-- [ ] Backend regression could not be rerun in this environment because neither configured Python interpreter has pytest installed; the unchanged backend baseline remains documented separately. M20 is therefore not marked fully complete until that gate is rerun.
+- [x] Backend regression gate rerun against the isolated PostgreSQL test database: 106 passed, 1 skipped (opt-in live Gemini), 2 warnings. M20 backend behavior remains green.
+
+## M21 - CHill Chef hűtőfelismerés és AI-receptgenerálás (2026-09-27)
+
+### M21.1-M21.6 status: implemented; live/device gates remain open
+
+- [x] M21.1: the existing CameraCapture and gallery input now support a local collection of up to four fridge photos. Adding, replacing and removing photos does not call Gemini; large images are downscaled locally before the explicit recognition action.
+- [x] M21.2: `POST /api/vision/fridge` sends the selected images in one multipart request to the existing provider/quota boundary. The endpoint validates MIME/size/count, reserves one vision quota unit, keeps TLS and provider error handling, and returns Hungarian structured suggestions without nutrient or quantity fields.
+- [x] M21.3: the frontend creates one editable fridge inventory, exact normalized names are merged conservatively, and uncertain rows remain visible. The user can add, rename, remove, split, explicitly merge and individually confirm items; no quantity is inferred or persisted.
+- [x] M21.4: `POST /api/chef/recipes/generate` performs an explicit text-only Gemini request for up to three materially different Hungarian recipe ideas. The server validates required recipe fields, deduplicates names, bounds output, rejects incomplete responses and exposes no CH/nutrient estimates.
+- [x] M21.5: selected suggestions hand off to the existing ChefWorkflow for catalog/custom-food matching, user quantities, deterministic CH, recipe save, diary/planner actions and guest storage. Missing recipe ingredients can be added to the existing shopping list with unknown quantity; no second catalog or CH engine was added.
+- [x] M21.6: the workflow is staged and mobile responsive, preserves drafts while requests fail, blocks duplicate submits, and uses the existing visual language. No Alembic migration or database schema change was required.
+- [x] Backend regression: isolated PostgreSQL suite `106 passed, 1 skipped, 2 warnings`.
+- [x] Frontend regression: typecheck passed; Vitest `32 passed`; production build passed; lint exited 0 with existing Camera/App hook warnings.
+- [x] Browser regression: Playwright Chromium and WebKit, 360/375/390 px, `54 passed` with mocked provider responses and local camera/image fixtures.
+- [ ] A live Gemini call and physical iPhone verification were not repeated in this implementation turn. They remain explicit staging/device gates; no Railway deployment was performed.

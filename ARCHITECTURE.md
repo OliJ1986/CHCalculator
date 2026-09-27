@@ -197,3 +197,13 @@ Gemini remains identification-only. The Chef review never sends another Gemini r
 The Add sheet exposes a separate Alapanyag fotó mode but routes it through the existing /api/vision/food contract, quota and local image lifecycle. It does not introduce a second AI endpoint or a second quota. The same structured confirmation result feeds the existing Chef ingredient editor.
 
 Chef recipe suggestions are deliberately local: existing authenticated recipes or guest IndexedDB recipes are matched by confirmed ingredient names and limited to three visible candidates. Suggestions are informational; recipe CH is displayed only from stored verified snapshots. New Gemini calls, estimated quantities and nutrient values are not used.
+
+## M21 CHill Chef fridge and recipe generation (2026-09-27)
+
+The M21 frontend is a staged orchestration layer over the existing camera, catalog, Chef, diary, planner and shopping boundaries. It keeps up to four selected image Blobs and object URLs locally. Selection does not call a provider; the explicit recognition action locally prepares oversized images and sends one multipart request to `/api/vision/fridge`.
+
+The fridge endpoint validates MIME types, per-image and aggregate byte limits, reserves the existing Vision quota once, and calls the Gemini adapter in a dedicated `fridge` mode. The adapter reuses the existing TLS context, request/error handling and JSON parser, but allows up to 24 distinct Hungarian food suggestions. The frontend performs conservative normalized-name deduplication and requires explicit user confirmation before recipe generation. It never treats the list as inventory quantities.
+
+Recipe generation is a separate explicit text-only `/api/chef/recipes/generate` request. It uses the same provider/quota boundary and returns at most three validated `RecipeSuggestion` values (name, description, ingredients, missing ingredients, instructions, servings and notes). Nutrient, CH, calorie, gram and stock-quantity fields are intentionally absent. The selected draft is passed to the existing ChefWorkflow, where Food/custom-food selection, user grams and deterministic carbohydrate calculation remain the only path to a verified recipe, diary entry or planner item. Missing recipe ingredients use the existing shopping API/guest IndexedDB with a null quantity.
+
+No schema or Alembic migration was required. The browser suite covers the staged flow with mocked provider responses; live Gemini quality and physical iPhone Safari behavior remain separate staging gates.

@@ -121,3 +121,7 @@ A heti tervező automatikus kapui teljesültek. Mobil böngészős QA nélkül a
 ## M15-M18 current state
 
 The CHill Camera UI, ZXing barcode scanning, local Tesseract.js nutrition OCR and disabled-by-default limited Gemini adapter are implemented. AI does not calculate CH or save automatically; the user confirms data through the existing search/custom-food flow. Physical camera permission and real Gemini calls remain manual/external gates.
+
+## M21 current state
+
+M21 CHill Chef is implemented on top of the existing M19/M20 boundaries. The app can collect up to four fridge photos locally, explicitly recognize them in one quota-controlled Gemini request, produce an editable/confirmable inventory, request up to three new structured recipe ideas from Gemini, and hand a selected recipe to the existing verified ingredient and deterministic CH workflow. No database migration was needed. Backend and frontend automated gates are green; live Gemini, Railway staging smoke and physical iPhone Safari verification remain manual gates.

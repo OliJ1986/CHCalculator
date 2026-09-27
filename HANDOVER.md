@@ -400,3 +400,21 @@ M20.5 now includes an explicit Alapanyag fotó mode that reuses the existing Vis
 The full frontend gate is green: typecheck passed, Vitest 30 passed, production build passed, lint exits 0 with only the existing Camera/App effect warnings, and Playwright Chromium/WebKit passed 48/48 at 360x800, 375x812 and 390x844. The first 42-test run had one transient WebKit crop debug failure; its isolated rerun passed at all three sizes, and the final 48-test run passed.
 
 The backend was not changed. A fresh backend pytest attempt was blocked before collection because Python 3.13 and 3.14 in this environment do not have pytest installed. The previous isolated PostgreSQL/M19 baseline remains the last backend evidence; M20 is not marked fully complete until the normal backend regression command can run. No environment secret, database, Railway service or deployment was touched.
+
+## M21 CHill Chef handover - 2026-09-27
+
+M21 is implemented on top of the M19 Vision provider and M20 Chef workflow. The frontend adds a staged `Hűtőm lefényképezése` flow: up to four local photos can be selected from the camera or gallery, reviewed and changed, then recognized only after an explicit action. Images are resized locally when needed and are not persisted or logged.
+
+`POST /api/vision/fridge` accepts one multipart `images` collection, validates the four-image/12 MiB application limits and MIME types, reserves one existing Vision quota unit, and calls Gemini once in `fridge` mode. `POST /api/chef/recipes/generate` is a separate explicit text-only request using the same provider, TLS and PostgreSQL quota boundary. The recipe parser accepts only structured recipe fields, limits the result to three distinct recipes and rejects incomplete or malformed output; CH, calories, grams and nutrient estimates are excluded from both prompt and response schemas.
+
+The local inventory is editable and conservative: exact normalized duplicates are merged, while materially different names stay separate until the user explicitly merges them. Uncertain rows are marked in the UI, each row requires confirmation, and no stock quantity is inferred. Generated recipe cards can be edited before handing off to the existing ChefWorkflow. That workflow still resolves each ingredient through the existing custom-food/OFF/USDA boundaries, requires verified CH and user-entered grams, calculates deterministically, and reuses recipe, diary, planner, guest IndexedDB and shopping-list behavior. Missing shopping entries have `quantity: null`.
+
+Validation completed after the M21 changes:
+
+- backend: isolated PostgreSQL `pytest -q -rs` -> `106 passed, 1 skipped, 2 warnings`; the skip is the explicit live Gemini test;
+- frontend: typecheck passed, Vitest `32 passed`, production build passed, lint exit 0 with the existing hook warnings;
+- browser: Playwright Chromium/WebKit at 360x800, 375x812 and 390x844 -> `54 passed` (including the new mocked fridge-to-recipe flow).
+
+Local commits: `267e706` (`feat: add fridge vision and recipe generation API`) and `8aef264` (`feat: add CHill Chef fridge workflow`). Documentation is being recorded in the follow-up documentation commit. No `.env` file, API key, production database, Railway service, push or deployment was touched.
+
+Open gates and limits: live Gemini was not called again because the normal suite keeps it opt-in; physical iPhone camera, orientation, Safari memory and Railway staging smoke still require a user-controlled staging/device check. The current browser tests mock the provider and camera, so they prove request boundaries and UI state transitions rather than live provider quality.

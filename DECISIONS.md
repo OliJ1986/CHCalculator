@@ -217,3 +217,19 @@ The first Chef ingredient-photo mode uses the existing food-vision endpoint and 
 ## D-M20-04 - Recipe suggestions are catalog-only in the first MVP (2026-09-27)
 
 The MVP shows at most three matching recipes from the existing authenticated catalog or guest IndexedDB. This keeps recipe suggestions deterministic, avoids an unnecessary Gemini request, and prevents unverified AI text from becoming a recipe or CH value.
+
+## D-M21-01 - Batched fridge recognition and shared quota (2026-09-27)
+
+The fridge flow sends up to four images in one explicit Gemini request and reserves one existing Vision quota unit. This avoids one-request-per-photo amplification while keeping the application byte/count limits and provider error boundary in one place. A failed request leaves the local photos available for retry.
+
+## D-M21-02 - Recipe generation is explicit, structured and nutrient-free (2026-09-27)
+
+Recipe generation uses a separate text-only endpoint only after the user confirms the fridge inventory and preferences. The provider returns at most three materially distinct structured recipes. Server validation rejects incomplete output, and the contract contains no nutrient, gram, calorie or CH fields; the existing deterministic Chef calculation remains authoritative.
+
+## D-M21-03 - Conservative inventory review (2026-09-27)
+
+Only exact normalized names are merged automatically. The user can explicitly merge or split rows and must confirm every item. The fridge list is a recipe-generation input, not stock accounting, so quantities are never inferred.
+
+## D-M21-04 - Existing persistence boundaries remain authoritative (2026-09-27)
+
+The selected recipe is handed to the existing ChefWorkflow for catalog/custom-food matching, user quantities, recipe persistence, diary/planner integration and guest storage. Missing recipe ingredients use the existing shopping list with an unknown quantity. No parallel data model or migration was introduced.
