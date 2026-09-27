@@ -54,7 +54,7 @@ class FoodVisionProvider(Protocol):
     async def identify(self, image: bytes, mime_type: str) -> FoodVisionResult:
         ...
 
-    async def identify_many(self, images: Sequence[tuple[bytes, str]]) -> FoodVisionResult:
+    async def identify_many(self, images: Sequence[tuple[bytes, str]], mode: str = "food") -> FoodVisionResult:
         ...
 
     async def generate_recipes(self, *, ingredients: Sequence[str], meal_type: str, servings: float,
