@@ -208,3 +208,9 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Kept the range controls as a collapsed keyboard-accessibility fallback and retained the original local source image until the next capture or close.
 - Unified normalized selection-to-source-pixel mapping for the canvas/OCR path; nutrient interpretation, local OCR and save rules are unchanged.
 - Added portrait/landscape and selected-pixel regression coverage. Chromium and WebKit each pass 12 tests at 360x800, 375x812 and 390x844; frontend unit count is now 25.
+
+## Unreleased - Gemini 3.8 Flash adapter - 2026-09-27
+
+- The server-side Gemini food-vision adapter now targets `gemini-3.8-flash` by default, uses low Gemini 3 thinking, and has a configurable 1024-token response budget.
+- Prompt and parser safeguards prevent near-duplicate food suggestions and mark uncertain ingredients consistently without inventing nutrient values.
+- Added deterministic mock regressions and one opt-in live smoke test. The live test was not executed because the local environment loaded no non-empty Gemini key; no secret was printed or committed.

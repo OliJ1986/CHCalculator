@@ -302,3 +302,13 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - [x] Added deterministic EAN validation tests and Playwright camera tests with mocked streams, permission denial/retry, close/reopen cleanup, a known EAN-13 fixture, invalid-code fallback, Chromium and WebKit at 360x800, 375x812 and 390x844.
 - [x] Frontend gates: Vitest `16 passed`, `typecheck`, production build, and `test:camera` `12 passed`. Lint exits successfully with the five pre-existing React effect/dependency warnings.
 - [ ] Physical iPhone Safari camera permission and device autofocus remain manual QA; no real device or provider call was used by the deterministic browser tests.
+
+## 2026-09-27 - Gemini 3.8 Flash adapter stabilization
+
+- [x] The Gemini adapter defaults to `gemini-3.8-flash`; an optional `models/` prefix is normalized before building the endpoint. Gemini 3 requests set low thinking, while legacy models omit that field.
+- [x] The prompt asks for at most three materially distinct suggestions, rejects spelling/language/package repetitions, and requires the exact `uncertain: ` prefix for uncertain ingredients.
+- [x] The server parser also deduplicates names and ingredients, normalizes comparison keys, and raises the top-level uncertainty flag when an uncertain marker is present. Nutrient and calorie values remain forbidden.
+- [x] The 500-token limit is now configurable through `VISION_MAX_OUTPUT_TOKENS`, with a 1024 default that leaves room for Gemini 3 thinking plus the short JSON response.
+- [x] Mock regressions cover deduplication, uncertain ingredients, the Gemini 3 payload, and legacy-model compatibility. The single real call is an opt-in test using a generated 1x1 fixture.
+- [ ] The local `.env` loaded no non-empty `GEMINI_API_KEY` in this run, so the real API smoke test skipped. After configuring the key locally, run `CHILL_RUN_LIVE_GEMINI=1` once.
+- [x] Regression: targeted food-vision tests pass 7/7; backend passes 86 tests with 5 skips when the three known Windows ACL-blocked cache-import cases are excluded. The full run has the same three setup errors (87 passed, 5 skipped), which remain environmental.

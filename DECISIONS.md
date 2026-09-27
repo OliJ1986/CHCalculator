@@ -161,3 +161,7 @@ The video element remains mounted in an idle host so permission and stream attac
 ## D-M15-18-04 - Normalized touch crop boundary (2026-09-27)
 
 The nutrition crop selector stores a normalized rectangle and uses one pure conversion function for both UI validation and canvas processing. This keeps pointer coordinates independent of rendered size and makes portrait/landscape layouts equivalent. The selector enforces image bounds and a minimum size, while the existing range controls remain available as a collapsed keyboard-accessibility fallback. The original image stays local and available for a new selection; no nutrition or save semantics change.
+
+## D-M18-05 - Gemini 3.8 response contract (2026-09-27)
+
+Gemini 3.8 Flash is the default model for the backend food-vision adapter. The provider normalizes an optional `models/` prefix, sends `thinkingLevel=low` only to Gemini 3 models, and keeps the output budget configurable with a 1024-token default. The prompt and server parser both enforce at most three materially distinct suggestions; uncertain ingredient strings use the stable `uncertain: ` marker and raise the top-level uncertainty flag. This preserves the existing list-based API while preventing model repetition and silent certainty inflation. The live smoke test remains explicit and opt-in so normal regression runs never spend provider quota.

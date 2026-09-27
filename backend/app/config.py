@@ -24,11 +24,12 @@ class Settings(BaseSettings):
     auth_email_delivery_url: str = ""
     vision_enabled: bool = False
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash-lite"
+    gemini_model: str = "gemini-3.8-flash"
     vision_max_image_bytes: int = 4 * 1024 * 1024
     vision_rate_limit_per_minute: int = 3
     vision_daily_limit: int = 5
     vision_timeout_seconds: float = 20.0
+    vision_max_output_tokens: int = 1024
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",

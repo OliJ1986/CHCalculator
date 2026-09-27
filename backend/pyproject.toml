@@ -3,6 +3,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "postgresql: requires an isolated PostgreSQL test database",
+    "live: performs an explicitly enabled external provider smoke test",
 ]
 
 [tool.ruff]

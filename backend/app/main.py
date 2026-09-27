@@ -97,6 +97,7 @@ food_vision_provider: FoodVisionProvider = GeminiFoodVisionProvider(
     settings.gemini_api_key,
     settings.gemini_model,
     timeout=settings.vision_timeout_seconds,
+    max_output_tokens=settings.vision_max_output_tokens,
 ) if settings.vision_enabled and settings.gemini_api_key.strip() else DisabledFoodVisionProvider()
 _vision_requests: dict[str, deque[float]] = defaultdict(deque)
 _vision_daily: dict[str, tuple[int, int]] = {}

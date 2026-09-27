@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import json
+import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -38,6 +40,44 @@ def _bounded_text(value: object, maximum: int) -> str:
     return str(value).strip()[:maximum] if value is not None else ""
 
 
+_UNCERTAIN_PREFIX = "uncertain: "
+
+
+def _comparison_key(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value).casefold()
+    normalized = "".join(character for character in normalized if not unicodedata.combining(character))
+    normalized = re.sub(r"[^\w]+", " ", normalized, flags=re.UNICODE)
+    return " ".join(normalized.split())
+
+
+def _ingredient_text(value: object) -> str:
+    """Accept the documented string format and tolerate object responses safely."""
+    if isinstance(value, dict):
+        name = _bounded_text(value.get("name", value.get("ingredient")), 120)
+        if not name:
+            return ""
+        return f"{_UNCERTAIN_PREFIX}{name}" if bool(value.get("uncertain", True)) else name
+    return _bounded_text(value, 120)
+
+
+def _deduplicate_ingredients(values: list[object]) -> tuple[str, ...]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _ingredient_text(value)
+        if not text:
+            continue
+        # Keep the uncertainty marker stable for clients and comparisons.
+        if text.casefold().startswith("uncertain:"):
+            text = f"{_UNCERTAIN_PREFIX}{text.split(':', 1)[1].strip()}"
+        key = _comparison_key(text.removeprefix(_UNCERTAIN_PREFIX))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        result.append(text)
+    return tuple(result[:12])
+
+
 def _parse_result(value: object, provider: str) -> FoodVisionResult:
     if not isinstance(value, dict):
         raise FoodVisionError("A képfelismerő válasza érvénytelen", kind="invalid_response")
@@ -45,11 +85,15 @@ def _parse_result(value: object, provider: str) -> FoodVisionResult:
     if not isinstance(raw_suggestions, list):
         raw_suggestions = []
     suggestions: list[FoodVisionSuggestion] = []
-    for item in raw_suggestions[:8]:
+    seen_names: set[str] = set()
+    for item in raw_suggestions[:16]:
         if not isinstance(item, dict):
             continue
         name = _bounded_text(item.get("name"), 120)
         if not name:
+            continue
+        name_key = _comparison_key(name)
+        if not name_key or name_key in seen_names:
             continue
         confidence_value = item.get("confidence")
         confidence: float | None
@@ -58,11 +102,17 @@ def _parse_result(value: object, provider: str) -> FoodVisionResult:
         except (TypeError, ValueError):
             confidence = None
         raw_ingredients = item.get("possible_ingredients")
-        ingredients = tuple(_bounded_text(entry, 120) for entry in raw_ingredients[:12] if _bounded_text(entry, 120)) if isinstance(raw_ingredients, list) else ()
+        ingredients = _deduplicate_ingredients(raw_ingredients) if isinstance(raw_ingredients, list) else ()
         suggestions.append(FoodVisionSuggestion(name=name, confidence=confidence, possible_ingredients=ingredients))
+        seen_names.add(name_key)
+        if len(suggestions) >= 3:
+            break
+    ingredient_uncertain = any(
+        ingredient.casefold().startswith(_UNCERTAIN_PREFIX) for suggestion in suggestions for ingredient in suggestion.possible_ingredients
+    )
     return FoodVisionResult(
         suggestions=tuple(suggestions),
-        uncertain=bool(value.get("uncertain", not suggestions)),
+        uncertain=bool(value.get("uncertain", not suggestions)) or ingredient_uncertain,
         provider=provider,
     )
 
@@ -89,22 +139,41 @@ class MockFoodVisionProvider:
 class GeminiFoodVisionProvider:
     endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-    def __init__(self, api_key: str, model: str, timeout: float = 20.0, transport: httpx.AsyncBaseTransport | None = None) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        timeout: float = 20.0,
+        transport: httpx.AsyncBaseTransport | None = None,
+        max_output_tokens: int = 1024,
+    ) -> None:
         self.api_key = api_key
-        self.model = model
+        self.model = model.strip().removeprefix("models/")
         self.timeout = timeout
         self.transport = transport
+        self.max_output_tokens = max(1, int(max_output_tokens))
 
     async def identify(self, image: bytes, mime_type: str) -> FoodVisionResult:
         prompt = (
-            "Identify the photographed food for a nutrition app. Return JSON only, with this shape: "
+            "Identify the single photographed food for a nutrition app. Return JSON only, with this shape: "
             '{"suggestions":[{"name":"...","confidence":0.0,"possible_ingredients":["..."]}],"uncertain":true}. '
-            "Suggest names and possible ingredients only. Never invent carbohydrate, calorie, gram or serving values. "
-            "If uncertain, set uncertain true and keep confidence low."
+            "Return at most three suggestions and include only materially different foods. "
+            "Do not repeat the same food because of spelling, language, capitalization, brand or package wording; "
+            "merge such duplicates into one canonical name. "
+            "List possible ingredients only when visible or strongly supported by the label. "
+            "Every ingredient that is uncertain must be prefixed exactly with 'uncertain: '. "
+            "Set uncertain true when the food identity or any ingredient is uncertain, and use low confidence then. "
+            "Never invent carbohydrate, calorie, gram or serving values."
         )
+        generation_config = {
+            "responseMimeType": "application/json",
+            "maxOutputTokens": self.max_output_tokens,
+        }
+        if self.model.casefold().startswith("gemini-3"):
+            generation_config["thinkingConfig"] = {"thinkingLevel": "low"}
         payload = {
             "contents": [{"parts": [{"text": prompt}, {"inline_data": {"mime_type": mime_type, "data": base64.b64encode(image).decode("ascii")}}]}],
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.1, "maxOutputTokens": 500},
+            "generationConfig": generation_config,
         }
         try:
             async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport) as client:
