@@ -156,3 +156,8 @@ AI is disabled by default and is reachable only through a backend provider with 
 - OFF 404 és `status=0` ismeretlen termék; 429, 5xx és timeout átmeneti szolgáltatói hiba. A frontend a HTTP-státusz alapján külön üzenetet ad, és a cache-találatot provider-hívás nélkül használja.
 
 The video element remains mounted in an idle host so permission and stream attachment do not depend on a state transition rendering the element. Every start, retry, switch, close and unmount path owns explicit track cleanup. Barcode image decoding may use bounded local canvas variants, but only checksum-valid EAN-8/EAN-13 values are sent to the existing lookup service; manual entry remains the fallback.
+
+
+## D-M15-18-04 - Normalized touch crop boundary (2026-09-27)
+
+The nutrition crop selector stores a normalized rectangle and uses one pure conversion function for both UI validation and canvas processing. This keeps pointer coordinates independent of rendered size and makes portrait/landscape layouts equivalent. The selector enforces image bounds and a minimum size, while the existing range controls remain available as a collapsed keyboard-accessibility fallback. The original image stays local and available for a new selection; no nutrition or save semantics change.

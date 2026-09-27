@@ -286,6 +286,16 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - [x] Backend célzott provider-kapu és barcode endpoint-kapu: 16 teszt sikeres; a teljes futásban 83 teszt sikeres és 4 skip, 3 cache-import teszt setupját a Windows pytest ideiglenes könyvtár ACL-je blokkolta (implementációs hiba nélkül).
 - [ ] Valós iPhone Safari OCR-kamera és élő Railway/OFF smoke ebben a munkamenetben nem futott; ez külön eszköz- és staging-hozzáférést igényel.
 
+## 2026-09-27 – Nutrition OCR 2.1 érintésvezérelt kivágás
+
+- [x] A négy csúszka helyett a teljes feltöltött kép fölött mozgatható, négy 44 px-es érintési célú fogantyúval rendelkező kijelölőkeret működik.
+- [x] A kijelölés mozgatása és minden sarok átméretezése normalizált koordinátákon történik; a keret a kép határain belül marad, legalább 12% szélességű és magasságú.
+- [x] A kijelölésen kívüli terület elsötétül, a „Teljes kép kijelölése” visszaállítja az alapállapotot, az eredeti Blob a feldolgozás végéig megmarad, a billentyűzetes csúszkák lenyitható alternatívaként megmaradtak.
+- [x] A vizuális koordináták ugyanazzal a forráspixel-átalakítással kerülnek a canvasba és az OCR-be; a normalizált → pixel leképezést unit teszt, a tényleges feldolgozott részletet fejlesztési diagnosztika és Playwright ellenőrzi.
+- [x] Álló és fekvő képre, kép-határokra, fogantyú-átméretezésre és OCR-folyamatra Chromium/WebKit teszt készült 360×800, 375×812 és 390×844 méreten: mindkét motorban 12/12 teszt sikeres (összesen 24).
+- [x] Frontend kapuk: 25 Vitest teszt, typecheck és production build sikeres; a lint sikeres, az öt korábbi React effect/dependency figyelmeztetés változatlan.
+- [ ] Fizikai iPhone Safari érintési érzetét és EXIF-orientációs eszköztesztjét ez a környezet nem bizonyítja; ez továbbra is manuális QA.
+
 - [x] BarcodeScanner keeps its video element mounted in an idle host, so the start action can request permission before activation. Start, detected-result delivery, explicit stop, close and unmount all release ZXing controls and media tracks; startup failures produce an actionable alert.
 - [x] CameraCapture attaches the returned stream before marking the preview active, awaits Safari-compatible `video.play()`, uses the requested facing mode for camera switching, and detaches/stops every track on switch, capture, close and unmount.
 - [x] Local barcode image processing now tries scaled, centered-crop, contrast and 90/180/270 degree orientation variants. Results are accepted only after EAN-8/EAN-13 checksum validation; unsuccessful recognition leaves the manual input available and never uploads the image.

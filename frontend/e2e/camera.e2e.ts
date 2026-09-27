@@ -1,10 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
+import { Buffer } from 'node:buffer'
 import path from 'node:path'
 
 type CameraTestWindow = Window & {
   __cameraCalls: MediaStreamConstraints[]
   __cameraStops: number
   __denyCamera: boolean
+  __CHILL_NUTRITION_LAST_CROP?: { x: number; y: number; width: number; height: number; sourceWidth: number; sourceHeight: number }
 }
 
 const viewports = [
@@ -151,7 +153,42 @@ for (const viewport of viewports) {
       await openNutritionPanel(page)
       await page.locator('input[type="file"]').setInputFiles(path.join(import.meta.dirname, 'fixtures', 'ean13-4006381333931.svg'))
       await expect(page.getByRole('button', { name: 'Kivágás és felismerés' })).toBeVisible()
+      const stage = page.locator('.nutrition-crop-stage')
+      const stageBox = await stage.boundingBox()
+      const sourceImageBox = await page.locator('.nutrition-crop-stage > img').boundingBox()
+      expect(stageBox).not.toBeNull()
+      expect(sourceImageBox).not.toBeNull()
+      expect(Math.abs((stageBox?.width ?? 0) - (sourceImageBox?.width ?? 0))).toBeLessThan(1)
+      expect(await page.locator('.nutrition-crop-handle').count()).toBe(4)
+      const resizeHandle = page.locator('.handle-se')
+      const resizeBox = await resizeHandle.boundingBox()
+      expect(resizeBox).not.toBeNull()
+      await page.mouse.move((resizeBox?.x ?? 0) + (resizeBox?.width ?? 0) / 2, (resizeBox?.y ?? 0) + (resizeBox?.height ?? 0) / 2)
+      await page.mouse.down()
+      await page.mouse.move((resizeBox?.x ?? 0) - 35, (resizeBox?.y ?? 0) - 35)
+      await page.mouse.up()
+      const resizedStyle = await page.locator('.nutrition-crop-selection').evaluate((element) => getComputedStyle(element).width)
+      expect(Number.parseFloat(resizedStyle)).toBeLessThan(stageBox?.width ?? Number.POSITIVE_INFINITY)
+      const selectionBox = await page.locator('.nutrition-crop-selection').boundingBox()
+      expect(selectionBox).not.toBeNull()
+      await page.mouse.move((selectionBox?.x ?? 0) + (selectionBox?.width ?? 0) / 2, (selectionBox?.y ?? 0) + (selectionBox?.height ?? 0) / 2)
+      await page.mouse.down()
+      await page.mouse.move((selectionBox?.x ?? 0) + 15, (selectionBox?.y ?? 0) + 10)
+      await page.mouse.up()
+      await page.getByRole('button', { name: 'Teljes kép kijelölése' }).click()
+      const fullSelectionWidth = await page.locator('.nutrition-crop-selection').evaluate((element) => element.getBoundingClientRect().width)
+      expect(Math.abs(fullSelectionWidth - (stageBox?.width ?? 0))).toBeLessThan(1)
+      // Re-select a smaller region so the OCR call can prove that the canvas
+      // received the visual selection rather than the full image.
+      const resetHandle = await page.locator('.handle-se').boundingBox()
+      await page.mouse.move((resetHandle?.x ?? 0) + (resetHandle?.width ?? 0) / 2, (resetHandle?.y ?? 0) + (resetHandle?.height ?? 0) / 2)
+      await page.mouse.down()
+      await page.mouse.move((resetHandle?.x ?? 0) - 35, (resetHandle?.y ?? 0) - 35)
+      await page.mouse.up()
       await page.getByRole('button', { name: 'Kivágás és felismerés' }).click()
+      const cropDebug = await page.evaluate(() => (window as CameraTestWindow).__CHILL_NUTRITION_LAST_CROP)
+      expect(cropDebug).toBeDefined()
+      expect(cropDebug?.width).toBeLessThan(cropDebug?.sourceWidth ?? 0)
       await expect(page.getByLabel('Élelmiszer neve')).toHaveValue("Koch's Original Majonéz")
       await expect(page.getByLabel('Szénhidrát / 100 g')).toHaveValue('7.1')
       await expect(page.getByLabel('Ebből cukrok / 100 g')).toHaveValue('6.1')
@@ -167,5 +204,43 @@ for (const viewport of viewports) {
       await page.getByLabel('Szénhidrát / 100 g').fill('7,1')
       await expect(page.getByRole('button', { name: 'Saját étel létrehozása' })).toBeEnabled()
     })
+
+    test('keeps a portrait image bounded while processing the selected pixels', async ({ page }) => {
+      const barcodeRequests: string[] = []
+      await mockCamera(page)
+      await mockApi(page, barcodeRequests)
+      await page.addInitScript(() => {
+        ;(window as Window & { __CHILL_NUTRITION_OCR_TEXT?: string }).__CHILL_NUTRITION_OCR_TEXT = 'not a nutrition table'
+      })
+      await openNutritionPanel(page)
+      const portraitSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="220" height="460" viewBox="0 0 220 460"><rect width="220" height="460" fill="white"/><rect x="20" y="40" width="180" height="120" fill="#d8f06a"/></svg>'
+      await page.locator('input[type="file"]').setInputFiles({ name: 'portrait.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(portraitSvg) })
+      const stage = page.locator('.nutrition-crop-stage')
+      const stageBox = await stage.boundingBox()
+      const imageBox = await page.locator('.nutrition-crop-stage > img').boundingBox()
+      expect(stageBox).not.toBeNull()
+      expect(imageBox).not.toBeNull()
+      expect(imageBox?.height ?? 0).toBeGreaterThan(imageBox?.width ?? Number.POSITIVE_INFINITY)
+      expect(stageBox?.height ?? 0).toBeGreaterThan(stageBox?.width ?? Number.POSITIVE_INFINITY)
+
+      const handle = await page.locator('.handle-nw').boundingBox()
+      expect(handle).not.toBeNull()
+      await page.mouse.move((handle?.x ?? 0) + (handle?.width ?? 0) / 2, (handle?.y ?? 0) + (handle?.height ?? 0) / 2)
+      await page.mouse.down()
+      await page.mouse.move((stageBox?.x ?? 0) + (stageBox?.width ?? 0) + 100, (stageBox?.y ?? 0) + (stageBox?.height ?? 0) + 100)
+      await page.mouse.up()
+      const selectionBox = await page.locator('.nutrition-crop-selection').boundingBox()
+      expect(selectionBox).not.toBeNull()
+      expect(selectionBox?.x ?? 0).toBeGreaterThanOrEqual((stageBox?.x ?? 0) - 1)
+      expect(selectionBox?.y ?? 0).toBeGreaterThanOrEqual((stageBox?.y ?? 0) - 1)
+      expect((selectionBox?.x ?? 0) + (selectionBox?.width ?? 0)).toBeLessThanOrEqual((stageBox?.x ?? 0) + (stageBox?.width ?? 0) + 1)
+      expect((selectionBox?.y ?? 0) + (selectionBox?.height ?? 0)).toBeLessThanOrEqual((stageBox?.y ?? 0) + (stageBox?.height ?? 0) + 1)
+      await page.locator('button.confirm-button').click()
+      await expect.poll(() => page.evaluate(() => (window as CameraTestWindow).__CHILL_NUTRITION_LAST_CROP)).toBeDefined()
+      const cropDebug = await page.evaluate(() => (window as CameraTestWindow).__CHILL_NUTRITION_LAST_CROP)
+      expect(cropDebug?.sourceHeight).toBeGreaterThan(cropDebug?.sourceWidth ?? Number.POSITIVE_INFINITY)
+      expect(cropDebug?.height).toBeLessThan(cropDebug?.sourceHeight ?? 0)
+    })
+
   })
 }

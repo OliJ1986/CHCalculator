@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseNutritionLabel } from './nutrition'
+import { sourceRectForCrop } from './nutritionCrop'
 
 const hungarianMayonnaise = `Koch's Original Majonéz
 Tápérték / Nutrition declaration
@@ -35,5 +36,10 @@ describe('nutrition label parser', () => {
     const result = parseNutritionLabel('100 g\nCarbohydrate —\nProtein —')
     expect(result.name).toBe('')
     expect(result.values.carbohydrates).toBeNull()
+  })
+
+  it('maps the visual selection to the exact source pixel rectangle', () => {
+    expect(sourceRectForCrop(1200, 800, { left: 0.1, top: 0.2, width: 0.5, height: 0.25 })).toEqual({ x: 120, y: 160, width: 600, height: 200 })
+    expect(sourceRectForCrop(100, 50, { left: -1, top: 0.9, width: 3, height: 3 })).toEqual({ x: 0, y: 45, width: 100, height: 5 })
   })
 })

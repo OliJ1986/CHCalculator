@@ -200,3 +200,11 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Fixed shared camera stream attachment and stale facing-mode switching for Safari-style media lifecycles.
 - Added local multi-pass barcode image preprocessing with EAN-8/EAN-13 checksum validation and a manual-entry fallback. Images never leave the device.
 - Added deterministic Chromium/WebKit camera regression coverage at 360, 375 and 390 px, including denial/retry, cleanup, valid EAN image recognition and invalid manual input.
+
+
+### Nutrition OCR 2.1 - touch crop (2026-09-27)
+
+- Replaced the primary four-slider crop UI with a full-image, touch-friendly selection rectangle with move and four-corner resize handles, dimmed outside area, bounds/minimum-size enforcement and a full-image reset.
+- Kept the range controls as a collapsed keyboard-accessibility fallback and retained the original local source image until the next capture or close.
+- Unified normalized selection-to-source-pixel mapping for the canvas/OCR path; nutrient interpretation, local OCR and save rules are unchanged.
+- Added portrait/landscape and selected-pixel regression coverage. Chromium and WebKit each pass 12 tests at 360x800, 375x812 and 390x844; frontend unit count is now 25.

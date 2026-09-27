@@ -144,3 +144,10 @@ Nutrition OCR stays in the browser. `NutritionScanner` creates a local cropped a
 Barcode lookup keeps the existing cache-first `FoodService` boundary. Open Food Facts HTTP 404 and JSON `status=0` are unknown products; provider 429/5xx/timeouts remain provider failures and are mapped to a 503 by FastAPI. The frontend maps the gateway status to a user-facing category without exposing provider details or secrets.
 
 Camera components keep a mounted video host separate from their active-state presentation. This lets permission requests and stream attachment happen in a stable DOM node, including Safari, while cleanup always stops tracks and clears `srcObject`. ZXing remains lazy-loaded and image decoding stays in local canvas memory; only checksum-valid EAN-8/EAN-13 values cross the existing barcode lookup boundary.
+
+
+## Nutrition OCR 2.1 touch crop (2026-09-27)
+
+The OCR review stage renders the complete uploaded image in a responsive stage and stores the selection as normalized `left`, `top`, `width` and `height` values. Pointer events on the selection move it; four 44 px corner buttons resize it. A 12% minimum and clamping keep every selection inside the image, while a CSS shadow dims the outside area. The full-image reset is explicit, and the old range inputs remain in a collapsed keyboard-accessibility section.
+
+`sourceRectForCrop` converts the normalized rectangle to rounded source pixels. The same rectangle is passed to the local canvas before contrast enhancement and Tesseract, which prevents a visual/processed-region mismatch for portrait or landscape images. No image is uploaded or persisted; nutrient parsing, basis handling and custom-food validation are unchanged.

@@ -325,3 +325,12 @@ The two reported camera regressions are fixed. Both camera components keep a vid
 Barcode image recognition is local and bounded to scaled, centered-crop, contrast and 90/180/270 degree orientation canvas variants. Only checksum-valid EAN-8/EAN-13 values are submitted to the existing OFF lookup; a failed attempt leaves manual entry available and no image is uploaded or persisted.
 
 Validation completed: `npm run test -- --run` (16 passed), `npm run typecheck`, `npm run build`, `npm run lint` (exit 0, five pre-existing warnings), and `npm run test:camera -- --workers=1` (12 passed: Chromium/WebKit at 360x800, 375x812 and 390x844). The Playwright camera fixture includes a Safari-compatible mock MediaStream because Playwright WebKit does not expose a native MediaStream constructor. Physical iPhone permission/autofocus and live backend/provider traffic remain manual QA.
+
+
+## 2026-09-27 - Nutrition OCR 2.1 touch crop handover
+
+The nutrition-label flow now keeps the uploaded source image visible in a responsive crop stage. A normalized selection rectangle can be moved or resized from four 44 px touch targets; movement is clamped to the image and each dimension has a 12% minimum. The outside region is dimmed and a full-image reset is available. The previous range controls remain inside a collapsed keyboard-accessibility section.
+
+`sourceRectForCrop` is the single boundary between the visual selection and canvas processing. It clamps normalized coordinates, rounds them to source pixels and is used by `cropAndEnhance`, so the OCR Blob is exactly the selected region. The original Blob/object URL remains available until the user starts a new image or closes the flow. Browser image dimensions provide the portrait/landscape layout; OCR, nutrient interpretation and save validation are unchanged.
+
+Validation: frontend unit tests `25 passed`, typecheck, lint (five pre-existing React warnings) and production build passed. Playwright camera/OCR tests passed in both Chromium and WebKit at 360x800, 375x812 and 390x844: 12/12 per engine, including drag, corner resize, reset, image-boundary checks, portrait input and the selected-source-pixel assertion. Physical iPhone Safari and EXIF-specific hardware capture remain manual QA; no deployment or provider call was performed.

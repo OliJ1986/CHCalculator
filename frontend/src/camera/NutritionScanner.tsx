@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CameraCapture } from './CameraCapture'
 import { parseNutritionLabel, type NutritionDraft, type NutritionValues, type NutritionBasis } from './nutrition'
+import { sourceRectForCrop, type CropSelection } from './nutritionCrop'
 import { Check, X } from '../components/icons'
 
-type Crop = { left: number; top: number; width: number; height: number }
 type OcrWindow = Window & { __CHILL_NUTRITION_OCR_TEXT?: string }
+type CropDebug = { x: number; y: number; width: number; height: number; sourceWidth: number; sourceHeight: number }
+type CropWindow = Window & { __CHILL_NUTRITION_LAST_CROP?: CropDebug }
 
 function emptyDraft(): NutritionDraft {
   return {
@@ -29,16 +31,15 @@ function numberOrNull(value: string): number | null {
   return Number.isFinite(number) && number >= 0 ? number : null
 }
 
-function cropAndEnhance(source: Blob, crop: Crop, contrast: boolean): Promise<Blob> {
+function cropAndEnhance(source: Blob, crop: CropSelection, contrast: boolean, onCrop?: (debug: CropDebug) => void): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(source)
     const image = new Image()
     image.onload = () => {
       URL.revokeObjectURL(url)
-      const sx = Math.round(image.naturalWidth * crop.left)
-      const sy = Math.round(image.naturalHeight * crop.top)
-      const sw = Math.max(1, Math.round(image.naturalWidth * crop.width))
-      const sh = Math.max(1, Math.round(image.naturalHeight * crop.height))
+      const rect = sourceRectForCrop(image.naturalWidth, image.naturalHeight, crop)
+      const { x: sx, y: sy, width: sw, height: sh } = rect
+      onCrop?.({ ...rect, sourceWidth: image.naturalWidth, sourceHeight: image.naturalHeight })
       const scale = Math.min(1.5, 2400 / Math.max(sw, sh))
       const canvas = document.createElement('canvas')
       canvas.width = Math.max(1, Math.round(sw * scale))
@@ -83,9 +84,107 @@ const basisLabel: Record<Exclude<NutritionBasis, null>, string> = {
   serving: 'Adag',
 }
 
+type DragMode = 'move' | 'nw' | 'ne' | 'sw' | 'se'
+type CropInteraction = { mode: DragMode; startX: number; startY: number; startCrop: CropSelection }
+const MIN_CROP_SIZE = 0.12
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+function CropSelector({ sourceUrl, crop, onChange, onReset }: { sourceUrl: string; crop: CropSelection; onChange: (next: CropSelection) => void; onReset: () => void }) {
+  const stageRef = useRef<HTMLDivElement>(null)
+  const interactionRef = useRef<CropInteraction | null>(null)
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null)
+
+  const beginInteraction = (mode: DragMode, event: React.PointerEvent<HTMLElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const stage = stageRef.current
+    if (!stage) return
+    interactionRef.current = { mode, startX: event.clientX, startY: event.clientY, startCrop: crop }
+    stage.setPointerCapture(event.pointerId)
+  }
+
+  const applyInteraction = useCallback((clientX: number, clientY: number) => {
+    const interaction = interactionRef.current
+    const stage = stageRef.current
+    if (!interaction || !stage) return
+    const bounds = stage.getBoundingClientRect()
+    const dx = (clientX - interaction.startX) / Math.max(1, bounds.width)
+    const dy = (clientY - interaction.startY) / Math.max(1, bounds.height)
+    const start = interaction.startCrop
+    if (interaction.mode === 'move') {
+      onChange({ ...start, left: clamp(start.left + dx, 0, 1 - start.width), top: clamp(start.top + dy, 0, 1 - start.height) })
+      return
+    }
+    const right = start.left + start.width
+    const bottom = start.top + start.height
+    let left = start.left
+    let top = start.top
+    let nextRight = right
+    let nextBottom = bottom
+    if (interaction.mode.includes('w')) left = clamp(start.left + dx, 0, right - MIN_CROP_SIZE)
+    if (interaction.mode.includes('e')) nextRight = clamp(right + dx, left + MIN_CROP_SIZE, 1)
+    if (interaction.mode.includes('n')) top = clamp(start.top + dy, 0, bottom - MIN_CROP_SIZE)
+    if (interaction.mode.includes('s')) nextBottom = clamp(bottom + dy, top + MIN_CROP_SIZE, 1)
+    onChange({ left, top, width: nextRight - left, height: nextBottom - top })
+  }, [onChange])
+
+  const moveInteraction = (event: React.PointerEvent<HTMLDivElement>) => applyInteraction(event.clientX, event.clientY)
+
+  useEffect(() => {
+    const move = (event: PointerEvent) => applyInteraction(event.clientX, event.clientY)
+    const end = () => { interactionRef.current = null }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+    }
+  }, [applyInteraction])
+
+  const endInteraction = (event: React.PointerEvent<HTMLDivElement>) => {
+    interactionRef.current = null
+    if (stageRef.current?.hasPointerCapture(event.pointerId)) stageRef.current.releasePointerCapture(event.pointerId)
+  }
+
+  const handles: Array<[DragMode, string, string]> = [
+    ['nw', 'Bal felső sarok', 'nwse-resize'],
+    ['ne', 'Jobb felső sarok', 'nesw-resize'],
+    ['sw', 'Bal alsó sarok', 'nesw-resize'],
+    ['se', 'Jobb alsó sarok', 'nwse-resize'],
+  ]
+  const portraitMaxWidth = imageSize && imageSize.height > imageSize.width ? `${Math.max(180, Math.round(360 * imageSize.width / imageSize.height))}px` : undefined
+
+  return <div className="nutrition-crop-visual" style={{ maxWidth: portraitMaxWidth }}>
+    <div
+      ref={stageRef}
+      className="nutrition-crop-stage"
+      onPointerMove={moveInteraction}
+      onPointerUp={endInteraction}
+      onPointerCancel={endInteraction}
+    >
+      <img src={sourceUrl} alt="Feldolgozandó címke" draggable={false} onLoad={(event) => setImageSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
+      <div
+        className="nutrition-crop-selection"
+        style={{ left: `${crop.left * 100}%`, top: `${crop.top * 100}%`, width: `${crop.width * 100}%`, height: `${crop.height * 100}%` }}
+        onPointerDown={(event) => beginInteraction('move', event)}
+        role="group"
+        aria-label="Kijelölt tápértéktáblázat; húzd a kép áthelyezéséhez"
+      >
+        {handles.map(([mode, label, cursor]) => <button key={mode} type="button" className={`nutrition-crop-handle handle-${mode}`} style={{ cursor }} aria-label={label} onPointerDown={(event) => beginInteraction(mode, event)} />)}
+      </div>
+    </div>
+    <button type="button" className="secondary-action nutrition-crop-reset" onClick={onReset}>Teljes kép kijelölése</button>
+  </div>
+}
+
 export function NutritionScanner({ onConfirm, onClose }: { onConfirm: (draft: NutritionDraft) => void | Promise<void>; onClose?: () => void }) {
   const [source, setSource] = useState<{ blob: Blob; url: string } | null>(null)
-  const [crop, setCrop] = useState<Crop>({ left: 0, top: 0, width: 1, height: 1 })
+  const [crop, setCrop] = useState<CropSelection>({ left: 0, top: 0, width: 1, height: 1 })
   const [contrast, setContrast] = useState(true)
   const [draft, setDraft] = useState<NutritionDraft | null>(null)
   const [busy, setBusy] = useState(false)
@@ -107,7 +206,9 @@ export function NutritionScanner({ onConfirm, onClose }: { onConfirm: (draft: Nu
     setError(null)
     setProgress(0)
     try {
-      const cropped = await cropAndEnhance(source.blob, crop, contrast)
+      const cropped = await cropAndEnhance(source.blob, crop, contrast, (debug) => {
+        if (import.meta.env.DEV) (window as CropWindow).__CHILL_NUTRITION_LAST_CROP = debug
+      })
       setDraft(await recognizeLabel(cropped, setProgress))
     } catch {
       setDraft(emptyDraft())
@@ -163,10 +264,10 @@ export function NutritionScanner({ onConfirm, onClose }: { onConfirm: (draft: Nu
 
   if (source) return <section className="camera-capture nutrition-crop" aria-label="Címke kivágása">
     <div className="camera-capture-header"><div><p className="eyebrow">Helyi képfeldolgozás</p><h3>Jelöld ki a tápértéktáblázatot</h3><p className="goal-help">A kép nem kerül feltöltésre. A kivágás és a kontrasztjavítás a telefonon fut.</p></div>{onClose && <button className="close-button" onClick={onClose} aria-label="Tápérték bezárása"><X size={18} /></button>}</div>
-    <img className="nutrition-crop-image" src={source.url} alt="Feldolgozandó címke" />
-    <div className="nutrition-crop-controls">
+    <CropSelector sourceUrl={source.url} crop={crop} onChange={setCrop} onReset={() => setCrop({ left: 0, top: 0, width: 1, height: 1 })} />
+    <details className="nutrition-crop-accessibility"><summary>Billentyűzetes / alternatív beállítás</summary><div className="nutrition-crop-controls">
       {([['left', 'Bal szél'], ['top', 'Felső szél'], ['width', 'Szélesség'], ['height', 'Magasság']] as const).map(([field, label]) => <label key={field}><span>{label}</span><input type="range" min="0" max="1" step="0.01" value={crop[field]} onChange={(event) => setCrop({ ...crop, [field]: Number(event.target.value) })} /></label>)}
-    </div>
+    </div></details>
     <label className="checkbox-line"><input type="checkbox" checked={contrast} onChange={(event) => setContrast(event.target.checked)} /> Erősebb kontraszt és nagyítás</label>
     {error && <p className="input-error" role="alert">{error}</p>}
     <div className="camera-actions"><button className="confirm-button" onClick={() => void process()} disabled={busy}><Check size={18} />{busy ? `Feldolgozás: ${Math.round(progress * 100)}%` : 'Kivágás és felismerés'}</button><button className="secondary-action" onClick={reset} disabled={busy}>Új kép</button></div>
