@@ -313,6 +313,7 @@ Korlát: a módosított M5 UI 360/390 px-es böngészős, fókusz- és túlcsord
 - [ ] The local `.env` loaded no non-empty `GEMINI_API_KEY` in this run, so the real API smoke test skipped. After configuring the key locally, run `CHILL_RUN_LIVE_GEMINI=1` once.
 - [x] Regression: targeted food-vision tests pass 7/7; backend passes 86 tests with 5 skips when the three known Windows ACL-blocked cache-import cases are excluded. The full run has the same three setup errors (87 passed, 5 skipped), which remain environmental.
 
+
 ## M19 - Gemini Food Vision stabilisation and mobile camera reliability (2026-09-27)
 
 Status: IMPLEMENTED; live provider gate remains open because the single permitted live smoke test was blocked by the local TLS certificate chain.
@@ -325,3 +326,11 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [ ] The isolated PostgreSQL quota test is skipped when `CHILL_TEST_DATABASE_URL` is not configured in the test environment. Run it against the dedicated test database before treating the PostgreSQL concurrency gate as independently proven.
 - [ ] The one live Gemini smoke test was attempted with the locally configured key and failed before an HTTP response because the Windows environment rejected the remote TLS certificate (`CERTIFICATE_VERIFY_FAILED`). Do not disable certificate verification; rerun once the local CA chain is fixed.
 - [ ] Railway staging verification and real iPhone camera/provider QA remain deployment/device gates. No deploy or push was performed.
+
+## M19 pre-deploy verification update - 2026-09-27
+
+- [x] The failing live smoke was reproduced without an API key or image upload diagnostic: the current elevated environment uses Python 3.13.15, OpenSSL 3.0.21, httpx 0.28.1 and certifi 2026.07.22. httpx/certifi rejects the remote certificate, while a context populated from the Windows ROOT store completes TLS 1.3 verification. TLS verification was never disabled.
+- [x] Repository history contains no successful live result to reproduce: commit `64aae3d` documented the earlier run as skipped because no non-empty key was loaded. The current run differs by having a configured key, but it is blocked at local CA validation before an HTTP response.
+- [x] The dedicated `CHILL_TEST_DATABASE_URL` database initially lacked `vision_usage`. Alembic `0010_vision_usage` was applied only there; `alembic current` reports `0010_vision_usage (head)`.
+- [x] The isolated PostgreSQL durability/global-budget suite is now `2 passed`, including the parallel global-budget test. The full backend suite against the isolated test URL is `101 passed, 1 skipped, 2 warnings`.
+- [ ] Live Gemini verification remains open until the local CA chain is configured. The safe remediation is environment trust configuration (an approved PEM bundle/system trust integration); do not set `verify=False` or commit a certificate/private key.

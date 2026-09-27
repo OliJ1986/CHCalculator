@@ -154,6 +154,7 @@ The OCR review stage renders the complete uploaded image in a responsive stage a
 
 The Gemini adapter defaults to `gemini-3.8-flash` and accepts a configurable `VISION_MAX_OUTPUT_TOKENS` budget (1024 by default). Gemini 3 requests use low thinking; older configured models remain compatible because the Gemini 3-only field is omitted. The prompt and parser share a stable JSON contract: no nutrient estimates, at most three distinct names, and `uncertain: ` prefixes for uncertain ingredient candidates. Parser-side normalization is authoritative, so duplicate model output cannot become duplicate UI suggestions.
 
+
 ## M19 food vision and quota boundary (2026-09-27)
 
 The food-photo path is local until the explicit analysis action. `CameraCapture` owns camera permission, stream attachment and cleanup; a file selection stores a Blob preview and does not call `getUserMedia`. `VisionScanner` exposes empty, selected, processing, error and success states, keeps the original image for retry, and disables parallel submissions. Images are not persisted by the vision feature.
@@ -163,3 +164,9 @@ The food-photo path is local until the explicit analysis action. `CameraCapture`
 The server maps provider failures to stable codes and logs only status/category, MIME, size and opaque principal information. The frontend maps codes to fixed Hungarian messages and does not render raw provider details. Gemini credentials remain backend-only. `gemini-3.8-flash` uses low thinking and a configurable 1024-token budget; the prompt and parser enforce at most three distinct suggestions, uncertainty markers and no nutrient estimation.
 
 Migration `0010_vision_usage` is additive and was applied to local development PostgreSQL only. Railway staging still requires an explicit migration and live/device QA gate.
+
+## M19 pre-deploy trust and database verification (2026-09-27)
+
+The Gemini adapter keeps normal certificate verification. Local Windows verification may require an approved OS trust source because httpx uses the certifi bundle by default; the M19 diagnostic showed certifi failure and successful verification with the Windows ROOT certificates. This is an environment configuration issue. The deployment image must provide its normal trusted CA bundle; no `verify=False`, bundled private certificate or secret is part of the application.
+
+The additive `0010_vision_usage` migration was applied to the isolated PostgreSQL test database. Row-locking was verified with concurrent guest reservations: with a global limit of three, ten simultaneous reservations create exactly three successful reservations and seven `rate_limit_global` responses. The development and production databases were not targeted by this check.

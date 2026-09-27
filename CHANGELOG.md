@@ -223,3 +223,9 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Kept Gemini 3.8 Flash as the default with configurable 1024-token output, parser-side duplicate removal and explicit uncertain ingredient markers. Nutrient estimation remains forbidden.
 - Added API, quota, provider and mobile regression coverage. Backend: 95 passed/6 skipped; frontend: 27 unit tests; Playwright: 36 Chromium/WebKit tests passed at the three mobile widths.
 - The single permitted live Gemini smoke was attempted but could not establish TLS trust in the local Windows environment (`CERTIFICATE_VERIFY_FAILED`); no secret or provider response was recorded and the live gate remains open.
+## 2026-09-27 - M19 pre-deploy verification
+
+- Reproduced the live Gemini failure as a local CA trust-source mismatch: certifi verification fails, while the Windows ROOT trust set verifies TLS 1.3. TLS verification remains enabled and no adapter bypass was added.
+- Applied Alembic `0010_vision_usage` only to the dedicated PostgreSQL test database and added a concurrency regression proving the global daily budget is atomic (`2 passed`).
+- Full backend verification against the isolated test database: `101 passed, 1 skipped, 2 warnings`.
+- The live provider gate remains open until the local CA chain is configured; no production database, Railway deployment or push was used.

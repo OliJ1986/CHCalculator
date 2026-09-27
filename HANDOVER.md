@@ -343,6 +343,7 @@ Validation: the food-vision suite passed 7 tests and the opt-in live test was at
 
 The backend regression run excluding the three cache-import cases passed 86 tests with 5 expected skips. The full command reached 87 passed and 5 skipped but three cache-import setups hit the repository's known Windows pytest temporary-directory ACL error; this is environmental and unrelated to the adapter changes.
 
+
 ## M19 handover - 2026-09-27
 
 M19 implementation is present in the working tree. `VisionScanner` now treats file selection as a first-class local flow: a selected Blob is previewed, camera permission is not requested, processing disables duplicate submissions, the image survives provider errors, and retry/another-image actions remain available. `CameraCapture` retains the video host, stops every stream on all lifecycle paths, and exposes an explicit Vision state marker.
@@ -354,3 +355,11 @@ The Gemini adapter uses `gemini-3.8-flash`, low thinking for Gemini 3, a configu
 Checks completed: backend full suite `95 passed, 6 skipped`; Vision target `12 passed, 1 skipped`; frontend unit `27 passed`; typecheck, lint and build passed; Playwright Chromium/WebKit `36 passed` at 360x800, 375x812 and 390x844. The permitted single live Gemini smoke was attempted and stopped at TLS validation (`CERTIFICATE_VERIFY_FAILED`) before a provider response. The PostgreSQL quota integration test is skipped until the dedicated test URL is present. Lint warnings are non-fatal and include pre-existing App effects plus the initial-image synchronization effect.
 
 Next safe steps: fix the local CA trust chain and rerun the one live smoke; configure only the isolated `CHILL_TEST_DATABASE_URL` and run the PostgreSQL quota test; then perform Railway staging and physical iPhone QA. No automatic deploy or push was made.
+
+## M19 pre-deploy verification - 2026-09-27
+
+The live Gemini failure was isolated without sending a second keyed request. In the elevated command environment, Python 3.13.15/OpenSSL 3.0.21/httpx 0.28.1 uses certifi 2026.07.22 by default. A normal httpx TLS connection to the Gemini host fails with `CERTIFICATE_VERIFY_FAILED`; a separately constructed context loaded from the Windows ROOT store succeeds with TLS 1.3. This proves a local CA trust-source mismatch, not a reason to disable verification. The repository does not contain a prior successful live result: the earlier 64aae3d record says the test was skipped because no key was loaded.
+
+The `.env` supplied a dedicated `CHILL_TEST_DATABASE_URL`. Its database was initially at `0009_shopping_list`; `alembic upgrade head` was run only against that test URL and now reports `0010_vision_usage (head)`. The durability test and the new 10-request concurrent global-budget test both pass (`2 passed`). The complete backend suite against that isolated URL passes `101 tests`, with one expected skip and two deprecation warnings. No production or development data was targeted by this verification.
+
+Open gate: configure the local approved CA chain or OS trust integration and rerun the single live smoke. Keep certificate verification enabled. No code change is required for the current diagnosis, and no Railway deploy or push was performed.

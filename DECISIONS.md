@@ -181,3 +181,10 @@ A chosen file is sufficient to run food recognition and must never trigger camer
 ## D-M19-04 - Live smoke gate (2026-09-27)
 
 Normal tests use mocks and fixtures. At most one live Gemini smoke is allowed per verification session. The M19 attempt was blocked by local TLS certificate validation before an HTTP response; certificate verification must remain enabled and the live gate stays open until the environment is fixed.
+## D-M19-05 - TLS trust remains an environment boundary (2026-09-27)
+
+The Gemini client must retain certificate verification. The Windows diagnostic found that httpx/certifi did not trust the local network certificate chain while the Windows ROOT store did. The remedy is to configure an approved CA bundle or OS trust integration in the environment; application code must not disable verification or carry a private certificate.
+
+## D-M19-06 - Quota migration gate uses an isolated database (2026-09-27)
+
+`0010_vision_usage` is verified by applying it to the dedicated `CHILL_TEST_DATABASE_URL` database and running durability plus concurrent global-budget tests there. Production and development databases are outside this gate. The global row is protected by the same transactional row lock under concurrent reservations.
