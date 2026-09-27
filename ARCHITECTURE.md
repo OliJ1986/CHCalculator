@@ -182,3 +182,18 @@ The single live smoke established TLS, returned a valid Gemini response and pars
 The Gemini JSON contract remains backward-compatible: the server still returns the existing field names and `possible_ingredients` string list. The prompt requires Hungarian human-facing values, while the server keeps the stable `uncertain: ` marker for clients that need to distinguish uncertain ingredients. The frontend converts each wire value to `{ name, uncertain }`, uses qualitative confidence labels, and never renders the marker or a numeric percentage.
 
 `VisionScanner` does not send a suggestion straight into search. It keeps a local draft for the food name and ingredient text and requires confirmation. The existing `onSuggestion(name)` callback is then used unchanged, so the ingredient draft is review-only and cannot alter catalog nutrition data. No extra Gemini request is made and no CH, gram or calorie value is accepted from the model.
+
+
+## M20 Chef workflow (2026-09-27)
+
+The Chef workflow is a frontend orchestration layer over the existing catalog boundaries. A confirmed Vision result is converted into local ingredient drafts; each draft searches existing custom-food, OFF and USDA endpoints and retains the selected Food source and availableCarbs100g. No parallel catalog or AI endpoint is introduced.
+
+calculateChefTotals is a pure adapter around the existing deterministic carbohydrate function. It distinguishes a valid zero from missing CH and returns no complete total while any ingredient quantity, source or CH is missing. Recipe creation is delegated to the existing authenticated API or guest IndexedDB snapshot; diary and planner actions reuse the existing local-date, category, idempotency and three-day guest rules.
+
+Gemini remains identification-only. The Chef review never sends another Gemini request and never accepts nutrient estimates. Because ingredients must be confirmed before persistence, no schema migration is needed and existing recipe/meal snapshots remain compatible.
+
+## M20 Chef MVP extension (2026-09-27)
+
+The Add sheet exposes a separate Alapanyag fotó mode but routes it through the existing /api/vision/food contract, quota and local image lifecycle. It does not introduce a second AI endpoint or a second quota. The same structured confirmation result feeds the existing Chef ingredient editor.
+
+Chef recipe suggestions are deliberately local: existing authenticated recipes or guest IndexedDB recipes are matched by confirmed ingredient names and limited to three visible candidates. Suggestions are informational; recipe CH is displayed only from stored verified snapshots. New Gemini calls, estimated quantities and nutrient values are not used.

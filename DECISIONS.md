@@ -200,3 +200,20 @@ The one permitted live Gemini smoke passed after the trust-store integration. It
 ## D-M19-09 - Hungarian vision values with compatible uncertainty marker (2026-09-27)
 
 The Gemini prompt requires Hungarian values only for human-facing food names and ingredient strings; JSON keys and the list-based `possible_ingredients` wire type remain unchanged. The backend keeps the stable `uncertain: ` marker for compatibility, while the frontend normalizes it into structured ingredient state and renders qualitative Hungarian uncertainty text. Suggestion names and ingredient text are locally editable/confirmable before the existing name-based search callback runs. This avoids an additional Gemini call and prevents model output from becoming CH or nutrient data.
+
+
+## D-M20-01 - Confirmed local Chef ingredient boundary (2026-09-27)
+
+A food-vision suggestion is only a draft. The frontend keeps the name and uncertainty-aware ingredient list editable, requires individual confirmation, and resolves each ingredient through the existing catalog search before recipe, diary or planner persistence. This preserves the established Food DTO and avoids a second Gemini call.
+
+## D-M20-02 - No nutrient inference in Chef (2026-09-27)
+
+Chef calculations accept only user-selected catalog/custom-food CH values and gram quantities. A missing value produces an incomplete known subtotal and blocks a checked total or persistence. A manually created ingredient requires an explicit 100 g CH value; Gemini never supplies it.
+
+## D-M20-03 - Ingredient photo mode reuses the vision boundary (2026-09-27)
+
+The first Chef ingredient-photo mode uses the existing food-vision endpoint and durable quota. Its result stays a draft until local review; no parallel AI endpoint, unbounded recipe generation or new quota path is introduced.
+
+## D-M20-04 - Recipe suggestions are catalog-only in the first MVP (2026-09-27)
+
+The MVP shows at most three matching recipes from the existing authenticated catalog or guest IndexedDB. This keeps recipe suggestions deterministic, avoids an unnecessary Gemini request, and prevents unverified AI text from becoming a recipe or CH value.

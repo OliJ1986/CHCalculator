@@ -244,3 +244,18 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Added a local editable confirmation step for the suggested food name and ingredient text; confirming reuses the existing search flow and does not issue another Gemini request.
 - Added API, prompt and Chromium/WebKit mobile regressions for the new mapping and confirmation flow.
 - The complete camera suite passes in Chromium and WebKit at 360, 375 and 390 px (`36 passed`).
+
+
+## Unreleased - M20 CHill Chef MVP - 2026-09-27
+
+- Added an editable Chef review workflow after food-vision confirmation. Ingredient names, uncertainty, removal, replacement and additions stay local until the user confirms each ingredient.
+- Reused existing custom-food/IndexedDB, OFF and USDA search results per ingredient and kept source plus verified CH visible. Missing CH cannot be silently treated as zero; manual foods require an explicit 100 g CH value.
+- Added deterministic gram-based subtotal/total validation and recipe, diary and planner integration for authenticated and guest storage.
+- Added Chef calculation unit coverage and a Chromium mobile Vision-to-recipe/diary regression at 360, 375 and 390 px. Full WebKit/Chromium M20 gate and M20.5 suggestions remain open.
+
+## 2026-09-27 - M20 Chef MVP workflow
+
+- Added an Alapanyag fotó mode using the existing Vision endpoint and quota boundary; the user reviews and confirms ingredient candidates locally.
+- Added up to three matching existing recipe suggestions from the current catalog/guest recipe store, without a new AI request or nutrient inference.
+- Added the full mobile Chef regression path. Final Playwright Chromium/WebKit coverage is 48/48 at 360, 375 and 390 px; frontend unit/typecheck/build gates pass.
+- Backend behavior was unchanged; its regression gate remains open until pytest is available in the local Python environment.

@@ -350,3 +350,18 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [x] A javaslat kiválasztása külön megerősítési lépésre került. Az étel neve és az összetevőlista helyben szerkeszthető, a megerősítés nem indít új Gemini-hívást és nem fogad el tápérték-becslést.
 - [x] A backend prompt- és frontend API-regressziók, valamint a kamera E2E ellenőrzés lefedi a magyar tartalmat, a bizonytalanságot, a százalék elhagyását és a megerősítési folyamatot; a teljes Chromium/WebKit csomag 36/36 tesztje zöld.
 - [x] A teljes backend-futtatás 98 tesztet teljesített; négy cache/import tesztet a Windows pytest-temp ACL blokkolt, miközben a módosított Vision-teszt 13/13 sikeres.
+
+
+## M20 - CHill Chef MVP (2026-09-27)
+
+### M20.1-M20.6 status: implemented; backend gate remains open
+
+- [x] Approved Vision suggestions now enter a local editable Chef workflow. Food name and ingredients can be renamed, removed, replaced, or added; uncertain rows remain visibly distinct and require individual confirmation.
+- [x] Each ingredient reuses the existing search boundary: guest IndexedDB/custom foods, client cache, OFF and USDA results are grouped with source and CH. Results without verified CH are not selectable; a custom food requires user-entered CH per 100 g.
+- [x] Quantities remain in grams and use parseAmountInput plus calculateCarbohydrate. Missing CH shows only an explicitly incomplete known subtotal; a checked total is never shown and saving is blocked.
+- [x] A complete verified meal can be saved through the existing recipe API or guest IndexedDB, logged with local date/category, or added to the existing planner API/IndexedDB. Existing guest three-day rules remain unchanged.
+- [x] Gemini output supplies no nutrient, gram, or estimate fields, and confirmation does not make another Gemini request.
+- [x] calculation.test.ts covers valid zero CH, missing CH, and incomplete subtotals. A Chromium mobile E2E covers Vision -> source selection -> individual confirmation -> recipe and diary at 360, 375 and 390 px.
+- [x] M20.5 ingredient photo mode reuses the existing Vision endpoint and quota boundary; confirmed ingredients also show up to three matching existing, verified recipes without a new AI call.
+- [x] M20.6 mobile regression gate: the full Playwright suite is 48/48 in Chromium and WebKit at 360, 375 and 390 px.
+- [ ] Backend regression could not be rerun in this environment because neither configured Python interpreter has pytest installed; the unchanged backend baseline remains documented separately. M20 is therefore not marked fully complete until that gate is rerun.

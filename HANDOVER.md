@@ -381,3 +381,22 @@ Vision suggestions now open a local confirmation editor before the existing food
 Validation after the change: backend Vision tests `13 passed, 1 warning`; frontend unit tests `28 passed`; typecheck and production build passed; lint passed with the existing non-fatal React hook warnings; the full camera E2E suite passed in Chromium and WebKit at 360, 375 and 390 px (`36 passed`).
 
 The full backend command was also attempted with the configured isolated test database. It reached `98 passed, 1 skipped`, but four cache/import tests could not create or clean pytest temporary directories because Windows denied access to the existing `%TEMP%\pytest-of-W11` ACL; the retry with a repository-local basetemp hit the same ACL at session cleanup. This is an environment limitation and is separate from the changed Vision tests.
+
+
+## M20 Chef MVP handover - 2026-09-27
+
+M20.1-M20.4 is implemented on top of the existing M19 Vision confirmation. VisionScanner now passes a structured confirmed suggestion (name plus uncertainty-aware ingredients) to ChefWorkflow; it does not start a second Gemini request. Chef rows are editable, removable, replaceable and addable. Each row searches the existing custom-food, OFF and USDA boundaries and displays the source and available CH. Missing CH remains unavailable, while a manually created food requires an explicit 100 g CH value.
+
+The workflow blocks saving until every row has a selected source, valid gram quantity and individual confirmation. calculateChefTotals reuses the deterministic carbohydrate helper, preserves a valid zero, and exposes only a known subtotal while any value is missing. Verified meals can be saved as a recipe, logged with the existing local-date/category API or guest IndexedDB snapshot, or added to the existing planner API/IndexedDB. No database migration, new AI endpoint or nutrient estimation was introduced.
+
+Validation completed: frontend typecheck passed; Vitest 30 passed; production build passed; lint exits 0 with the existing App/Camera effect warnings only; the new Chef Chromium E2E passed at 360, 375 and 390 px (3/3 with one worker). A parallel three-worker attempt was an environment startup timeout, not an assertion failure. The full Chromium/WebKit suite still needs to be rerun as the M20.6 gate. Backend code was not changed, so no new backend test was required for this frontend-only change; the existing backend regression remains the M19 documented baseline.
+
+M20.5 recipe-generation suggestions and the full browser/device gate remain open. No .env, database, provider key, Railway service or deployment was touched.
+
+## M20 final verification update - 2026-09-27
+
+M20.5 now includes an explicit Alapanyag fotó mode that reuses the existing Vision endpoint, quota and local confirmation path. No new Gemini call or nutrition field was added. ChefWorkflow loads up to three matching existing recipes from the authenticated catalog or guest IndexedDB as suggestions; all CH remains derived only from confirmed Food/custom-food values.
+
+The full frontend gate is green: typecheck passed, Vitest 30 passed, production build passed, lint exits 0 with only the existing Camera/App effect warnings, and Playwright Chromium/WebKit passed 48/48 at 360x800, 375x812 and 390x844. The first 42-test run had one transient WebKit crop debug failure; its isolated rerun passed at all three sizes, and the final 48-test run passed.
+
+The backend was not changed. A fresh backend pytest attempt was blocked before collection because Python 3.13 and 3.14 in this environment do not have pytest installed. The previous isolated PostgreSQL/M19 baseline remains the last backend evidence; M20 is not marked fully complete until the normal backend regression command can run. No environment secret, database, Railway service or deployment was touched.

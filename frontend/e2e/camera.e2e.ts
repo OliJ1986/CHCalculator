@@ -192,6 +192,57 @@ for (const viewport of viewports) {
       expect(visionCalls).toBe(2)
     })
 
+    test('hands a confirmed vision suggestion to the Chef workflow and saves a verified meal', async ({ page }) => {
+      const barcodeRequests: string[] = []
+      await mockCamera(page)
+      let visionCalls = 0
+      await mockApi(page, barcodeRequests, async (route) => {
+        visionCalls += 1
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ provider: 'mock', uncertain: true, suggestions: [{ name: 'Alma', confidence: null, possible_ingredients: ['uncertain: fahéj'] }] }) })
+      })
+      await page.route('**/api/foods/search*', async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [{ id: 'usda-cinnamon', name: 'Fahéj, őrölt', original_name: 'Cinnamon, ground', brand: null, barcode: null, source: 'usda', source_id: 'usda-cinnamon', available_carbs_100g: 80.6, serving_size_g: null, image_url: null, language: 'hu', country: null, is_generic: true, is_verified: true, category: 'spice', category_label: 'Fűszer', carbs_available: true }] }) })
+      })
+      await page.route('**/api/recipes*', async (route) => {
+        if (route.request().method() === 'POST' && !route.request().url().endsWith('/meal')) {
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'recipe-chef-1', name: 'Alma', instructions: '', prep_minutes: null, notes: null, servings: 1, total_weight_g: 100, total_carbs_g: 80.6, carbs_per_serving_g: 80.6, carbs_per_100g_cooked_g: null, is_favorite: false, ingredients: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() }) })
+          return
+        }
+        await route.fulfill({ status: 204, body: '' })
+      })
+      await openVisionPanel(page)
+      await page.locator('input[type="file"]').setInputFiles({ name: 'chef.png', mimeType: 'image/png', buffer: Buffer.from('mock-image') })
+      await expect(page.getByRole('button', { name: /Alma/ })).toBeVisible()
+      await page.getByRole('button', { name: /Alma/ }).click()
+      await page.getByRole('button', { name: /megerősít/i }).click()
+      await expect(page.locator('.chef-workflow')).toBeVisible()
+      const row = page.locator('.chef-ingredient-row').first()
+      await row.locator('.chef-result-list .food-option').first().click()
+      await row.getByRole('button', { name: /Meger/ }).click()
+      await row.locator('input[inputmode="decimal"]').first().fill('100')
+      await page.locator('.chef-actions .confirm-button').nth(1).click()
+      await expect(page.locator('.chef-workflow [role="status"]')).toContainText('naplóba')
+      expect(visionCalls).toBe(1)
+    })
+
+    test('supports the ingredient photo mode without an additional AI request', async ({ page }) => {
+      const barcodeRequests: string[] = []
+      let visionCalls = 0
+      await mockCamera(page)
+      await mockApi(page, barcodeRequests, async (route) => {
+        visionCalls += 1
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ provider: 'mock', uncertain: true, suggestions: [{ name: 'Alapanyagok', confidence: null, possible_ingredients: ['paprika', 'uncertain: csirkemell'] }] }) })
+      })
+      await openVisionPanel(page)
+      await page.getByRole('tab', { name: 'Alapanyag fotó', exact: true }).click()
+      await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
+      await page.locator('input[type="file"]').setInputFiles({ name: 'ingredients.png', mimeType: 'image/png', buffer: Buffer.from('mock-image') })
+      await expect(page.getByRole('button', { name: /Alapanyagok/ })).toBeVisible()
+      await page.getByRole('button', { name: /Alapanyagok/ }).click()
+      await expect(page.getByRole('button', { name: /Alapanyagok megerősítése/ })).toBeVisible()
+      expect(visionCalls).toBe(1)
+    })
+
     test('blocks parallel vision submissions while an analysis is in flight', async ({ page }) => {
       const barcodeRequests: string[] = []
       await mockCamera(page)
