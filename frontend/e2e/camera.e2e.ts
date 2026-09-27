@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Route } from '@playwright/test'
 import { Buffer } from 'node:buffer'
 import path from 'node:path'
 
@@ -15,13 +15,17 @@ const viewports = [
   { width: 390, height: 844 },
 ]
 
-async function mockApi(page: Page, barcodeRequests: string[]) {
+async function mockApi(page: Page, barcodeRequests: string[], visionHandler?: (route: Route) => Promise<void>) {
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url())
     if (!url.pathname.startsWith('/api/')) return route.continue()
     let body: unknown = {}
     if (url.pathname.endsWith('/auth/me')) body = { status: 'guest', authenticated: false, role: 'guest', email: null }
     else if (url.pathname.includes('/foods/barcode/')) { barcodeRequests.push(url.pathname.split('/').pop() ?? ''); body = null }
+    else if (url.pathname.endsWith('/vision/food')) {
+      if (visionHandler) { await visionHandler(route); return }
+      body = { provider: 'mock', uncertain: false, suggestions: [] }
+    }
     else if (url.pathname.endsWith('/meals')) body = { items: [], total_carbs_g: 0 }
     else if (url.pathname.endsWith('/goals/summary')) body = { local_date: '2026-09-26', consumed_carbs_g: 0, daily_target_g: null, remaining_carbs_g: null, progress_ratio: null, progress_percent: null, categories: [] }
     else if (url.pathname.includes('/recipes') || url.pathname.includes('/custom-foods') || url.pathname.includes('/plans') || url.pathname.includes('/shopping-list')) body = []
@@ -95,6 +99,15 @@ async function openNutritionPanel(page: Page) {
   await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
 }
 
+async function openVisionPanel(page: Page) {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Hozzáadás', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Hozzáadás', exact: true }).click()
+  await page.getByRole('button', { name: /^Kamera/ }).click()
+  await page.getByRole('tab', { name: 'Étel fotó', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
+}
+
 for (const viewport of viewports) {
   test.describe(`camera ${viewport.width}px`, () => {
     test.use({ viewport })
@@ -142,6 +155,55 @@ for (const viewport of viewports) {
       await manual.fill('4006381333932')
       await page.getByRole('button', { name: 'Keresés' }).click()
       await expect(page.locator('.input-error').filter({ hasText: 'érvényes EAN' })).toBeVisible()
+    })
+
+    test('analyzes a selected image without camera permission and supports retry', async ({ page }) => {
+      const barcodeRequests: string[] = []
+      await mockCamera(page)
+      let visionCalls = 0
+      const visionHandler = async (route: Route) => {
+        visionCalls += 1
+        if (visionCalls === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 150))
+          await route.fulfill({ status: 504, contentType: 'application/json', body: JSON.stringify({ detail: { code: 'provider_timeout', message: 'A képfelismerési szolgáltató nem válaszolt időben.' } }) })
+          return
+        }
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ provider: 'gemini', uncertain: true, suggestions: [{ name: 'Alma', confidence: 0.7, possible_ingredients: ['uncertain: fahéj'] }] }) })
+      }
+      await mockApi(page, barcodeRequests, visionHandler)
+      await openVisionPanel(page)
+      const image = { name: 'selected-food.png', mimeType: 'image/png', buffer: Buffer.from('not-a-real-image') }
+      await page.locator('input[type="file"]').setInputFiles(image)
+      await expect(page.locator('.camera-capture .search-state[role="status"]')).toContainText('Feldolgozás')
+      await expect(page.getByRole('alert')).toContainText('nem válaszolt időben')
+      await expect(page.getByRole('img', { name: 'Kiválasztott kép előnézete' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Kamera engedélyezése' })).toHaveCount(0)
+      expect(await page.evaluate(() => (window as CameraTestWindow).__cameraCalls)).toHaveLength(0)
+
+      await page.getByRole('button', { name: 'Elemzés újra' }).click()
+      await expect(page.getByRole('button', { name: /Alma/ })).toBeVisible()
+      await expect(page.getByText('bizonytalan', { exact: false })).toBeVisible()
+      expect(visionCalls).toBe(2)
+    })
+
+    test('blocks parallel vision submissions while an analysis is in flight', async ({ page }) => {
+      const barcodeRequests: string[] = []
+      await mockCamera(page)
+      let resolveVision: (() => void) | undefined
+      let visionCalls = 0
+      const visionHandler = async (route: Route) => {
+        visionCalls += 1
+        await new Promise<void>((resolve) => { resolveVision = resolve })
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ provider: 'mock', uncertain: false, suggestions: [] }) })
+      }
+      await mockApi(page, barcodeRequests, visionHandler)
+      await openVisionPanel(page)
+      await page.locator('input[type="file"]').setInputFiles({ name: 'selected-food.png', mimeType: 'image/png', buffer: Buffer.from('not-a-real-image') })
+      await expect(page.locator('.camera-capture .search-state[role="status"]')).toContainText('Feldolgozás')
+      await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeDisabled()
+      expect(visionCalls).toBe(1)
+      resolveVision?.()
+      await expect(page.getByText('Nem érkezett használható javaslat', { exact: false })).toBeVisible()
     })
 
     test('crops a Hungarian label locally and allows manual correction after uncertain OCR', async ({ page }) => {

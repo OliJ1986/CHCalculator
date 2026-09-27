@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     vision_max_image_bytes: int = 4 * 1024 * 1024
     vision_rate_limit_per_minute: int = 3
     vision_daily_limit: int = 5
+    vision_global_daily_limit: int = 100
     vision_timeout_seconds: float = 20.0
     vision_max_output_tokens: int = 1024
 

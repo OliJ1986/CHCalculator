@@ -342,3 +342,15 @@ The backend Gemini provider now defaults to `gemini-3.8-flash` and accepts eithe
 Validation: the food-vision suite passed 7 tests and the opt-in live test was attempted once but skipped because the local Settings object loaded no non-empty `GEMINI_API_KEY`. The live test uses one generated 1x1 image, never logs the key or raw model response, and must be rerun once after local key configuration with `CHILL_RUN_LIVE_GEMINI=1`. No Railway call, deployment or user data was used.
 
 The backend regression run excluding the three cache-import cases passed 86 tests with 5 expected skips. The full command reached 87 passed and 5 skipped but three cache-import setups hit the repository's known Windows pytest temporary-directory ACL error; this is environmental and unrelated to the adapter changes.
+
+## M19 handover - 2026-09-27
+
+M19 implementation is present in the working tree. `VisionScanner` now treats file selection as a first-class local flow: a selected Blob is previewed, camera permission is not requested, processing disables duplicate submissions, the image survives provider errors, and retry/another-image actions remain available. `CameraCapture` retains the video host, stops every stream on all lifecycle paths, and exposes an explicit Vision state marker.
+
+`/api/vision/food` now validates the image before calling the provider, reserves a durable PostgreSQL quota, and maps provider failures to safe machine codes. Migration `0010_vision_usage` was applied only to the configured local development PostgreSQL database. The SQLite source, backups, production database and secrets were not changed. The guest quota subject is an HMAC digest of `request.client.host`; the gateway must preserve a stable client identity or guests can share a bucket. Untrusted forwarded headers are deliberately ignored.
+
+The Gemini adapter uses `gemini-3.8-flash`, low thinking for Gemini 3, a configurable 1024-token output budget, duplicate-resistant JSON prompting, and parser-side deduplication/uncertainty marking. No nutrition values are accepted from the model.
+
+Checks completed: backend full suite `95 passed, 6 skipped`; Vision target `12 passed, 1 skipped`; frontend unit `27 passed`; typecheck, lint and build passed; Playwright Chromium/WebKit `36 passed` at 360x800, 375x812 and 390x844. The permitted single live Gemini smoke was attempted and stopped at TLS validation (`CERTIFICATE_VERIFY_FAILED`) before a provider response. The PostgreSQL quota integration test is skipped until the dedicated test URL is present. Lint warnings are non-fatal and include pre-existing App effects plus the initial-image synchronization effect.
+
+Next safe steps: fix the local CA trust chain and rerun the one live smoke; configure only the isolated `CHILL_TEST_DATABASE_URL` and run the PostgreSQL quota test; then perform Railway staging and physical iPhone QA. No automatic deploy or push was made.

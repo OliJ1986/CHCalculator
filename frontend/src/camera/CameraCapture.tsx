@@ -7,6 +7,11 @@ export type CameraCaptureProps = {
   captureLabel?: string
   busy?: boolean
   onCapture: (image: Blob) => void | Promise<void>
+  onRetry?: () => void | Promise<void>
+  showCameraButton?: boolean
+  initialImage?: Blob | null
+  descriptionRole?: 'status' | 'alert'
+  visionState?: 'empty' | 'selected' | 'processing' | 'error'
   onClose?: () => void
 }
 
@@ -17,7 +22,7 @@ function cameraError(value: unknown): string {
   return 'A kamera most nem indítható. Próbáld a képfeltöltést.'
 }
 
-export function CameraCapture({ title, description, captureLabel = 'Fénykép készítése', busy = false, onCapture, onClose }: CameraCaptureProps) {
+export function CameraCapture({ title, description, captureLabel = 'Fénykép készítése', busy = false, onCapture, onRetry, showCameraButton = true, initialImage = null, descriptionRole = 'status', visionState, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -103,15 +108,21 @@ export function CameraCapture({ title, description, captureLabel = 'Fénykép k�
     if (previewUrl) URL.revokeObjectURL(previewUrl)
   }, [previewUrl, stop])
 
-  return <section className="camera-capture" aria-label={title}>
-    <div className="camera-capture-header"><div><p className="eyebrow">Kamera</p><h3>{title}</h3>{description && <p className="goal-help">{description}</p>}</div>{onClose && <button className="close-button" onClick={onClose} aria-label="Kamera bezárása"><X size={18} /></button>}</div>
+  useEffect(() => {
+    if (!initialImage || previewUrl) return
+    setPreviewUrl(URL.createObjectURL(initialImage))
+  }, [initialImage, previewUrl])
+
+  return <section className="camera-capture" aria-label={title} data-vision-state={visionState}>
+    <div className="camera-capture-header"><div><p className="eyebrow">Kamera</p><h3>{title}</h3>{description && <p className="goal-help" role={descriptionRole} aria-live="polite">{description}</p>}</div>{onClose && <button className="close-button" onClick={onClose} aria-label="Kamera bezárása"><X size={18} /></button>}</div>
     <div className={'camera-view ' + (active ? '' : 'camera-view-idle')}><video ref={videoRef} autoPlay playsInline muted aria-label="Kamera előnézete" />{active && <div className="camera-guide" aria-hidden="true" />}</div>
     {!active && (previewUrl ? <img className="camera-preview" src={previewUrl} alt="Kiválasztott kép előnézete" /> : <div className="camera-placeholder"><Camera size={28} /><span>A kamera csak a gomb megnyomása után indul.</span></div>)}
     {error && <p className="input-error" role="alert">{error}</p>}
     <input ref={fileRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={fileSelected} />
     <div className="camera-actions">
-      {active ? <><button className="confirm-button" onClick={capture} disabled={busy}><Camera size={18} />{captureLabel}</button><button className="secondary-action" onClick={() => { const next = facingMode === 'environment' ? 'user' : 'environment'; setFacingMode(next); void start(next) }} disabled={busy}>Kamera váltása</button><button className="secondary-action" onClick={stop} disabled={busy}>Leállítás</button></> : <button className="confirm-button" onClick={() => void start()} disabled={busy}><Camera size={18} />Kamera engedélyezése</button>}
+      {active ? <><button className="confirm-button" onClick={capture} disabled={busy}><Camera size={18} />{captureLabel}</button><button className="secondary-action" onClick={() => { const next = facingMode === 'environment' ? 'user' : 'environment'; setFacingMode(next); void start(next) }} disabled={busy}>Kamera váltása</button><button className="secondary-action" onClick={stop} disabled={busy}>Leállítás</button></> : (!previewUrl || showCameraButton) && <button className="confirm-button" onClick={() => void start()} disabled={busy}><Camera size={18} />Kamera engedélyezése</button>}
       <button className="secondary-action" onClick={() => fileRef.current?.click()} disabled={busy}>Kép feltöltése</button>
+      {!active && previewUrl && !busy && onRetry && <button className="secondary-action" onClick={() => void onRetry()}>Elemzés újra</button>}
     </div>
     {busy && <p className="search-state" role="status">Feldolgozás…</p>}
     {!busy && previewUrl && <p className="camera-ready"><Check size={16} /> A kép elkészült, ellenőrizd az eredményt.</p>}

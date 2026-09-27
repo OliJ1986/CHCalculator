@@ -1,13 +1,17 @@
 import logging
+import hashlib
+import hmac
 import time
 from collections import defaultdict, deque
-from datetime import date, datetime
+from datetime import UTC, date, datetime
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
+from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -16,7 +20,7 @@ from .auth import current_user, enforce_same_origin, require_csrf, require_user
 from .db import create_tables, get_db
 from .domain.carbs import CarbohydrateInputError, calculate_carbohydrate
 from .domain.foods import CATEGORY_OTHER, category_label, normalize_query
-from .models import Food, User
+from .models import Food, User, VisionUsage
 from .providers.base import FoodProviderError
 from .providers.food_vision import DisabledFoodVisionProvider, FoodVisionError, FoodVisionProvider, GeminiFoodVisionProvider
 from .providers.open_food_facts import OpenFoodFactsProvider
@@ -103,6 +107,18 @@ _vision_requests: dict[str, deque[float]] = defaultdict(deque)
 _vision_daily: dict[str, tuple[int, int]] = {}
 
 
+class VisionLimitExceeded(RuntimeError):
+    def __init__(self, code: str, message: str, retry_after: int) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.retry_after = retry_after
+
+
+class VisionQuotaUnavailable(RuntimeError):
+    pass
+
+
 def _vision_rate_key(request: Request, user: User | None) -> str:
     if user is not None:
         return f"user:{user.id}"
@@ -125,6 +141,129 @@ def _check_vision_limit(key: str) -> None:
         raise HTTPException(status_code=429, detail="A napi képfelismerési korlátot elérted")
     window.append(now)
     _vision_daily[key] = (day, count + 1)
+
+
+def _vision_guest_subject(request: Request) -> str:
+    """Use a stable opaque guest subject without trusting forwarded client headers."""
+    host = request.client.host if request.client else "unknown"
+    salt = settings.staging_proxy_token or "chill-vision-local-salt"
+    digest = hmac.new(salt.encode("utf-8"), host.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"guest:{digest}"
+
+
+def _vision_usage_row(db: Session, bucket_date: date, scope: str, subject: str, now: datetime) -> VisionUsage:
+    values = {
+        "id": str(uuid4()),
+        "bucket_date": bucket_date,
+        "scope": scope,
+        "subject": subject,
+        "minute_started_at": now,
+        "minute_count": 0,
+        "daily_count": 0,
+        "created_at": now,
+        "updated_at": now,
+    }
+    dialect_name = db.get_bind().dialect.name
+    if dialect_name == "postgresql":
+        db.execute(
+            postgresql_insert(VisionUsage)
+            .values(**values)
+            .on_conflict_do_nothing(index_elements=["bucket_date", "scope", "subject"])
+        )
+    else:
+        existing = db.scalar(
+            select(VisionUsage).where(
+                VisionUsage.bucket_date == bucket_date,
+                VisionUsage.scope == scope,
+                VisionUsage.subject == subject,
+            )
+        )
+        if existing is None:
+            db.add(VisionUsage(**values))
+            db.flush()
+    row = db.scalar(
+        select(VisionUsage)
+        .where(
+            VisionUsage.bucket_date == bucket_date,
+            VisionUsage.scope == scope,
+            VisionUsage.subject == subject,
+        )
+        .with_for_update()
+    )
+    if row is None:
+        raise VisionQuotaUnavailable("vision usage row was not created")
+    return row
+
+
+def _reserve_postgresql_vision_usage(db: Session, request: Request, user: User | None) -> None:
+    """Reserve one request atomically for the client and global daily budget."""
+    now = datetime.now(UTC)
+    bucket_date = now.date()
+    scope = "user" if user is not None else "guest"
+    subject = str(user.id) if user is not None else _vision_guest_subject(request)
+    # current_user may have left a read transaction open; close it before the
+    # short row-locking transaction so the provider call never holds a lock.
+    db.commit()
+    try:
+        global_row = _vision_usage_row(db, bucket_date, "global", "all", now)
+        subject_row = _vision_usage_row(db, bucket_date, scope, subject, now)
+        if settings.vision_global_daily_limit > 0 and global_row.daily_count >= settings.vision_global_daily_limit:
+            raise VisionLimitExceeded("rate_limit_global", "A napi összesített képfelismerési keret elfogyott.", 86400)
+        if settings.vision_rate_limit_per_minute > 0:
+            elapsed = (now - subject_row.minute_started_at).total_seconds()
+            if elapsed >= 60:
+                subject_row.minute_started_at = now
+                subject_row.minute_count = 0
+            if subject_row.minute_count >= settings.vision_rate_limit_per_minute:
+                raise VisionLimitExceeded("rate_limit_minute", "A percenkénti képfelismerési korlátot elérted.", 60)
+        if settings.vision_daily_limit > 0 and subject_row.daily_count >= settings.vision_daily_limit:
+            raise VisionLimitExceeded("rate_limit_daily", "A napi képfelismerési korlátot elérted.", 86400)
+        global_row.daily_count += 1
+        subject_row.daily_count += 1
+        subject_row.minute_count += 1
+        global_row.updated_at = now
+        subject_row.updated_at = now
+        db.commit()
+    except VisionLimitExceeded:
+        db.rollback()
+        raise
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise VisionQuotaUnavailable("vision usage storage is unavailable") from exc
+
+
+def _reserve_vision_usage(db: Session, request: Request, user: User | None) -> None:
+    if settings.is_postgresql:
+        _reserve_postgresql_vision_usage(db, request, user)
+    else:
+        _check_vision_limit(_vision_rate_key(request, user))
+
+
+def _vision_http_error(
+    request: Request,
+    *,
+    status_code: int,
+    code: str,
+    message: str,
+    principal: str = "unknown",
+    mime_type: str | None = None,
+    size_bytes: int | None = None,
+    retry_after: int | None = None,
+) -> HTTPException:
+    logger.warning(
+        "vision_request_rejected",
+        extra={
+            "event": "vision_request_rejected",
+            "code": code,
+            "status_code": status_code,
+            "path": request.url.path,
+            "principal": principal,
+            "mime_type": mime_type or "unknown",
+            "size_bytes": size_bytes if size_bytes is not None else -1,
+        },
+    )
+    headers = {"Retry-After": str(retry_after)} if retry_after else None
+    return HTTPException(status_code=status_code, detail={"code": code, "message": message}, headers=headers)
 create_tables()
 app.add_middleware(
     CORSMiddleware,
@@ -465,23 +604,63 @@ async def get_food_by_barcode(barcode: str, db: Session = Depends(get_db)) -> Fo
 async def identify_food_from_image(
     request: Request,
     image: UploadFile = File(...),
+    db: Session = Depends(get_db),
     user: User | None = Depends(current_user),
 ) -> FoodVisionResponse:
-    if not settings.vision_enabled or isinstance(food_vision_provider, DisabledFoodVisionProvider):
-        raise HTTPException(status_code=503, detail="Az AI-ételelemzés jelenleg ki van kapcsolva")
+    principal = "registered" if user is not None else "guest"
+    if not settings.vision_enabled:
+        raise _vision_http_error(request, status_code=503, code="vision_disabled", message="Az AI-ételelemzés jelenleg ki van kapcsolva.", principal=principal)
+    if isinstance(food_vision_provider, DisabledFoodVisionProvider) or not settings.gemini_api_key.strip():
+        raise _vision_http_error(request, status_code=503, code="vision_unconfigured", message="Az AI-ételelemzés nincs konfigurálva.", principal=principal)
     content_type = (image.content_type or "").lower()
     if not content_type.startswith("image/"):
-        raise HTTPException(status_code=415, detail="Csak képfájl tölthető fel")
-    key = _vision_rate_key(request, user)
-    _check_vision_limit(key)
+        raise _vision_http_error(request, status_code=415, code="unsupported_media_type", message="Csak támogatott képfájl tölthető fel.", principal=principal, mime_type=content_type)
     payload = await image.read(settings.vision_max_image_bytes + 1)
     if len(payload) > settings.vision_max_image_bytes:
-        raise HTTPException(status_code=413, detail="A kép túl nagy")
+        raise _vision_http_error(request, status_code=413, code="image_too_large", message="A kép túl nagy.", principal=principal, mime_type=content_type, size_bytes=len(payload))
+    try:
+        _reserve_vision_usage(db, request, user)
+    except VisionLimitExceeded as exc:
+        raise _vision_http_error(request, status_code=429, code=exc.code, message=exc.message, principal=principal, mime_type=content_type, size_bytes=len(payload), retry_after=exc.retry_after) from exc
+    except VisionQuotaUnavailable as exc:
+        logger.error("vision_quota_unavailable", extra={"event": "vision_quota_unavailable", "path": request.url.path, "principal": principal})
+        raise _vision_http_error(request, status_code=503, code="rate_limit_unavailable", message="A képfelismerési korlát jelenleg nem ellenőrizhető.", principal=principal, mime_type=content_type, size_bytes=len(payload)) from exc
     try:
         result = await food_vision_provider.identify(payload, content_type)
     except FoodVisionError as exc:
-        status = 429 if exc.kind == "rate_limit" else 504 if exc.kind == "timeout" else 502
-        raise HTTPException(status_code=status, detail="A képfelismerés most nem sikerült") from exc
+        if exc.kind == "rate_limit":
+            status, code, message = 429, "provider_rate_limit", "A képfelismerési szolgáltató elérte a korlátját. Próbáld később újra."
+        elif exc.kind == "timeout":
+            status, code, message = 504, "provider_timeout", "A képfelismerési szolgáltató nem válaszolt időben. Próbáld újra."
+        elif exc.kind == "network_error":
+            status, code, message = 502, "provider_unavailable", "A képfelismerési szolgáltató nem érhető el."
+        elif exc.kind == "invalid_response":
+            status, code, message = 502, "provider_invalid_response", "A képfelismerési szolgáltató hibás választ adott."
+        elif exc.status_code in (401, 403):
+            status, code, message = 502, "provider_authentication", "A képfelismerési szolgáltató hitelesítése sikertelen."
+        elif exc.status_code == 400:
+            status, code, message = 502, "provider_bad_request", "A képfelismerési kérés nem fogadható el."
+        else:
+            status, code, message = 502, "provider_error", "A képfelismerési szolgáltató hibát jelzett."
+        logger.warning(
+            "vision_provider_failed",
+            extra={
+                "event": "vision_provider_failed",
+                "code": code,
+                "provider_kind": exc.kind,
+                "provider_status": exc.status_code or 0,
+                "mime_type": content_type,
+                "size_bytes": len(payload),
+                "principal": principal,
+            },
+        )
+        raise _vision_http_error(request, status_code=status, code=code, message=message, principal=principal, mime_type=content_type, size_bytes=len(payload)) from exc
+    except Exception as exc:
+        logger.error(
+            "vision_provider_unhandled",
+            extra={"event": "vision_provider_unhandled", "mime_type": content_type, "size_bytes": len(payload), "principal": principal},
+        )
+        raise _vision_http_error(request, status_code=502, code="provider_error", message="A képfelismerés átmenetileg nem sikerült.", principal=principal, mime_type=content_type, size_bytes=len(payload)) from exc
     return FoodVisionResponse(
         suggestions=[FoodVisionSuggestionResponse(name=item.name, confidence=item.confidence, possible_ingredients=list(item.possible_ingredients)) for item in result.suggestions],
         uncertain=result.uncertain,

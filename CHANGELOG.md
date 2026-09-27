@@ -214,3 +214,12 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - The server-side Gemini food-vision adapter now targets `gemini-3.8-flash` by default, uses low Gemini 3 thinking, and has a configurable 1024-token response budget.
 - Prompt and parser safeguards prevent near-duplicate food suggestions and mark uncertain ingredients consistently without inventing nutrient values.
 - Added deterministic mock regressions and one opt-in live smoke test. The live test was not executed because the local environment loaded no non-empty Gemini key; no secret was printed or committed.
+
+## 2026-09-27 - M19 Gemini Food Vision stabilisation
+
+- Added a durable `vision_usage` PostgreSQL counter (Alembic `0010`) for global, user and guest minute/daily limits with transactional row locking.
+- Hardened the food-vision endpoint with bounded image reads, structured safe error codes, provider failure classification, retry guidance and secret-free diagnostics.
+- Made file selection independent from camera permission, retained the source image for retry, blocked parallel analysis, and added explicit empty/selected/processing/error/success UI states.
+- Kept Gemini 3.8 Flash as the default with configurable 1024-token output, parser-side duplicate removal and explicit uncertain ingredient markers. Nutrient estimation remains forbidden.
+- Added API, quota, provider and mobile regression coverage. Backend: 95 passed/6 skipped; frontend: 27 unit tests; Playwright: 36 Chromium/WebKit tests passed at the three mobile widths.
+- The single permitted live Gemini smoke was attempted but could not establish TLS trust in the local Windows environment (`CERTIFICATE_VERIFY_FAILED`); no secret or provider response was recorded and the live gate remains open.

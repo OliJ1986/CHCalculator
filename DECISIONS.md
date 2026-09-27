@@ -165,3 +165,19 @@ The nutrition crop selector stores a normalized rectangle and uses one pure conv
 ## D-M18-05 - Gemini 3.8 response contract (2026-09-27)
 
 Gemini 3.8 Flash is the default model for the backend food-vision adapter. The provider normalizes an optional `models/` prefix, sends `thinkingLevel=low` only to Gemini 3 models, and keeps the output budget configurable with a 1024-token default. The prompt and server parser both enforce at most three materially distinct suggestions; uncertain ingredient strings use the stable `uncertain: ` marker and raise the top-level uncertainty flag. This preserves the existing list-based API while preventing model repetition and silent certainty inflation. The live smoke test remains explicit and opt-in so normal regression runs never spend provider quota.
+
+## D-M19-01 - Durable vision quota and safe identity (2026-09-27)
+
+Vision usage is counted in PostgreSQL rather than process memory when the application uses PostgreSQL. A global daily row and per-subject minute/daily rows are created idempotently and updated under row locks in one transaction. Guest subjects are HMAC digests of `request.client.host`; forwarded headers are not trusted. This prevents raw addresses from entering storage or logs, while a shared proxy may aggregate guests and remains a documented residual limitation.
+
+## D-M19-02 - Stable provider error contract (2026-09-27)
+
+The vision endpoint exposes machine-readable error codes and safe Hungarian messages for configuration, input, quota, timeout, network, authentication, provider and response failures. The client renders a fixed local message table instead of provider text. Retry is offered only for transient/provider/quota failures; input and configuration failures are not retried automatically.
+
+## D-M19-03 - Explicit local image state (2026-09-27)
+
+A chosen file is sufficient to run food recognition and must never trigger camera permission. The original Blob remains available for retry or replacement, while processing prevents concurrent submissions. Camera permission is requested only from the explicit camera action. Images remain local except for the deliberate multipart analysis request.
+
+## D-M19-04 - Live smoke gate (2026-09-27)
+
+Normal tests use mocks and fixtures. At most one live Gemini smoke is allowed per verification session. The M19 attempt was blocked by local TLS certificate validation before an HTTP response; certificate verification must remain enabled and the live gate stays open until the environment is fixed.

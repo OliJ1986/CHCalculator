@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import main
-from app.providers.food_vision import FoodVisionError, FoodVisionResult, FoodVisionSuggestion, GeminiFoodVisionProvider, MockFoodVisionProvider, _parse_result
+from app.providers.food_vision import DisabledFoodVisionProvider, FoodVisionError, FoodVisionResult, FoodVisionSuggestion, GeminiFoodVisionProvider, MockFoodVisionProvider, _parse_result
 
 
 def test_food_vision_is_disabled_by_default(monkeypatch) -> None:
@@ -15,6 +15,7 @@ def test_food_vision_is_disabled_by_default(monkeypatch) -> None:
 
 
 def test_food_vision_mock_returns_suggestions_without_external_call(monkeypatch) -> None:
+    monkeypatch.setattr(main.settings, "database_url", None)
     monkeypatch.setattr(main.settings, "vision_enabled", True)
     monkeypatch.setattr(main.settings, "vision_max_image_bytes", 100)
     monkeypatch.setattr(main.settings, "vision_rate_limit_per_minute", 3)
@@ -32,6 +33,7 @@ def test_food_vision_mock_returns_suggestions_without_external_call(monkeypatch)
 
 
 def test_food_vision_rejects_non_image_and_oversized_payload(monkeypatch) -> None:
+    monkeypatch.setattr(main.settings, "database_url", None)
     monkeypatch.setattr(main.settings, "vision_enabled", True)
     monkeypatch.setattr(main, "food_vision_provider", MockFoodVisionProvider())
     monkeypatch.setattr(main.settings, "vision_max_image_bytes", 3)
@@ -39,6 +41,49 @@ def test_food_vision_rejects_non_image_and_oversized_payload(monkeypatch) -> Non
     assert response.status_code == 415
     response = TestClient(main.app).post("/api/vision/food", files={"image": ("food.jpg", b"abcd", "image/jpeg")})
     assert response.status_code == 413
+    assert response.json()["detail"]["code"] == "image_too_large"
+
+
+def test_food_vision_reports_disabled_and_unconfigured_states(monkeypatch) -> None:
+    monkeypatch.setattr(main.settings, "database_url", None)
+    client = TestClient(main.app)
+    monkeypatch.setattr(main.settings, "vision_enabled", False)
+    disabled = client.post("/api/vision/food", files={"image": ("food.jpg", b"image", "image/jpeg")})
+    assert disabled.status_code == 503
+    assert disabled.json()["detail"]["code"] == "vision_disabled"
+
+    monkeypatch.setattr(main.settings, "vision_enabled", True)
+    monkeypatch.setattr(main.settings, "gemini_api_key", "")
+    monkeypatch.setattr(main, "food_vision_provider", DisabledFoodVisionProvider())
+    unconfigured = client.post("/api/vision/food", files={"image": ("food.jpg", b"image", "image/jpeg")})
+    assert unconfigured.status_code == 503
+    assert unconfigured.json()["detail"]["code"] == "vision_unconfigured"
+
+
+@pytest.mark.parametrize(
+    ("kind", "status", "code"),
+    [
+        ("timeout", 504, "provider_timeout"),
+        ("network_error", 502, "provider_unavailable"),
+        ("invalid_response", 502, "provider_invalid_response"),
+        ("rate_limit", 429, "provider_rate_limit"),
+    ],
+)
+def test_food_vision_maps_provider_failures_to_stable_codes(monkeypatch, kind: str, status: int, code: str) -> None:
+    monkeypatch.setattr(main.settings, "database_url", None)
+    monkeypatch.setattr(main.settings, "vision_enabled", True)
+    monkeypatch.setattr(main.settings, "gemini_api_key", "configured-for-test")
+
+    class ErrorProvider:
+        async def identify(self, image: bytes, mime_type: str) -> FoodVisionResult:
+            raise FoodVisionError("provider failure", kind=kind)
+
+    monkeypatch.setattr(main, "food_vision_provider", ErrorProvider())
+    main._vision_requests.clear()
+    main._vision_daily.clear()
+    response = TestClient(main.app).post("/api/vision/food", files={"image": ("food.jpg", b"image", "image/jpeg")})
+    assert response.status_code == status
+    assert response.json()["detail"]["code"] == code
 
 
 def test_gemini_provider_sends_image_server_side_and_maps_structured_response() -> None:

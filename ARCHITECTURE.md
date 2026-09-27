@@ -153,3 +153,13 @@ The OCR review stage renders the complete uploaded image in a responsive stage a
 `sourceRectForCrop` converts the normalized rectangle to rounded source pixels. The same rectangle is passed to the local canvas before contrast enhancement and Tesseract, which prevents a visual/processed-region mismatch for portrait or landscape images. No image is uploaded or persisted; nutrient parsing, basis handling and custom-food validation are unchanged.
 
 The Gemini adapter defaults to `gemini-3.8-flash` and accepts a configurable `VISION_MAX_OUTPUT_TOKENS` budget (1024 by default). Gemini 3 requests use low thinking; older configured models remain compatible because the Gemini 3-only field is omitted. The prompt and parser share a stable JSON contract: no nutrient estimates, at most three distinct names, and `uncertain: ` prefixes for uncertain ingredient candidates. Parser-side normalization is authoritative, so duplicate model output cannot become duplicate UI suggestions.
+
+## M19 food vision and quota boundary (2026-09-27)
+
+The food-photo path is local until the explicit analysis action. `CameraCapture` owns camera permission, stream attachment and cleanup; a file selection stores a Blob preview and does not call `getUserMedia`. `VisionScanner` exposes empty, selected, processing, error and success states, keeps the original image for retry, and disables parallel submissions. Images are not persisted by the vision feature.
+
+`POST /api/vision/food` accepts only bounded image uploads. It reserves a row in `vision_usage` before a provider call. PostgreSQL rows are keyed by local date, scope and opaque subject; a global row protects the configured daily cap, while user/guest rows protect minute and daily limits. Inserts and increments are transactional and row-locked. Guest subjects are HMAC digests of the directly observed connection address and never use untrusted forwarded headers. Behind a shared gateway this can intentionally aggregate guests, which is a known staging limitation.
+
+The server maps provider failures to stable codes and logs only status/category, MIME, size and opaque principal information. The frontend maps codes to fixed Hungarian messages and does not render raw provider details. Gemini credentials remain backend-only. `gemini-3.8-flash` uses low thinking and a configurable 1024-token budget; the prompt and parser enforce at most three distinct suggestions, uncertainty markers and no nutrient estimation.
+
+Migration `0010_vision_usage` is additive and was applied to local development PostgreSQL only. Railway staging still requires an explicit migration and live/device QA gate.
