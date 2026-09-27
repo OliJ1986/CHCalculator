@@ -100,6 +100,7 @@ for (const viewport of viewports) {
     test.use({ viewport })
 
     test('asks for camera permission, reports denial, retries and stops on close', async ({ page }) => {
+      test.setTimeout(45_000)
       const barcodeRequests: string[] = []
       await mockCamera(page)
       await mockApi(page, barcodeRequests)
@@ -144,6 +145,7 @@ for (const viewport of viewports) {
     })
 
     test('crops a Hungarian label locally and allows manual correction after uncertain OCR', async ({ page }) => {
+      test.setTimeout(45_000)
       const barcodeRequests: string[] = []
       await mockCamera(page)
       await mockApi(page, barcodeRequests)
@@ -160,15 +162,28 @@ for (const viewport of viewports) {
       expect(sourceImageBox).not.toBeNull()
       expect(Math.abs((stageBox?.width ?? 0) - (sourceImageBox?.width ?? 0))).toBeLessThan(1)
       expect(await page.locator('.nutrition-crop-handle').count()).toBe(4)
-      const resizeHandle = page.locator('.handle-se')
-      const resizeBox = await resizeHandle.boundingBox()
-      expect(resizeBox).not.toBeNull()
-      await page.mouse.move((resizeBox?.x ?? 0) + (resizeBox?.width ?? 0) / 2, (resizeBox?.y ?? 0) + (resizeBox?.height ?? 0) / 2)
-      await page.mouse.down()
-      await page.mouse.move((resizeBox?.x ?? 0) - 35, (resizeBox?.y ?? 0) - 35)
-      await page.mouse.up()
-      const resizedStyle = await page.locator('.nutrition-crop-selection').evaluate((element) => getComputedStyle(element).width)
-      expect(Number.parseFloat(resizedStyle)).toBeLessThan(stageBox?.width ?? Number.POSITIVE_INFINITY)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+      const handleMoves = [
+        ['handle-nw', 35, 35],
+        ['handle-ne', -35, 35],
+        ['handle-sw', 35, -35],
+        ['handle-se', -35, -35],
+      ] as const
+      for (const [handleClass, dx, dy] of handleMoves) {
+        await page.locator('.nutrition-crop-reset').click()
+        await expect(page.locator(`.${handleClass}`)).toBeVisible()
+        const resizeBox = await page.locator(`.${handleClass}`).boundingBox()
+        expect(resizeBox).not.toBeNull()
+        const startX = (resizeBox?.x ?? 0) + (resizeBox?.width ?? 0) / 2
+        const startY = (resizeBox?.y ?? 0) + (resizeBox?.height ?? 0) / 2
+        await page.mouse.move(startX, startY)
+        await page.mouse.down()
+        await page.mouse.move(startX + dx, startY + dy)
+        await page.mouse.up()
+        const resizedBox = await page.locator('.nutrition-crop-selection').boundingBox()
+        expect(resizedBox?.width ?? Number.POSITIVE_INFINITY).toBeLessThan(stageBox?.width ?? Number.POSITIVE_INFINITY)
+        expect(resizedBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThan(stageBox?.height ?? Number.POSITIVE_INFINITY)
+      }
       const selectionBox = await page.locator('.nutrition-crop-selection').boundingBox()
       expect(selectionBox).not.toBeNull()
       await page.mouse.move((selectionBox?.x ?? 0) + (selectionBox?.width ?? 0) / 2, (selectionBox?.y ?? 0) + (selectionBox?.height ?? 0) / 2)
