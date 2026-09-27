@@ -415,6 +415,6 @@ Validation completed after the M21 changes:
 - frontend: typecheck passed, Vitest `32 passed`, production build passed, lint exit 0 with the existing hook warnings;
 - browser: Playwright Chromium/WebKit at 360x800, 375x812 and 390x844 -> `54 passed` (including the new mocked fridge-to-recipe flow).
 
-Local commits: `267e706` (`feat: add fridge vision and recipe generation API`) and `8aef264` (`feat: add CHill Chef fridge workflow`). Documentation is being recorded in the follow-up documentation commit. No `.env` file, API key, production database, Railway service, push or deployment was touched.
+Local commits: `267e706` (`feat: add fridge vision and recipe generation API`), `8aef264` (`feat: add CHill Chef fridge workflow`), and `b86c0b8` (`fix: align batched vision provider contract`). Documentation is recorded in `5af9017` (`docs: document M21 Chef workflow`). No `.env` file, API key, production database, Railway service, push or deployment was touched.
 
 Open gates and limits: live Gemini was not called again because the normal suite keeps it opt-in; physical iPhone camera, orientation, Safari memory and Railway staging smoke still require a user-controlled staging/device check. The current browser tests mock the provider and camera, so they prove request boundaries and UI state transitions rather than live provider quality.
