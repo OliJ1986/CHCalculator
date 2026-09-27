@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import main
-from app.providers.food_vision import DisabledFoodVisionProvider, FoodVisionError, FoodVisionResult, FoodVisionSuggestion, GeminiFoodVisionProvider, MockFoodVisionProvider, _parse_result
+from app.providers.food_vision import DisabledFoodVisionProvider, FoodVisionError, FoodVisionResult, FoodVisionSuggestion, GeminiFoodVisionProvider, MockFoodVisionProvider, RecipeGenerationResult, RecipeSuggestion, _parse_recipe_result, _parse_result
 
 
 def test_food_vision_is_disabled_by_default(monkeypatch) -> None:
@@ -147,6 +147,32 @@ def test_gemini_provider_keeps_legacy_models_compatible() -> None:
     assert "thinkingConfig" not in observed
 
 
+def test_gemini_provider_batches_fridge_photos_and_generates_structured_recipes() -> None:
+    requests: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        requests.append(payload)
+        if len(requests) == 1:
+            assert len(payload["contents"][0]["parts"]) == 3
+            assert "refrigerator photographs" in payload["contents"][0]["parts"][0]["text"]
+            assert payload["generationConfig"]["maxOutputTokens"] == 1024
+            text = '{"suggestions":[{"name":"Tej","confidence":0.7,"possible_ingredients":[]},{"name":"Tojás","confidence":0.6,"possible_ingredients":[]}],"uncertain":false}'
+        else:
+            prompt = payload["contents"][0]["parts"][0]["text"]
+            assert "Készíts" in prompt and "magyar receptjavaslatot" in prompt
+            assert "Ne adj meg szénhidrát" in prompt
+            assert payload["generationConfig"]["maxOutputTokens"] == 2048
+            text = '{"recipes":[{"name":"Tejes omlett","description":"Gyors étel.","ingredients":["tej","tojás"],"missing_ingredients":[],"instructions":["Keverd össze."],"servings":2,"notes":null}]}'
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": text}]}}]})
+
+    provider = GeminiFoodVisionProvider("test-secret", "gemini-3.8-flash", transport=httpx.MockTransport(handler), recipe_max_output_tokens=2048)
+    fridge = asyncio.run(provider.identify_many([(b"one", "image/jpeg"), (b"two", "image/jpeg")], mode="fridge"))
+    recipes = asyncio.run(provider.generate_recipes(ingredients=("tej", "tojás"), meal_type="dinner", servings=2, required=(), excluded=(), carbohydrate_limit_g=None))
+    assert [item.name for item in fridge.suggestions] == ["Tej", "Tojás"]
+    assert recipes.recipes[0].name == "Tejes omlett"
+
+
 def test_gemini_provider_rejects_invalid_structured_response() -> None:
     provider = GeminiFoodVisionProvider(
         "test-secret",
@@ -157,3 +183,74 @@ def test_gemini_provider_rejects_invalid_structured_response() -> None:
     with pytest.raises(FoodVisionError) as error:
         asyncio.run(provider.identify(b"image", "image/jpeg"))
     assert error.value.kind == "invalid_response"
+
+
+def test_fridge_endpoint_batches_images_once_and_preserves_distinct_foods(monkeypatch) -> None:
+    monkeypatch.setattr(main.settings, "database_url", None)
+    monkeypatch.setattr(main.settings, "vision_enabled", True)
+    monkeypatch.setattr(main.settings, "gemini_api_key", "configured-for-test")
+    observed: list[tuple[bytes, str]] = []
+
+    class BatchProvider:
+        async def identify(self, image: bytes, mime_type: str) -> FoodVisionResult:
+            raise AssertionError("single-image path used")
+
+        async def identify_many(self, images: list[tuple[bytes, str]], mode: str = "food") -> FoodVisionResult:
+            observed.extend(images)
+            assert mode == "fridge"
+            return FoodVisionResult(
+                suggestions=(FoodVisionSuggestion("Tej", None, ()), FoodVisionSuggestion("Tojás", None, ())),
+                uncertain=True,
+                provider="mock",
+            )
+
+        async def generate_recipes(self, **kwargs: object) -> RecipeGenerationResult:
+            raise AssertionError("recipe path used")
+
+    monkeypatch.setattr(main, "food_vision_provider", BatchProvider())
+    main._vision_requests.clear(); main._vision_daily.clear()
+    response = TestClient(main.app).post("/api/vision/fridge", files=[
+        ("images", ("one.jpg", b"one", "image/jpeg")),
+        ("images", ("two.jpg", b"two", "image/jpeg")),
+    ])
+    assert response.status_code == 200
+    assert observed == [(b"one", "image/jpeg"), (b"two", "image/jpeg")]
+    assert [item["name"] for item in response.json()["suggestions"]] == ["Tej", "Tojás"]
+
+
+def test_recipe_generation_endpoint_uses_shared_provider_and_returns_no_nutrients(monkeypatch) -> None:
+    monkeypatch.setattr(main.settings, "database_url", None)
+    monkeypatch.setattr(main.settings, "vision_enabled", True)
+    monkeypatch.setattr(main.settings, "gemini_api_key", "configured-for-test")
+    observed: dict[str, object] = {}
+
+    class RecipeProvider:
+        async def identify(self, image: bytes, mime_type: str) -> FoodVisionResult:
+            raise AssertionError("vision path used")
+
+        async def identify_many(self, images: list[tuple[bytes, str]], mode: str = "food") -> FoodVisionResult:
+            raise AssertionError("fridge path used")
+
+        async def generate_recipes(self, **kwargs: object) -> RecipeGenerationResult:
+            observed.update(kwargs)
+            return RecipeGenerationResult((RecipeSuggestion("Zöldséges tál", "Rövid leírás", ("tej",), ("fokhagyma",), ("Keverd össze.",), 2, None),), "mock")
+
+    monkeypatch.setattr(main, "food_vision_provider", RecipeProvider())
+    main._vision_requests.clear(); main._vision_daily.clear()
+    response = TestClient(main.app).post("/api/chef/recipes/generate", json={"ingredients": ["tej", "tojás"], "meal_type": "dinner", "servings": 2, "required_ingredients": ["tej"], "excluded_ingredients": ["hal"], "carbohydrate_limit_g": 35})
+    assert response.status_code == 200
+    assert observed["ingredients"] == ["tej", "tojás"]
+    payload = response.json()
+    assert payload["recipes"][0]["missing_ingredients"] == ["fokhagyma"]
+    assert "carbs" not in payload["recipes"][0]
+
+
+def test_recipe_parser_deduplicates_and_rejects_empty_recipe() -> None:
+    result = _parse_recipe_result({"recipes": [
+        {"name": "Alma tal", "description": "Egyszerű leírás.", "ingredients": ["alma", "alma"], "missing_ingredients": [], "instructions": ["Vágd fel."], "servings": 2, "carbs_g": 999},
+        {"name": " alma tal ", "ingredients": ["alma"], "instructions": ["Masik"], "servings": 2},
+    ]}, "mock")
+    assert len(result.recipes) == 1
+    assert result.recipes[0].ingredients == ("alma",)
+    with pytest.raises(FoodVisionError, match="recept"):
+        _parse_recipe_result({"recipes": [{"name": "Hiányos", "description": "", "ingredients": ["alma"], "instructions": ["Vágd fel."]}]}, "mock")

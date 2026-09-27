@@ -51,7 +51,7 @@ from .schemas import (
     MealPlanCreateRequest, MealPlanUpdateRequest, MealPlanCopyRequest, MealPlanResponse,
     ShoppingItemCreateRequest, ShoppingItemUpdateRequest, ShoppingItemResponse,
     PlanLogMealRequest,
-    FoodVisionResponse, FoodVisionSuggestionResponse,
+    FoodVisionResponse, FoodVisionSuggestionResponse, ChefRecipeGenerateRequest, ChefRecipeGenerateResponse, ChefRecipeSuggestionResponse,
 )
 from .services.foods import FoodService
 from .services.meals import (
@@ -102,6 +102,7 @@ food_vision_provider: FoodVisionProvider = GeminiFoodVisionProvider(
     settings.gemini_model,
     timeout=settings.vision_timeout_seconds,
     max_output_tokens=settings.vision_max_output_tokens,
+    recipe_max_output_tokens=settings.vision_recipe_max_output_tokens,
 ) if settings.vision_enabled and settings.gemini_api_key.strip() else DisabledFoodVisionProvider()
 _vision_requests: dict[str, deque[float]] = defaultdict(deque)
 _vision_daily: dict[str, tuple[int, int]] = {}
@@ -600,6 +601,30 @@ async def get_food_by_barcode(barcode: str, db: Session = Depends(get_db)) -> Fo
     return _food_response(food) if food else None
 
 
+def _food_vision_response(result: object) -> FoodVisionResponse:
+    return FoodVisionResponse(
+        suggestions=[FoodVisionSuggestionResponse(name=item.name, confidence=item.confidence, possible_ingredients=list(item.possible_ingredients)) for item in result.suggestions],
+        uncertain=result.uncertain,
+        provider=result.provider,
+    )
+
+
+def _provider_failure(exc: FoodVisionError) -> tuple[int, str, str]:
+    if exc.kind == "rate_limit":
+        return 429, "provider_rate_limit", "A képfelismerési szolgáltató elérte a korlátját. Próbáld később újra."
+    if exc.kind == "timeout":
+        return 504, "provider_timeout", "A képfelismerési szolgáltató nem válaszolt időben. Próbáld újra."
+    if exc.kind == "network_error":
+        return 502, "provider_unavailable", "A képfelismerési szolgáltató nem érhető el."
+    if exc.kind == "invalid_response":
+        return 502, "provider_invalid_response", "A képfelismerési szolgáltató hibás választ adott."
+    if exc.status_code in (401, 403):
+        return 502, "provider_authentication", "A képfelismerési szolgáltató hitelesítése sikertelen."
+    if exc.status_code == 400:
+        return 502, "provider_bad_request", "A képfelismerési kérés nem fogadható el."
+    return 502, "provider_error", "A képfelismerési szolgáltató hibát jelzett."
+
+
 @app.post("/api/vision/food", response_model=FoodVisionResponse)
 async def identify_food_from_image(
     request: Request,
@@ -664,6 +689,96 @@ async def identify_food_from_image(
     return FoodVisionResponse(
         suggestions=[FoodVisionSuggestionResponse(name=item.name, confidence=item.confidence, possible_ingredients=list(item.possible_ingredients)) for item in result.suggestions],
         uncertain=result.uncertain,
+        provider=result.provider,
+    )
+
+
+@app.post("/api/vision/fridge", response_model=FoodVisionResponse)
+async def identify_fridge_from_images(
+    request: Request,
+    images: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    user: User | None = Depends(current_user),
+) -> FoodVisionResponse:
+    principal = "registered" if user is not None else "guest"
+    if not settings.vision_enabled:
+        raise _vision_http_error(request, status_code=503, code="vision_disabled", message="Az AI-ételelemzés jelenleg ki van kapcsolva.", principal=principal)
+    if isinstance(food_vision_provider, DisabledFoodVisionProvider) or not settings.gemini_api_key.strip():
+        raise _vision_http_error(request, status_code=503, code="vision_unconfigured", message="Az AI-ételelemzés nincs konfigurálva.", principal=principal)
+    if not images or len(images) > settings.vision_max_batch_images:
+        raise _vision_http_error(request, status_code=422, code="too_many_images", message=f"Legfeljebb {settings.vision_max_batch_images} hűtőfotó adható meg.", principal=principal)
+    payloads: list[tuple[bytes, str]] = []
+    total_bytes = 0
+    for image in images:
+        content_type = (image.content_type or "").lower()
+        if not content_type.startswith("image/"):
+            raise _vision_http_error(request, status_code=415, code="unsupported_media_type", message="Csak támogatott képfájl tölthető fel.", principal=principal, mime_type=content_type)
+        payload = await image.read(settings.vision_max_image_bytes + 1)
+        total_bytes += len(payload)
+        if len(payload) > settings.vision_max_image_bytes or total_bytes > settings.vision_max_batch_bytes:
+            raise _vision_http_error(request, status_code=413, code="image_too_large", message="A hűtőfotók összmérete túl nagy.", principal=principal, mime_type=content_type, size_bytes=total_bytes)
+        payloads.append((payload, content_type))
+    try:
+        _reserve_vision_usage(db, request, user)
+    except VisionLimitExceeded as exc:
+        raise _vision_http_error(request, status_code=429, code=exc.code, message=exc.message, principal=principal, size_bytes=total_bytes, retry_after=exc.retry_after) from exc
+    except VisionQuotaUnavailable as exc:
+        logger.error("vision_quota_unavailable", extra={"event": "vision_quota_unavailable", "path": request.url.path, "principal": principal})
+        raise _vision_http_error(request, status_code=503, code="rate_limit_unavailable", message="A képfelismerési korlát jelenleg nem ellenőrizhető.", principal=principal, size_bytes=total_bytes) from exc
+    try:
+        result = await food_vision_provider.identify_many(payloads, mode="fridge")
+    except FoodVisionError as exc:
+        status, code, message = _provider_failure(exc)
+        logger.warning("vision_provider_failed", extra={"event": "vision_provider_failed", "code": code, "provider_kind": exc.kind, "provider_status": exc.status_code or 0, "mime_type": "multipart-images", "size_bytes": total_bytes, "principal": principal})
+        raise _vision_http_error(request, status_code=status, code=code, message=message, principal=principal, size_bytes=total_bytes) from exc
+    except Exception as exc:
+        logger.error("vision_provider_unhandled", extra={"event": "vision_provider_unhandled", "mime_type": "multipart-images", "size_bytes": total_bytes, "principal": principal})
+        raise _vision_http_error(request, status_code=502, code="provider_error", message="A képfelismerés átmenetileg nem sikerült.", principal=principal, size_bytes=total_bytes) from exc
+    return _food_vision_response(result)
+
+
+@app.post("/api/chef/recipes/generate", response_model=ChefRecipeGenerateResponse)
+async def generate_chef_recipes(
+    request: Request,
+    payload: ChefRecipeGenerateRequest,
+    db: Session = Depends(get_db),
+    user: User | None = Depends(current_user),
+) -> ChefRecipeGenerateResponse:
+    principal = "registered" if user is not None else "guest"
+    if not settings.vision_enabled:
+        raise _vision_http_error(request, status_code=503, code="vision_disabled", message="Az AI-receptgenerálás jelenleg ki van kapcsolva.", principal=principal)
+    if isinstance(food_vision_provider, DisabledFoodVisionProvider) or not settings.gemini_api_key.strip():
+        raise _vision_http_error(request, status_code=503, code="vision_unconfigured", message="Az AI-receptgenerálás nincs konfigurálva.", principal=principal)
+    ingredients = [value.strip()[:120] for value in payload.ingredients if value.strip()]
+    required = [value.strip()[:120] for value in payload.required_ingredients if value.strip()]
+    excluded = [value.strip()[:120] for value in payload.excluded_ingredients if value.strip()]
+    if not ingredients:
+        raise _vision_http_error(request, status_code=422, code="missing_ingredients", message="Legalább egy jóváhagyott alapanyag szükséges.", principal=principal)
+    try:
+        _reserve_vision_usage(db, request, user)
+    except VisionLimitExceeded as exc:
+        raise _vision_http_error(request, status_code=429, code=exc.code, message=exc.message, principal=principal, retry_after=exc.retry_after) from exc
+    except VisionQuotaUnavailable as exc:
+        logger.error("vision_quota_unavailable", extra={"event": "vision_quota_unavailable", "path": request.url.path, "principal": principal})
+        raise _vision_http_error(request, status_code=503, code="rate_limit_unavailable", message="A képfelismerési korlát jelenleg nem ellenőrizhető.", principal=principal) from exc
+    try:
+        result = await food_vision_provider.generate_recipes(
+            ingredients=ingredients,
+            meal_type=payload.meal_type.strip(),
+            servings=payload.servings,
+            required=required,
+            excluded=excluded,
+            carbohydrate_limit_g=payload.carbohydrate_limit_g,
+        )
+    except FoodVisionError as exc:
+        status, code, message = _provider_failure(exc)
+        logger.warning("recipe_provider_failed", extra={"event": "recipe_provider_failed", "code": code, "provider_kind": exc.kind, "provider_status": exc.status_code or 0, "principal": principal})
+        raise _vision_http_error(request, status_code=status, code=code, message=message, principal=principal) from exc
+    except Exception as exc:
+        logger.error("recipe_provider_unhandled", extra={"event": "recipe_provider_unhandled", "principal": principal})
+        raise _vision_http_error(request, status_code=502, code="provider_error", message="A receptgenerálás átmenetileg nem sikerült.", principal=principal) from exc
+    return ChefRecipeGenerateResponse(
+        recipes=[ChefRecipeSuggestionResponse(name=item.name, description=item.description, ingredients=list(item.ingredients), missing_ingredients=list(item.missing_ingredients), instructions=list(item.instructions), servings=item.servings, notes=item.notes) for item in result.recipes],
         provider=result.provider,
     )
 

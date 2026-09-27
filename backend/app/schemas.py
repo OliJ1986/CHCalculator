@@ -430,3 +430,27 @@ class FoodVisionResponse(BaseModel):
     suggestions: list[FoodVisionSuggestionResponse] = Field(default_factory=list)
     uncertain: bool = True
     provider: str
+
+
+class ChefRecipeGenerateRequest(BaseModel):
+    ingredients: list[str] = Field(min_length=1, max_length=100)
+    meal_type: str = Field(default="other", min_length=1, max_length=32)
+    servings: float = Field(default=2, gt=0, le=50)
+    required_ingredients: list[str] = Field(default_factory=list, max_length=50)
+    excluded_ingredients: list[str] = Field(default_factory=list, max_length=50)
+    carbohydrate_limit_g: float | None = Field(default=None, gt=0, le=1000)
+
+
+class ChefRecipeSuggestionResponse(BaseModel):
+    name: str
+    description: str = ""
+    ingredients: list[str] = Field(default_factory=list)
+    missing_ingredients: list[str] = Field(default_factory=list)
+    instructions: list[str] = Field(default_factory=list)
+    servings: float | None = None
+    notes: str | None = None
+
+
+class ChefRecipeGenerateResponse(BaseModel):
+    recipes: list[ChefRecipeSuggestionResponse] = Field(default_factory=list)
+    provider: str
