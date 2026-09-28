@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateCarbohydrate, parseAmountInput } from './carbs'
+import { calculateCarbohydrate, parseAmountInput, parseCarbohydrateInput, parseServingsInput } from './carbs'
 
 describe('calculateCarbohydrate', () => {
   it('kiszámítja a specifikáció példáját', () => expect(calculateCarbohydrate(55, 11.4)).toBeCloseTo(6.27))
@@ -26,5 +26,24 @@ describe('parseAmountInput', () => {
     expect(parseAmountInput('0')).toBeNull()
     expect(parseAmountInput('-1')).toBeNull()
     expect(parseAmountInput('Infinity')).toBeNull()
+  })
+})
+
+describe('parseCarbohydrateInput', () => {
+  it('keeps an explicit zero but rejects an empty field', () => {
+    expect(parseCarbohydrateInput('')).toBeNull()
+    expect(parseCarbohydrateInput(' ')).toBeNull()
+    expect(parseCarbohydrateInput('0')).toBe(0)
+    expect(parseCarbohydrateInput('0,0')).toBe(0)
+    expect(parseCarbohydrateInput('12,5')).toBe(12.5)
+    expect(parseCarbohydrateInput('abc')).toBeNull()
+  })
+})
+
+describe('parseServingsInput', () => {
+  it('uses one validation rule for fractional servings', () => {
+    expect(parseServingsInput('0,5')).toBe(0.5)
+    expect(parseServingsInput('0')).toBeNull()
+    expect(parseServingsInput('51')).toBeNull()
   })
 })

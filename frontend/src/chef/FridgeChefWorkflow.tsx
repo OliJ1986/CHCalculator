@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CameraCapture } from '../camera/CameraCapture'
-import { generateChefRecipes, identifyFoodImages, type ChefRecipeSuggestion, type FoodVisionIngredient } from '../api/vision'
+import { generateChefRecipes, identifyFoodImages, type ChefRecipeSuggestion, type FoodVisionIngredient, type FoodVisionResult } from '../api/vision'
 import { createShopping, listShopping, type ShoppingItem } from '../api/catalog'
 import { listGuestShopping, saveGuestShopping } from '../storage/guestStore'
 import { ChefWorkflow } from './ChefWorkflow'
@@ -39,9 +39,10 @@ async function prepareImage(blob: Blob): Promise<Blob> {
   }
 }
 
-function mergeSuggestions(suggestions: Array<{ name: string; possibleIngredients: FoodVisionIngredient[] }>): InventoryItem[] {
+function mergeSuggestions(result: FoodVisionResult): InventoryItem[] {
+  const { suggestions } = result
   const merged = new Map<string, InventoryItem>()
-  suggestions.forEach((suggestion) => {
+  suggestions.forEach((suggestion, index) => {
     const name = suggestion.name.trim()
     const key = comparisonKey(name)
     if (!key) return
@@ -50,7 +51,7 @@ function mergeSuggestions(suggestions: Array<{ name: string; possibleIngredients
       existing.uncertain = existing.uncertain || suggestion.possibleIngredients.some((item) => item.uncertain)
       return
     }
-    merged.set(key, { id: crypto.randomUUID(), name, uncertain: suggestion.possibleIngredients.some((item) => item.uncertain), confirmed: false })
+    merged.set(key, { id: crypto.randomUUID(), name, uncertain: (result.uncertain && index === 0) || (suggestion.confidence !== null && suggestion.confidence < 0.65) || suggestion.possibleIngredients.some((item) => item.uncertain), confirmed: false })
   })
   return [...merged.values()]
 }
@@ -73,6 +74,7 @@ export function FridgeChefWorkflow({ guestMode, selectedDate, mealCategory, onEx
   const [selectedRecipe, setSelectedRecipe] = useState<ChefRecipeSuggestion | null>(null)
   const [shoppingNotice, setShoppingNotice] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [replaceImageId, setReplaceImageId] = useState<string | null>(null)
   const imagesRef = useRef<FridgeImage[]>([])
   const confirmedIngredients = useMemo(() => inventory.filter((item) => item.confirmed && item.name.trim()), [inventory])
 
@@ -90,6 +92,12 @@ export function FridgeChefWorkflow({ guestMode, selectedDate, mealCategory, onEx
   const selectFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = [...(event.target.files ?? [])]
     event.target.value = ''
+    if (replaceImageId && files[0]) {
+      const next = { id: replaceImageId, blob: files[0], url: URL.createObjectURL(files[0]) }
+      setImages((current) => current.map((image) => { if (image.id !== replaceImageId) return image; URL.revokeObjectURL(image.url); return next }))
+      setReplaceImageId(null)
+      return
+    }
     addBlobs(files)
   }
 
@@ -102,7 +110,7 @@ export function FridgeChefWorkflow({ guestMode, selectedDate, mealCategory, onEx
     setBusy(true); setError(null)
     try {
       const result = await identifyFoodImages(await Promise.all(images.map((image) => prepareImage(image.blob))))
-      const merged = mergeSuggestions(result.suggestions)
+      const merged = mergeSuggestions(result)
       if (merged.length === 0) { setError('Nem sikerült látható élelmiszert azonosítani. A fotók megmaradtak, próbáld újra vagy add hozzá kézzel.'); return }
       setInventory(merged); setStage('inventory')
     } catch (value) {
@@ -111,10 +119,11 @@ export function FridgeChefWorkflow({ guestMode, selectedDate, mealCategory, onEx
   }
 
   const addManual = () => setInventory((current) => [...current, { id: crypto.randomUUID(), name: '', uncertain: false, confirmed: false }])
+  const startManualInventory = () => { setInventory((current) => current.length > 0 ? current : [{ id: crypto.randomUUID(), name: '', uncertain: false, confirmed: false }]); setError(null); setStage('inventory') }
   const updateItem = (id: string, name: string) => setInventory((current) => current.map((item) => item.id === id ? { ...item, name, confirmed: false } : item))
   const toggleItem = (id: string) => setInventory((current) => current.map((item) => item.id === id ? { ...item, confirmed: item.name.trim() ? !item.confirmed : false } : item))
   const removeItem = (id: string) => setInventory((current) => current.filter((item) => item.id !== id))
-  const splitItem = (item: InventoryItem) => setInventory((current) => [...current, { ...item, id: crypto.randomUUID(), name: item.name, confirmed: false }])
+  const splitItem = (item: InventoryItem) => setInventory((current) => [...current, { ...item, id: crypto.randomUUID(), name: `${item.name} (másik)`, confirmed: false }])
   const mergeItem = (sourceId: string) => {
     const targetId = mergeTargets[sourceId]
     if (!targetId || targetId === sourceId) return
@@ -167,18 +176,18 @@ export function FridgeChefWorkflow({ guestMode, selectedDate, mealCategory, onEx
   const instructionsText = selectedRecipe?.instructions.join('\n') ?? ''
   const reviewIngredients = selectedRecipe?.ingredients.map((name) => ({ name, uncertain: false } satisfies FoodVisionIngredient)) ?? []
 
-  if (stage === 'review' && selectedRecipe) return <ChefWorkflow guestMode={guestMode} selectedDate={selectedDate} initialName={selectedRecipe.name} initialIngredients={reviewIngredients} initialInstructions={instructionsText} initialServings={selectedRecipe.servings ?? (Number(servings.replace(',', '.')) || 1)} mealCategory={mealCategory} onExit={() => setStage('recipes')} onCompleted={onCompleted} />
+  const chefView = selectedRecipe ? <div className={stage === 'review' ? 'chef-review-shell' : 'chef-draft-hidden'} aria-hidden={stage !== 'review'}><ChefWorkflow guestMode={guestMode} selectedDate={selectedDate} initialName={selectedRecipe.name} initialIngredients={reviewIngredients} initialInstructions={instructionsText} initialNotes={selectedRecipe.description} initialServings={selectedRecipe.servings ?? (Number(servings.replace(',', '.')) || 1)} mealCategory={mealCategory} onExit={() => setStage('recipes')} onCompleted={onCompleted} /></div> : null
 
   return <section className="fridge-workflow" data-testid="fridge-workflow" aria-label="Hűtőfotó és receptkészítő">
-    <div className="chef-header"><div><p className="eyebrow">CHill Chef · {stage === 'photos' ? '1 / 5 Fotók' : stage === 'inventory' ? '2 / 5 Leltár' : stage === 'preferences' ? '3 / 5 Beállítások' : '4 / 5 Receptötletek'}</p><h3>{stage === 'photos' ? 'Hűtőm lefényképezése' : stage === 'inventory' ? 'Ellenőrizd a hűtőleltárt' : stage === 'preferences' ? 'Mit főzzek ezekből?' : 'Válassz egy receptötletet'}</h3><p className="goal-help">A fotók helyben maradnak, a felismerés és a receptgenerálás csak külön gombnyomásra indul.</p></div><button className="close-button" onClick={onExit} aria-label="Hűtőfolyamat bezárása"><X size={18} /></button></div>
+    <div className="chef-header"><div><p className="eyebrow">CHill Chef · {stage === 'photos' ? '1 / 7 Fotók' : stage === 'inventory' ? '2 / 7 Leltár' : stage === 'preferences' ? '3 / 7 Beállítások' : stage === 'recipes' ? '5 / 7 Receptötletek' : '6 / 7 Ellenőrzés'}</p><h3>{stage === 'photos' ? 'Hűtőm lefényképezése' : stage === 'inventory' ? 'Ellenőrizd a hűtőleltárt' : stage === 'preferences' ? 'Mit főzzek ezekből?' : stage === 'recipes' ? 'Válassz egy receptötletet' : 'Ellenőrizd és mentsd a receptet'}</h3><p className="goal-help">A fotók a felismerésig csak ezen az eszközön vannak. A felismeréskor a kiválasztott képek elküldődnek a szolgáltatásnak.</p></div><button className="close-button" onClick={onExit} aria-label="Hűtőfolyamat bezárása"><X size={18} /></button></div>
     {stage === 'photos' && <>
-      <div className="fridge-photo-grid">{images.map((image, index) => <figure className="fridge-photo" key={image.id}><img src={image.url} alt={`Hűtőfotó ${index + 1}`} /><button className="fridge-photo-remove" onClick={() => removeImage(image.id)} aria-label={`Hűtőfotó ${index + 1} törlése`}><Trash2 size={16} /></button></figure>)}{images.length === 0 && <p className="search-state">Adj hozzá egy vagy több fotót a nyitott hűtőről.</p>}</div>
+      <p className="goal-help fridge-photo-count">{images.length} / {MAX_IMAGES} fotó</p><div className="fridge-photo-grid">{images.map((image, index) => <figure className="fridge-photo" key={image.id}><img src={image.url} alt={`Hűtőfotó ${index + 1}`} /><div className="fridge-photo-actions"><button className="secondary-action compact-action" onClick={() => { setReplaceImageId(image.id); fileRef.current?.click() }} disabled={busy}>Csere</button><button className="fridge-photo-remove" onClick={() => removeImage(image.id)} aria-label={`Hűtőfotó ${index + 1} törlése`} disabled={busy}><Trash2 size={16} /></button></div></figure>)}{images.length === 0 && <p className="search-state">Adj hozzá egy vagy több fotót a nyitott hűtőről.</p>}</div>
       <input ref={fileRef} className="visually-hidden" type="file" accept="image/*" multiple onChange={selectFiles} />
-      <div className="chef-actions"><button className="secondary-action" onClick={() => fileRef.current?.click()} disabled={images.length >= MAX_IMAGES}>Képek feltöltése</button><button className="secondary-action" onClick={() => { setCameraOpen(true); setCameraKey((value) => value + 1) }} disabled={images.length >= MAX_IMAGES}>Kamera megnyitása</button><button className="confirm-button" onClick={() => void recognize()} disabled={images.length === 0 || busy}>{busy ? 'Felismerés…' : 'Élelmiszerek felismerése'} <Check size={18} /></button></div>
+      <div className="chef-actions"><button className="secondary-action" onClick={() => fileRef.current?.click()} disabled={images.length >= MAX_IMAGES || busy}>Képek feltöltése</button><button className="secondary-action" onClick={() => { setCameraOpen(true); setCameraKey((value) => value + 1) }} disabled={images.length >= MAX_IMAGES || busy}>Kamera megnyitása</button><button className="confirm-button" onClick={() => void recognize()} disabled={images.length === 0 || busy}>{busy ? 'Felismerés…' : 'Élelmiszerek felismerése'} <Check size={18} /></button></div>
       {cameraOpen && <CameraCapture key={cameraKey} title="Hűtőfotó készítése" description="Készíts egy képet, majd a fotó hozzáadódik a gyűjteményhez. A kamera nem indul el feltöltéskor." busy={busy} onCapture={async (blob) => { addBlobs([blob]); setCameraOpen(false) }} onClose={() => setCameraOpen(false)} />}
     </>}
     {stage === 'inventory' && <>
-      <div className="fridge-inventory">{inventory.map((item) => <div className={'fridge-inventory-row ' + (item.uncertain ? 'uncertain' : '')} key={item.id}><label className="goal-input"><span>{item.uncertain ? 'Lehetséges élelmiszer' : 'Élelmiszer'}</span><input value={item.name} onChange={(event) => updateItem(item.id, event.target.value)} aria-label="Felismert élelmiszer" /></label><div className="fridge-row-actions"><button className={item.confirmed ? 'confirm-button compact-action' : 'secondary-action compact-action'} onClick={() => toggleItem(item.id)} disabled={!item.name.trim()}>{item.confirmed ? 'Megerősítve' : 'Megerősítem'}</button>{inventory.length > 1 && <><select className="compact-select" aria-label={`${item.name || 'Élelmiszer'} összevonása`} value={mergeTargets[item.id] ?? ''} onChange={(event) => setMergeTargets((current) => ({ ...current, [item.id]: event.target.value }))}><option value="">Összevonás…</option>{inventory.filter((candidate) => candidate.id !== item.id).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name || 'Névtelen élelmiszer'}</option>)}</select><button className="secondary-action compact-action" onClick={() => mergeItem(item.id)} disabled={!mergeTargets[item.id]}>Egyesítés</button></>}<button className="secondary-action compact-action" onClick={() => splitItem(item)}>Szétválasztás</button><button className="secondary-action compact-action" onClick={() => removeItem(item.id)} aria-label="Élelmiszer törlése"><Trash2 size={16} /></button></div></div>)}</div>
+      <div className="fridge-inventory">{inventory.map((item, index) => <div className={'fridge-inventory-row ' + (item.uncertain && inventory.findIndex((candidate) => candidate.uncertain) === index ? 'uncertain' : '')} key={item.id}><label className="goal-input"><span>{item.uncertain ? 'Lehetséges élelmiszer' : 'Élelmiszer'}</span><input value={item.name} onChange={(event) => updateItem(item.id, event.target.value)} aria-label="Felismert élelmiszer" /></label><div className="fridge-row-actions"><button className={item.confirmed ? 'confirm-button compact-action' : 'secondary-action compact-action'} onClick={() => toggleItem(item.id)} disabled={!item.name.trim()}>{item.confirmed ? 'Megerősítve' : 'Megerősítem'}</button>{inventory.length > 1 && <><select className="compact-select" aria-label={`${item.name || 'Élelmiszer'} összevonása`} value={mergeTargets[item.id] ?? ''} onChange={(event) => setMergeTargets((current) => ({ ...current, [item.id]: event.target.value }))}><option value="">Összevonás…</option>{inventory.filter((candidate) => candidate.id !== item.id).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name || 'Névtelen élelmiszer'}</option>)}</select><button className="secondary-action compact-action" onClick={() => mergeItem(item.id)} disabled={!mergeTargets[item.id]}>Egyesítés</button></>}<button className="secondary-action compact-action" onClick={() => splitItem(item)}>Szétválasztás</button><button className="secondary-action compact-action" onClick={() => removeItem(item.id)} aria-label="Élelmiszer törlése"><Trash2 size={16} /></button></div></div>)}</div>
       <div className="chef-actions"><button className="secondary-action" onClick={addManual}><Plus size={17} /> Alapanyag hozzáadása</button><button className="secondary-action" onClick={() => setStage('photos')}>Vissza a fotókhoz</button><button className="confirm-button" onClick={confirmInventory} disabled={inventory.length === 0 || confirmedIngredients.length !== inventory.length}>Leltár jóváhagyása <Check size={18} /></button></div>
     </>}
     {stage === 'preferences' && <>
@@ -186,10 +195,12 @@ export function FridgeChefWorkflow({ guestMode, selectedDate, mealCategory, onEx
       <div className="chef-actions"><button className="secondary-action" onClick={() => setStage('inventory')}>Vissza a leltárhoz</button><button className="confirm-button" onClick={() => void generate()} disabled={busy}>{busy ? 'Receptgenerálás…' : 'Mit főzzek ezekből?'} <Check size={18} /></button></div>
     </>}
     {stage === 'recipes' && <>
-      <div className="fridge-recipe-list">{recipes.map((recipe) => <article className="fridge-recipe-card" key={recipe.name}><h4>{recipe.name}</h4><p>{recipe.description}</p><p><strong>Hozzávalók:</strong> {recipe.ingredients.join(', ')}</p>{recipe.missingIngredients.length > 0 && <p className="chef-warning"><strong>Hiányzó:</strong> {recipe.missingIngredients.join(', ')}</p>}<ol>{recipe.instructions.map((step) => <li key={step}>{step}</li>)}</ol><div className="chef-actions"><button className="confirm-button" onClick={() => setSelectedRecipe({ ...recipe, ingredients: [...recipe.ingredients], instructions: [...recipe.instructions] })}>Recept ellenőrzése</button>{recipe.missingIngredients.length > 0 && <button className="secondary-action" onClick={() => void addMissingToShopping(recipe.missingIngredients)}>Hiányzók a bevásárlólistára</button>}</div></article>)}</div>
-      {selectedRecipe && <div className="fridge-recipe-editor"><label className="goal-input"><span>Recept neve</span><input value={selectedRecipe.name} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, name: event.target.value })} /></label><label className="goal-input"><span>Leírás</span><textarea value={selectedRecipe.description} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, description: event.target.value })} rows={3} /></label><label className="goal-input"><span>Hozzávalók, vesszővel</span><textarea value={selectedRecipe.ingredients.join(', ')} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, ingredients: event.target.value.split(',').map((value) => value.trim()).filter(Boolean) })} rows={3} /></label><label className="goal-input"><span>Elkészítés, lépésenként</span><textarea value={selectedRecipe.instructions.join('\n')} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, instructions: event.target.value.split('\n').map((value) => value.trim()).filter(Boolean) })} rows={5} /></label><label className="goal-input"><span>Adagok</span><input inputMode="decimal" value={selectedRecipe.servings ?? ''} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, servings: Number(event.target.value.replace(',', '.')) || null })} /></label>{selectedRecipe.missingIngredients.length > 0 && <button className="secondary-action" onClick={() => void addMissingToShopping(selectedRecipe.missingIngredients)}>Hiányzók a bevásárlólistára</button>}{shoppingNotice && <p className="goal-help" role="status">{shoppingNotice}</p>}<div className="chef-actions"><button className="secondary-action" onClick={() => setSelectedRecipe(null)}>Vissza a receptekhez</button><button className="confirm-button" onClick={() => { if (!selectedRecipe.name.trim() || selectedRecipe.ingredients.length === 0 || selectedRecipe.instructions.length === 0) { setError('A recept neve, hozzávalói és elkészítése szükséges.'); return }; setError(null); setStage('review') }}>Hozzávalók ellenőrzése <Check size={18} /></button></div></div>}
+      {!selectedRecipe && <div className="fridge-recipe-list">{recipes.map((recipe) => <article className="fridge-recipe-card" key={recipe.name}><h4>{recipe.name}</h4><p>{recipe.description}</p><p><strong>Hozzávalók:</strong> {recipe.ingredients.join(', ')}</p>{recipe.missingIngredients.length > 0 && <p className="chef-warning"><strong>Hiányzó:</strong> {recipe.missingIngredients.join(', ')}</p>}<ol>{recipe.instructions.map((step) => <li key={step}>{step}</li>)}</ol><div className="chef-actions"><button className="confirm-button" onClick={() => setSelectedRecipe({ ...recipe, ingredients: [...recipe.ingredients], instructions: [...recipe.instructions] })}>Recept ellenőrzése</button>{recipe.missingIngredients.length > 0 && <button className="secondary-action" onClick={() => void addMissingToShopping(recipe.missingIngredients)}>Hiányzók a bevásárlólistára</button>}</div></article>)}</div>}
+      {shoppingNotice && <p className="goal-help" role="status">{shoppingNotice}</p>}{selectedRecipe && <div className="fridge-recipe-editor"><label className="goal-input"><span>Recept neve</span><input value={selectedRecipe.name} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, name: event.target.value })} /></label><label className="goal-input"><span>Leírás</span><textarea value={selectedRecipe.description} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, description: event.target.value })} rows={3} /></label><label className="goal-input"><span>Hozzávalók, vesszővel</span><textarea value={selectedRecipe.ingredients.join(', ')} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, ingredients: event.target.value.split(',').map((value) => value.trim()).filter(Boolean) })} rows={3} /></label><label className="goal-input"><span>Elkészítés, lépésenként</span><textarea value={selectedRecipe.instructions.join('\n')} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, instructions: event.target.value.split('\n').map((value) => value.trim()).filter(Boolean) })} rows={5} /></label><label className="goal-input"><span>Adagok</span><input inputMode="decimal" value={selectedRecipe.servings ?? ''} onChange={(event) => setSelectedRecipe({ ...selectedRecipe, servings: Number(event.target.value.replace(',', '.')) || null })} /></label>{selectedRecipe.missingIngredients.length > 0 && <button className="secondary-action" onClick={() => void addMissingToShopping(selectedRecipe.missingIngredients)}>Hiányzók a bevásárlólistára</button>}<div className="chef-actions"><button className="secondary-action" onClick={() => setSelectedRecipe(null)}>Vissza a receptekhez</button><button className="confirm-button" onClick={() => { if (!selectedRecipe.name.trim() || selectedRecipe.ingredients.length === 0 || selectedRecipe.instructions.length === 0) { setError('A recept neve, hozzávalói és elkészítése szükséges.'); return }; setError(null); setStage('review') }}>Hozzávalók ellenőrzése <Check size={18} /></button></div></div>}
       {!selectedRecipe && <button className="secondary-action" onClick={() => setStage('preferences')}>Újrakérés más beállításokkal</button>}
     </>}
+    {chefView}
     {error && <p className="input-error" role="alert">{error}</p>}
+    {stage === 'photos' && error && <button className="secondary-action" type="button" onClick={startManualInventory}>Leltár megadása kézzel</button>}
   </section>
 }
