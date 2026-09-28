@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseNutritionLabel } from './nutrition'
+import { nutritionWarnings, parseNutritionLabel } from './nutrition'
 import { sourceRectForCrop } from './nutritionCrop'
 
 const hungarianMayonnaise = `Koch's Original Majonéz
@@ -36,6 +36,22 @@ describe('nutrition label parser', () => {
     const result = parseNutritionLabel('100 g\nCarbohydrate —\nProtein —')
     expect(result.name).toBe('')
     expect(result.values.carbohydrates).toBeNull()
+  })
+
+  it('flags impossible and strongly suspicious OCR nutrient values without replacing them', () => {
+    const protein = parseNutritionLabel('Ital\nper 100 ml\nProtein 159 g\nFat 2 g')
+    const fat = parseNutritionLabel('Ital\nper 100 ml\nProtein 1 g\nFat 149 g')
+    expect(nutritionWarnings(protein)).toEqual(expect.arrayContaining([expect.stringContaining('Fehérje')]))
+    expect(nutritionWarnings(fat)).toEqual(expect.arrayContaining([expect.stringContaining('Zsír')]))
+    expect(protein.values.protein).toBe(159)
+    expect(fat.values.fat).toBe(149)
+  })
+
+  it('flags contradictory rows and an implausible 100 g nutrient total', () => {
+    const draft = parseNutritionLabel('Teszt\n100 g\nCarbohydrate 40 g\nSugars 45 g\nProtein 40 g\nFat 35 g')
+    const warnings = nutritionWarnings(draft)
+    expect(warnings).toHaveLength(2)
+    expect(draft.values.sugars).toBeGreaterThan(draft.values.carbohydrates ?? Number.POSITIVE_INFINITY)
   })
 
   it('maps the visual selection to the exact source pixel rectangle', () => {

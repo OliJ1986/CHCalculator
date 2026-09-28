@@ -82,7 +82,13 @@ async function barcodeImageVariants(file: File): Promise<Blob[]> {
   }
 }
 
-export function BarcodeScanner({ onDetected, onClose }: { onDetected: (barcode: string) => void | Promise<void>; onClose?: () => void }) {
+type BarcodeStopReason = 'restart' | 'accepted' | 'user' | 'close' | 'unmount' | 'startup_error'
+
+function barcodeDiagnostic(event: string, details: Record<string, string | number | boolean> = {}) {
+  console.debug('[CHill camera]', { component: 'barcode', event, ...details })
+}
+
+export function BarcodeScanner({ onDetected, onClose }: { onDetected: (barcode: string) => boolean | Promise<boolean>; onClose?: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
   const readerRef = useRef<BrowserMultiFormatReader | null>(null)
@@ -94,7 +100,10 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (barcode: 
   const [manual, setManual] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const stop = useCallback(() => {
+  const stop = useCallback((reason: BarcodeStopReason = 'user') => {
+    const hadStream = Boolean(videoRef.current?.srcObject)
+    const wasActive = Boolean(controlsRef.current) || hadStream
+    barcodeDiagnostic('stop', { reason, wasActive })
     operationRef.current += 1
     controlsRef.current?.stop()
     controlsRef.current = null
@@ -112,9 +121,13 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (barcode: 
   const deliver = useCallback(async (code: string) => {
     busyRef.current = true
     setBusy(true)
-    stop()
     try {
-      await onDetected(code)
+      const accepted = await onDetected(code)
+      if (accepted) stop('accepted')
+      return accepted
+    } catch {
+      setError('A termékkeresés nem sikerült. A kamera aktív maradt; próbáld újra.')
+      return false
     } finally {
       busyRef.current = false
       setBusy(false)
@@ -138,7 +151,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (barcode: 
       setError('A kameraelőnézet nem érhető el. Próbáld a képfeltöltést vagy a kézi bevitelt.')
       return
     }
-    stop()
+    stop('restart')
     const operation = operationRef.current + 1
     operationRef.current = operation
     setActive(true)
@@ -157,7 +170,7 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (barcode: 
       controlsRef.current = controls
     } catch (value) {
       if (operation !== operationRef.current) return
-      stop()
+      stop('startup_error')
       setError(value instanceof DOMException && value.name === 'NotAllowedError' ? 'A kameraengedélyt elutasítottad. Képfeltöltéssel vagy kézi bevitellel folytathatod.' : 'A vonalkódolvasó nem indítható. Használd a képfeltöltést vagy a kézi bevitelt.')
     }
   }, [detected, stop])
@@ -199,14 +212,14 @@ export function BarcodeScanner({ onDetected, onClose }: { onDetected: (barcode: 
     }
   }
 
-  useEffect(() => () => stop(), [stop])
+  useEffect(() => () => stop('unmount'), [stop])
 
   return <section className="camera-capture barcode-scanner" aria-label="Vonalkódolvasó">
-    <div className="camera-capture-header"><div><p className="eyebrow">Kamera · Vonalkód</p><h3>Termék azonosítása</h3><p className="goal-help">EAN-13 és EAN-8 kódot is beolvashatsz.</p></div>{onClose && <button className="close-button" onClick={onClose} aria-label="Vonalkódolvasó bezárása"><X size={18} /></button>}</div>
+    <div className="camera-capture-header"><div><p className="eyebrow">Kamera · Vonalkód</p><h3>Termék azonosítása</h3><p className="goal-help">EAN-13 és EAN-8 kódot is beolvashatsz.</p></div>{onClose && <button className="close-button" onClick={() => { stop('close'); onClose() }} aria-label="Vonalkódolvasó bezárása"><X size={18} /></button>}</div>
     <div className={'camera-view ' + (active ? '' : 'camera-view-idle')}><video ref={videoRef} autoPlay playsInline muted aria-label="Vonalkód kamera előnézete" />{active && <div className="barcode-guide" aria-hidden="true" />}</div>
     {!active && <div className="camera-placeholder"><Camera size={28} /><span>A kódot tartsd a keretben.</span></div>}
     {error && <p className="input-error" role="alert">{error}</p>}
-    <div className="camera-actions"><button className="confirm-button" onClick={() => void start()} disabled={active || busy}><Camera size={18} />Olvasás indítása</button><button className="secondary-action" onClick={() => fileRef.current?.click()} disabled={busy}>Képből olvasás</button>{active && <button className="secondary-action" onClick={stop} disabled={busy}>Leállítás</button>}</div>
+    <div className="camera-actions"><button className="confirm-button" onClick={() => void start()} disabled={active || busy}><Camera size={18} />Olvasás indítása</button><button className="secondary-action" onClick={() => fileRef.current?.click()} disabled={busy}>Képből olvasás</button>{active && <button className="secondary-action" onClick={() => stop('user')} disabled={busy}>Leállítás</button>}</div>
     <input ref={fileRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={(event) => void fileSelected(event)} />
     <form className="barcode-manual" onSubmit={(event) => { event.preventDefault(); void detected(manual) }}><label><span>Vonalkód kézzel</span><input value={manual} onChange={(event) => setManual(event.target.value)} inputMode="numeric" pattern="[0-9]+" placeholder="Pl. 5991234567890" /></label><button className="secondary-action" type="submit" disabled={busy || manual.trim().length < 8}>Keresés</button></form>
     {busy && <p className="search-state" role="status">Termék keresése…</p>}

@@ -427,3 +427,13 @@ A Chef és hűtőfotó folyamat új, mobilbarát felülete elkészült. Az üres
 A katalógus ételek/receptek nézete szétvált, a Tervezőből elérhető a bevásárlólista, a következő nap másolása valódi naptári lépés. A kamera mobilon teljes képernyős, safe-area-kompatibilis, a duplikált bezáró gombok eltűnnek, az állapot- és hibaüzenetek megmaradnak. A közös `field-stack`, `ScreenHeader` és állapotüzenet primitívek a `frontend/src/components/ui.tsx` fájlban vannak.
 
 Automatizált eredmény: backend emelt futtatással 100 passed/7 skipped/1 warning; frontend unit 34 passed; typecheck, lint és build sikeres; Playwright Chromium/WebKit 56 passed 360/375/390 px-en, valamint M22 vizuális futás 360×667 px-en. A helyi képek a `frontend/test-results/m22/` könyvtárban készültek, nem commitolandók. Fizikai iPhone, élő provider és Railway staging kapu nyitott; push/deploy nem történt.
+
+## M22.1 – Mobil kamera-regressziók átadása (2026-09-28)
+
+A bizonyított hibák a kameraréteg add-sheet alatti DOM-elhelyezése és a barcode stream lookup előtti leállítása voltak. A kamera most külön `#camera-root` portalban él, saját scroll/safe-area határral. A vonalkód lookup sikertelen vagy üres válasza aktívan hagyja a streamet; elfogadott termék, explicit stop/bezárás, indulási hiba vagy unmount állítja le. A diagnosztika okot és módot rögzít, érzékeny adatot nem.
+
+Az aktív kamera egyetlen fejlécet és feladatspecifikus UI-t mutat. A hűtőfotók 1 képnél teljes szélességűek, 2–4 képnél kéthasábosak. Az OCR a lehetetlen vagy ellentmondó értékeket változatlanul megőrzi és javításig blokkolja a mentést.
+
+Kapuk: backend `100 passed, 7 skipped, 1 warning`; frontend unit `36 passed`; typecheck/lint/build sikeres; Playwright `62 passed` Chromium és WebKit alatt, 360×667, 375×812 és 390×844 méreteken. A suite valódi ZXing EAN fixture-t, stream-életciklust, lookup hibát/sikert, permission denialt, galériát, OCR-figyelmeztetést, fotórácsot és DOM-koordinátákat ellenőriz. Részletes jelentés: `docs/M22_1_CAMERA_REGRESSION_RESULT.md`.
+
+Nyitott kapu: fizikai iPhone Safari/PWA engedély, autofókusz, forgatás és valós EAN. Élő provider, staging, push és deploy nem történt.

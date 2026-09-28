@@ -118,8 +118,10 @@
 .fridge-launch { width: 100%; margin-top: 0.55rem; justify-content: center; }
 .fridge-workflow { display: grid; gap: 0.9rem; }
 .fridge-photo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+.fridge-photo-grid.single { grid-template-columns: minmax(0, 1fr); }
 .fridge-photo { position: relative; min-height: 8rem; margin: 0; overflow: hidden; border-radius: 1rem; background: var(--paper); }
-.fridge-photo img { display: block; width: 100%; height: 100%; min-height: 8rem; object-fit: cover; }
+.fridge-photo img { display: block; width: 100%; height: auto; min-height: 8rem; aspect-ratio: 4 / 3; object-fit: cover; }
+.fridge-photo-grid.single .fridge-photo img { aspect-ratio: 4 / 3; max-height: 22rem; }
 .fridge-photo-remove { position: absolute; top: 0.4rem; right: 0.4rem; width: 2.5rem; height: 2.5rem; border: 0; border-radius: 999px; color: #fff; background: rgb(36 31 43 / 0.78); }
 .fridge-photo-actions { position: absolute; inset: auto 0.4rem 0.4rem 0.4rem; display: flex; justify-content: space-between; gap: 6px; }
 .fridge-photo-actions .fridge-photo-remove { position: static; }
@@ -151,18 +153,30 @@
 button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .secondary-action, .confirm-button, .camera-launch, .fridge-launch, .close-button, .meal-actions button, .catalog-row button, .fridge-photo-remove, .date-nav, .quick-amounts button { min-height: 44px; }
 .compact-action { min-height: 40px; }
-.camera-flow { position: fixed; z-index: 60; inset: 0; display: grid; align-content: start; max-height: none; overflow-y: auto; margin: 0; padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px); border: 0; border-radius: 0; background: var(--surface); }
-.camera-flow-header { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
-.camera-flow-header strong { font-size: 18px; }
+.camera-flow { position: fixed; z-index: 60; inset: 0; display: block; box-sizing: border-box; width: 100%; min-width: 0; max-width: none; min-height: 100vh; min-height: 100dvh; max-height: 100dvh; overflow-x: hidden; overflow-y: auto; overflow-anchor: none; overscroll-behavior: contain; margin: 0; padding: calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 20px); border: 0; border-radius: 0; background: var(--surface); }
+.camera-flow-header { position: sticky; z-index: 4; top: calc(env(safe-area-inset-top) * -1); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; width: 100%; min-width: 0; min-height: 48px; padding: 2px 0 8px; background: var(--surface); }
+.camera-flow-header strong { min-width: 0; overflow: visible; font-size: 16px; line-height: 1.15; text-align: right; text-overflow: clip; white-space: normal; }
+.camera-flow-header .secondary-action { justify-self: start; margin: 0; }
+.camera-header-spacer { display: none; }
+.camera-flow-body { display: grid; width: 100%; min-width: 0; max-width: 520px; gap: 12px; margin: 0 auto; }
+.camera-flow-body > *, .camera-flow .camera-capture, .camera-flow .fridge-workflow { min-width: 0; }
+.camera-flow .visually-hidden { position: fixed; top: 0; left: 0; }
+.camera-mode-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.camera-mode-picker > .goal-help { grid-column: 1 / -1; margin: 4px 0 6px; }
+.camera-mode-picker > button { display: grid; min-width: 0; min-height: 88px; align-content: center; gap: 4px; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); color: var(--ink); text-align: left; }
+.camera-mode-picker > button span { color: var(--muted); font-size: 11px; line-height: 1.35; }
 .camera-flow .camera-tabs { overflow-x: auto; padding-bottom: 2px; }
 .camera-flow .camera-tabs > button:not(.secondary-action) { flex: 0 0 auto; min-width: 94px; min-height: 44px; }
 .camera-flow .camera-capture-header { display: block; }
 .camera-flow .camera-capture-header .eyebrow, .camera-flow .camera-capture-header h3, .camera-flow .camera-capture-header .close-button { display: none; }
 .camera-flow .camera-capture-header .goal-help { margin: 0; }
 .camera-flow .fridge-workflow > .chef-header .close-button { display: none; }
-.camera-flow .camera-view, .camera-flow .camera-preview { min-height: min(52dvh, 440px); max-height: 58dvh; }
-.camera-flow .camera-view video { min-height: min(52dvh, 440px); max-height: 58dvh; }
+.camera-flow .camera-view, .camera-flow .camera-preview { height: clamp(220px, 42dvh, 360px); min-height: 220px; max-height: 42dvh; }
+.camera-flow .camera-view video { min-height: 220px; max-height: 42dvh; }
 .camera-flow .camera-actions > * { min-height: 48px; }
+.nutrition-warnings { display: grid; gap: 6px; padding: 12px; border-radius: 12px; background: rgb(233 114 87 / .12); color: var(--coral); font-size: 12px; line-height: 1.4; }
+.nutrition-warnings ul { margin: 0; padding-left: 18px; }
+.nutrition-warnings span { color: var(--muted); }
 .camera-ready { color: var(--lime); }
 .chef-ingredient-row-compact { padding: 0; border: 0; background: transparent; }
 .chef-ingredient-summary { display: flex; align-items: center; width: 100%; gap: 10px; min-height: 58px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; }
@@ -187,4 +201,5 @@ button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .ingredient-line input { width: 100%; }
   .ingredient-line button { grid-column: 1 / -1; width: 100%; }
   .camera-flow { padding-right: 12px; padding-left: 12px; }
+  .camera-mode-picker { grid-template-columns: 1fr; }
 }

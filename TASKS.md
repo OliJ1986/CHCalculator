@@ -388,3 +388,16 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [x] P2: közös mobil mező- és képernyőfejlécek, 44 px érintési célok, katalógus/receptek külön nézete, `aria-current`, kamera full-screen safe-area nézet és hűtőfotó csere.
 - [x] M22 automatizált kapu: backend 100 passed/7 skipped; frontend unit 34 passed; typecheck/lint/build sikeres; Chromium/WebKit 56 passed; külön 360×667 vizuális ellenőrzés mindkét motorban.
 - [ ] Fizikai iPhone Safari, élő provider smoke és Railway staging ellenőrzés továbbra is manuális/deployment kapu.
+
+## M22.1 – Kritikus mobil kamera- és UI-regressziók (2026-09-28)
+
+- [x] Az M22 előtti `05d417f` összehasonlítása igazolta, hogy a kameraréteg az add-sheet DOM-jában maradt, a barcode stream pedig a lookup eredménye előtt leállt.
+- [x] A teljes képernyős kamera külön `#camera-root` portalba került, body scroll lockkal, safe-area és 360×667 viewport korlátokkal. Az aktív módban nincs ötelemű tablista.
+- [x] Ismeretlen termék, hiányzó CH és lookup hiba után a scanner aktív marad; csak elfogadott találat vagy explicit életciklus-művelet állítja le.
+- [x] A hűtőfotó UI egy képnél teljes szélességet, 2–4 képnél kéthasábos rácsot használ; a csere/törlés koordinátái a kártyán belül maradnak.
+- [x] A helyi OCR változtatás nélkül megőrzi, jelzi és javításig nem engedi menteni a lehetetlen/ellentmondó tápértékeket, köztük a 159 g fehérjét és 149 g zsírt.
+- [x] Frontend: 36 unit teszt, typecheck, lint és build sikeres. Playwright: 62/62 Chromium/WebKit teszt 360×667, 375×812, 390×844 méreteken, valódi ZXing EAN-8/EAN-13 dekódolással és vizuális/DOM-geometriai ellenőrzéssel.
+- [x] Backend: 100 passed, 7 dokumentált skip, 1 warning.
+- [ ] Fizikai iPhone Safari/PWA kameraengedély, autofókusz, orientáció és valós csomagolásos EAN továbbra is manuális eszközkapu. Élő provider, Railway, push és deploy nem futott.
+
+Részletes eredmény: `docs/M22_1_CAMERA_REGRESSION_RESULT.md`.

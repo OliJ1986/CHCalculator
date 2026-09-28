@@ -238,3 +238,11 @@ The selected recipe is handed to the existing ChefWorkflow for catalog/custom-fo
 ## D-M22-01 – Mobil felületi primitívek és műveleti integritás (2026-09-28)
 
 A M22-ben a meglévő React/React Query architektúrán belül maradunk. A közös mobil mezők és képernyőfejlécek csak prezentációs primitívek; az adatmentést továbbra is a meglévő API és vendég IndexedDB végzi. A Chef egy mentett receptet és stabil napló-idempotencia kulcsot használ, a részleges hiba csak a sikertelen műveletet ismétli. A kamera full-screen, safe-area-kompatibilis konténer, miközben a helyi kép- és provider-határok nem változnak.
+
+## D-M22-02 – A kamera gyökérszintű portal és eredményvezérelt scanner (2026-09-28)
+
+A mobil kameraréteg az add-sheet DOM-jától külön, gyökérszintű portalban jelenik meg. A módválasztás egyszeri belépési lépés; aktív feldolgozás közben nincs állandó ötlapos tablista. A vonalkód streamet a lookup kimenetele vezérli: csak elfogadott, ellenőrzött CH-adattal rendelkező termék zárja le automatikusan. Üres vagy hibás lookup megtartja az aktív kamerát és a felhasználói draftot.
+
+## D-M22-03 – OCR plausibility figyelmeztetés adatátírás nélkül (2026-09-28)
+
+A helyi OCR gyanús tápértéket nem javít automatikusan és nem alakít nullává. A review réteg konkrét figyelmeztetést mutat, az eredeti felismert számot szerkeszthetően megőrzi, és a saját étel mentését addig blokkolja, amíg az ellentmondás fennáll. A végleges CH továbbra is csak explicit 100 g alapú, felhasználó által jóváhagyott érték lehet.

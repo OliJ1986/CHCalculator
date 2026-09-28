@@ -125,3 +125,7 @@ The CHill Camera UI, ZXing barcode scanning, local Tesseract.js nutrition OCR an
 ## M21 current state
 
 M21 CHill Chef is implemented on top of the existing M19/M20 boundaries. The app can collect up to four fridge photos locally, explicitly recognize them in one quota-controlled Gemini request, produce an editable/confirmable inventory, request up to three new structured recipe ideas from Gemini, and hand a selected recipe to the existing verified ingredient and deterministic CH workflow. No database migration was needed. Backend and frontend automated gates are green; live Gemini, Railway staging smoke and physical iPhone Safari verification remain manual gates.
+
+## M22.1 current state
+
+The mobile camera is hosted in a root-level portal, independent from the Add sheet layout. Barcode lookup failures keep the scanner active, while accepted verified products close it deterministically. Camera tasks use one entry chooser instead of persistent mode tabs; fridge photos adapt between one full-width item and a two-column grid. Local nutrition OCR warns on impossible or contradictory values without changing them. Chromium/WebKit automated gates are green at 360×667, 375×812 and 390×844; physical iPhone Safari remains a manual device gate.

@@ -279,3 +279,12 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - A katalógus ételek és receptek nézetre vált, a Tervező naptári másolása és bevásárlólista-mennyisége pontosabb, a navigáció akadálymentesebb.
 - A kamera mobilon teljes képernyős, safe-area-kompatibilis elrendezést használ; a lokális OCR/vonalkód útvonal változatlan.
 - QA: backend 100 passed/7 skipped; frontend unit 34 passed; Playwright Chromium/WebKit 56 passed; typecheck/build sikeres.
+
+## 2026-09-28 – M22.1 mobil kamera-regressziók
+
+- A teljes képernyős kameranézet külön portalba került, ezért mobilon nem függ a felviteli sheet transzformációjától vagy túlcsordulásától.
+- A vonalkódolvasó ismeretlen termék vagy lookup hiba után aktív marad és újrapróbálható; csak elfogadott találat vagy explicit bezárás állítja le.
+- Az öt állandó kamerafül helyét egyszeri feladatválasztó vette át, az aktív nézet egyetlen fejlécet és feladatspecifikus műveleteket mutat.
+- Egy hűtőfotó teljes szélességű, 2–4 fotó kéthasábos rácsot használ; a csere és törlés minden méreten a képen belül marad.
+- A tápérték OCR jelzi és javításig blokkolja a fizikailag lehetetlen vagy ellentmondó értékeket anélkül, hogy azokat nullára vagy becsült értékre írná át.
+- QA: backend 100 passed/7 skipped; frontend unit 36 passed; typecheck/lint/build sikeres; Playwright Chromium/WebKit 62 passed 360×667, 375×812 és 390×844 méreteken.

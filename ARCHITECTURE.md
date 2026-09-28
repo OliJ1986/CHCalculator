@@ -212,3 +212,11 @@ No schema or Alembic migration was required. The browser suite covers the staged
 ## M22 mobil UI réteg (2026-09-28)
 
 A M22 nem vezet be új adat- vagy API-réteget. A `frontend/src/components/ui.tsx` közös mező-, képernyőfejléc- és állapotüzenet-primitívei az alkalmazás meglévő állapot- és API-határait használják. A kamera full-screen nézete csak a megjelenítési réteget rendezi át; a `CameraCapture`, helyi OCR és vonalkód-feldolgozás szerződése változatlan. A Chef ugyanazokat a recept-, étkezés-, terv- és vendég IndexedDB határokat használja, miközben a kliens a sikeres műveletek után lekérdezéseket érvénytelenít.
+
+## M22.1 kamera host és lookup-életciklus (2026-09-28)
+
+A teljes képernyős kameraréteg React portalon a gyökérszintű `#camera-root` elembe kerül. Így nem örökli az add-sheet animációs/transzformációs containing blockját, miközben a sheet megmarad a kamera mögötti munkafolyamat gazdájának. A portal nyitva tartása zárolja a body görgetését, a réteg saját safe-area és `100dvh` határt kap, bezáráskor pedig a kiválasztott mód visszaáll.
+
+A `BarcodeScanner` és a termék lookup között elfogadási visszajelzés van. A scanner csak `true` eredmény után állítja le a streamet; ismeretlen termék, hiányzó ellenőrzött CH vagy kérési hiba `false`, ezért a preview és a ZXing loop aktív marad. Explicit felhasználói stop, bezárás, restart, startup hiba és unmount továbbra is determinisztikusan leállít minden tracket és leválasztja a `srcObject` értéket.
+
+A tápérték OCR továbbra is helyi és veszteségmentes. A parser/review réteg plausibility figyelmeztetést ad a 100 g/100 ml alapon 100 g feletti tápanyagra, negatív értékre, cukor–szénhidrát ellentmondásra és erősen túlméretezett fő tápanyag-összegre. A figyelmeztetés nem módosít értéket; a mentés a felhasználói javításig tiltott.

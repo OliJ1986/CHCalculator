@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CameraCapture } from './CameraCapture'
-import { parseNutritionLabel, type NutritionDraft, type NutritionValues, type NutritionBasis } from './nutrition'
+import { nutritionWarnings, parseNutritionLabel, type NutritionDraft, type NutritionValues, type NutritionBasis } from './nutrition'
 import { sourceRectForCrop, type CropSelection } from './nutritionCrop'
 import { Check, X } from '../components/icons'
 
@@ -249,13 +249,15 @@ export function NutritionScanner({ onConfirm, onClose }: { onConfirm: (draft: Nu
   })
 
   if (draft) {
-    const canSave = draft.name.trim() && draft.basis === '100g' && draft.values.carbohydrates !== null
+    const warnings = nutritionWarnings(draft)
+    const canSave = draft.name.trim() && draft.basis === '100g' && draft.values.carbohydrates !== null && warnings.length === 0
     return <section className="camera-capture nutrition-result" aria-label="Tápérték ellenőrzése">
       <div className="camera-capture-header"><div><p className="eyebrow">Tápérték · Ellenőrzés</p><h3>Javítsd vagy hagyd jóvá az adatokat</h3></div>{onClose && <button className="close-button" onClick={onClose} aria-label="Tápérték bezárása"><X size={18} /></button>}</div>
       <label className="goal-input"><span>Élelmiszer neve</span><input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label>
       <label className="goal-input"><span>Tápértékalap</span><select value={draft.basis ?? ''} onChange={(event) => updateBasis((event.target.value || null) as NutritionBasis)}><option value="">Ismeretlen</option>{Object.entries(basisLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       {([['carbohydrates', 'Szénhidrát'], ['sugars', 'Ebből cukrok'], ['fiber', 'Rost'], ['protein', 'Fehérje'], ['fat', 'Zsír']] as const).map(([field, label]) => <label className="goal-input" key={field}><span>{label} / {draft.basis ? basisLabel[draft.basis] : 'alap'}</span><input inputMode="decimal" value={draft.values[field] ?? ''} onChange={(event) => updateValue(field, numberOrNull(event.target.value))} /></label>)}
       {error && <p className="input-error" role="alert">{error}</p>}
+      {warnings.length > 0 && <div className="nutrition-warnings" role="alert"><strong>Ellenőrizd a gyanús értékeket:</strong><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul><span>Az értékeket nem módosítottuk automatikusan.</span></div>}
       <p className={draft.confidence === 'high' ? 'camera-ready' : 'input-error'}>{draft.confidence === 'high' ? <><Check size={16} /> Ellenőrizhető, 100 g alapú felismerés.</> : 'Ellenőrizd a mezőket. A hiányzó érték ismeretlen marad; a 0 érvényes érték.'}</p>
       <div className="camera-actions"><button className="confirm-button" onClick={() => void onConfirm(draft)} disabled={!canSave}><Check size={18} />Saját étel létrehozása</button><button className="secondary-action" onClick={reset}>Új kép</button></div>
       {draft.rawText && <details><summary>Nyers OCR-szöveg</summary><pre className="ocr-raw-text">{draft.rawText}</pre></details>}

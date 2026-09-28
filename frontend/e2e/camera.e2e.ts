@@ -10,18 +10,32 @@ type CameraTestWindow = Window & {
 }
 
 const viewports = [
-  { width: 360, height: 800 },
+  { width: 360, height: 667 },
   { width: 375, height: 812 },
   { width: 390, height: 844 },
 ]
 
-async function mockApi(page: Page, barcodeRequests: string[], visionHandler?: (route: Route) => Promise<void>) {
+function photoFixture(name: string, color: string, label: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600"><rect width="800" height="600" fill="${color}"/><circle cx="400" cy="250" r="120" fill="#fff" fill-opacity=".55"/><text x="400" y="475" text-anchor="middle" font-family="sans-serif" font-size="54" fill="#23321e">${label}</text></svg>`
+  return { name, mimeType: 'image/svg+xml', buffer: Buffer.from(svg) }
+}
+
+async function mockApi(
+  page: Page,
+  barcodeRequests: string[],
+  visionHandler?: (route: Route) => Promise<void>,
+  barcodeHandler?: (route: Route) => Promise<void>,
+) {
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url())
     if (!url.pathname.startsWith('/api/')) return route.continue()
     let body: unknown = {}
     if (url.pathname.endsWith('/auth/me')) body = { status: 'guest', authenticated: false, role: 'guest', email: null }
-    else if (url.pathname.includes('/foods/barcode/')) { barcodeRequests.push(url.pathname.split('/').pop() ?? ''); body = null }
+    else if (url.pathname.includes('/foods/barcode/')) {
+      barcodeRequests.push(url.pathname.split('/').pop() ?? '')
+      if (barcodeHandler) { await barcodeHandler(route); return }
+      body = null
+    }
     else if (url.pathname.endsWith('/vision/food')) {
       if (visionHandler) { await visionHandler(route); return }
       body = { provider: 'mock', uncertain: false, suggestions: [] }
@@ -87,6 +101,7 @@ async function openBarcodePanel(page: Page) {
   await expect(page.getByRole('button', { name: 'Hozzáadás', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Hozzáadás', exact: true }).click()
   await page.getByRole('button', { name: /^Kamera/ }).click()
+  await page.getByRole('button', { name: /^Vonalkód/ }).click()
   await expect(page.getByRole('button', { name: 'Olvasás indítása' })).toBeVisible()
 }
 
@@ -95,7 +110,7 @@ async function openNutritionPanel(page: Page) {
   await expect(page.getByRole('button', { name: 'Hozzáadás', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Hozzáadás', exact: true }).click()
   await page.getByRole('button', { name: /^Kamera/ }).click()
-  await page.getByRole('tab', { name: 'Tápérték', exact: true }).click()
+  await page.getByRole('button', { name: /^Tápértékcímke/ }).click()
   await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
 }
 
@@ -104,7 +119,16 @@ async function openVisionPanel(page: Page) {
   await expect(page.getByRole('button', { name: 'Hozzáadás', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Hozzáadás', exact: true }).click()
   await page.getByRole('button', { name: /^Kamera/ }).click()
-  await page.getByRole('tab', { name: 'Étel fotó', exact: true }).click()
+  await page.getByRole('button', { name: /^Étel fotója/ }).click()
+  await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
+}
+
+async function openIngredientsPanel(page: Page) {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Hozzáadás', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Hozzáadás', exact: true }).click()
+  await page.getByRole('button', { name: /^Kamera/ }).click()
+  await page.getByRole('button', { name: /^Alapanyag fotója/ }).click()
   await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
 }
 
@@ -130,13 +154,86 @@ for (const viewport of viewports) {
       expect(calls).toHaveLength(2)
       expect((calls[1].video as MediaTrackConstraints).facingMode).toEqual({ ideal: 'environment' })
 
+      await page.getByRole('button', { name: 'Leállítás' }).click()
+      await expect(page.getByRole('button', { name: 'Olvasás indítása' })).toBeVisible()
+      await page.getByRole('button', { name: 'Olvasás indítása' }).click()
+      await expect(page.getByRole('button', { name: 'Leállítás' })).toBeVisible()
+      expect(await page.evaluate(() => (window as CameraTestWindow).__cameraCalls)).toHaveLength(3)
+
       await page.getByRole('button', { name: 'Kamera bezárása' }).click()
       await expect.poll(() => page.evaluate(() => (window as CameraTestWindow).__cameraStops)).toBeGreaterThan(0)
       await page.getByRole('button', { name: /^Kamera/ }).click()
+      await page.getByRole('button', { name: /^Tápértékcímke/ }).click()
+      await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
+      await page.getByRole('button', { name: 'Kamera bezárása' }).click()
+      await page.getByRole('button', { name: /^Kamera/ }).click()
+      await page.getByRole('button', { name: /^Vonalkód/ }).click()
       await expect(page.getByRole('button', { name: 'Olvasás indítása' })).toBeVisible()
     })
 
-    test('decodes a known EAN image locally and keeps manual fallback', async ({ page }) => {
+    test('keeps the full-screen scanner outside the sheet and scanning after a failed lookup', async ({ page }, testInfo) => {
+      test.setTimeout(45_000)
+      const barcodeRequests: string[] = []
+      let lookupCount = 0
+      await mockCamera(page)
+      await mockApi(page, barcodeRequests, undefined, async (route) => {
+        lookupCount += 1
+        if (lookupCount === 1) {
+          await route.fulfill({ status: 200, contentType: 'application/json', body: 'null' })
+          return
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'off-4006381333931', name: 'Teszt termék', original_name: null, brand: 'Teszt',
+            barcode: '4006381333931', source: 'open_food_facts', source_id: '4006381333931',
+            available_carbs_100g: 12.5, serving_size_g: null, image_url: null, language: 'hu',
+            country: 'HU', is_generic: false, is_verified: true, category: 'packaged',
+            category_label: 'Csomagolt', carbs_available: true,
+          }),
+        })
+      })
+      await openBarcodePanel(page)
+
+      const cameraFlow = page.locator('#camera-root > .camera-flow')
+      await expect(cameraFlow).toBeVisible()
+      await expect(page.locator('.add-sheet .camera-flow')).toHaveCount(0)
+      const bounds = await cameraFlow.boundingBox()
+      expect(bounds).not.toBeNull()
+      expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(-1)
+      expect((bounds?.x ?? 0) + (bounds?.width ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(viewport.width + 1)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
+      await expect(page.getByRole('tab')).toHaveCount(0)
+
+      const headerBounds = await page.locator('.camera-flow-header').boundingBox()
+      const startBounds = await page.getByRole('button', { name: 'Olvasás indítása' }).boundingBox()
+      expect(headerBounds).not.toBeNull()
+      expect(startBounds).not.toBeNull()
+      expect(headerBounds?.x ?? -1).toBeGreaterThanOrEqual(-1)
+      expect((headerBounds?.x ?? 0) + (headerBounds?.width ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(viewport.width + 1)
+      expect((startBounds?.y ?? 0) + (startBounds?.height ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(viewport.height + 1)
+
+      await page.getByRole('button', { name: 'Olvasás indítása' }).click()
+      await expect(page.getByRole('button', { name: 'Leállítás' })).toBeVisible()
+      const previewBounds = await page.getByLabel('Vonalkód kamera előnézete').boundingBox()
+      expect(previewBounds).not.toBeNull()
+      expect(previewBounds?.width ?? 0).toBeGreaterThan(300)
+      expect(previewBounds?.height ?? 0).toBeGreaterThanOrEqual(220)
+      await page.screenshot({ path: `test-results/m22/${testInfo.project.name}-${viewport.width}x${viewport.height}-barcode-active.png` })
+      await page.getByLabel('Vonalkód kézzel').fill('4006381333931')
+      await page.getByRole('button', { name: 'Keresés' }).click()
+      await expect(page.getByText('nincs találat', { exact: false })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Leállítás' })).toBeVisible()
+      expect(await page.evaluate(() => (window as CameraTestWindow).__cameraStops)).toBe(0)
+
+      await page.getByLabel('Vonalkód kézzel').press('Enter')
+      await expect(cameraFlow).toHaveCount(0)
+      await expect(page.getByText('Teszt termék', { exact: true })).toBeVisible()
+      expect(barcodeRequests).toEqual(['4006381333931', '4006381333931'])
+    })
+
+    test('uses the real ZXing decoder for known EAN fixtures and keeps manual fallback', async ({ page }) => {
       const barcodeRequests: string[] = []
       await mockCamera(page)
       await mockApi(page, barcodeRequests)
@@ -233,8 +330,7 @@ for (const viewport of viewports) {
         visionCalls += 1
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ provider: 'mock', uncertain: true, suggestions: [{ name: 'Alapanyagok', confidence: null, possible_ingredients: ['paprika', 'uncertain: csirkemell'] }] }) })
       })
-      await openVisionPanel(page)
-      await page.getByRole('tab', { name: 'Alapanyag fotó', exact: true }).click()
+      await openIngredientsPanel(page)
       await expect(page.getByRole('button', { name: 'Kép feltöltése' })).toBeVisible()
       await page.locator('input[type="file"]').setInputFiles({ name: 'ingredients.png', mimeType: 'image/png', buffer: Buffer.from('mock-image') })
       await expect(page.getByRole('button', { name: /Alapanyagok/ })).toBeVisible()
@@ -243,8 +339,8 @@ for (const viewport of viewports) {
       expect(visionCalls).toBe(1)
     })
 
-    test('builds a confirmed fridge inventory and requests new recipe ideas explicitly', async ({ page }) => {
-      test.setTimeout(45_000)
+    test('builds a confirmed fridge inventory and requests new recipe ideas explicitly', async ({ page }, testInfo) => {
+      test.setTimeout(75_000)
       const barcodeRequests: string[] = []
       let fridgeCalls = 0
       let recipeCalls = 0
@@ -271,14 +367,69 @@ for (const viewport of viewports) {
       await expect(page.getByTestId('fridge-workflow')).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
       const gallery = page.locator('.fridge-workflow input[type="file"]')
+      await gallery.setInputFiles(photoFixture('fridge-1.svg', '#d8f06a', '1'))
+      await expect(page.locator('.fridge-photo')).toHaveCount(1)
+      await expect.poll(() => page.locator('.fridge-photo img').evaluateAll((images) => images.every((image) => (image as HTMLImageElement).complete))).toBe(true)
+      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+      await expect(page.locator('.fridge-photo-grid')).toHaveClass(/single/)
+      const singleGrid = await page.locator('.fridge-photo-grid').boundingBox()
+      const singlePhoto = await page.locator('.fridge-photo').boundingBox()
+      expect(singleGrid).not.toBeNull()
+      expect(singlePhoto).not.toBeNull()
+      expect(Math.abs((singleGrid?.width ?? 0) - (singlePhoto?.width ?? 0))).toBeLessThan(2)
+      expect(await page.locator('.camera-flow').evaluate((element) => ({
+        left: element.scrollLeft,
+        top: element.scrollTop,
+        overflow: element.scrollWidth - element.clientWidth,
+      }))).toEqual({ left: 0, top: 0, overflow: 0 })
+      await page.screenshot({ path: `test-results/m22/${testInfo.project.name}-${viewport.width}x${viewport.height}-fridge-one.png` })
+
       await gallery.setInputFiles([
-        { name: 'fridge-1.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('one') },
-        { name: 'fridge-2.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('two') },
+        photoFixture('fridge-2.svg', '#9ed9cb', '2'),
+        photoFixture('fridge-3.svg', '#f5c987', '3'),
+        photoFixture('fridge-4.svg', '#c9b5ed', '4'),
       ])
-      await expect(page.locator('.fridge-photo')).toHaveCount(2)
+      await expect(page.locator('.fridge-photo')).toHaveCount(4)
+      await expect.poll(() => page.locator('.fridge-photo img').evaluateAll((images) => images.every((image) => (image as HTMLImageElement).complete))).toBe(true)
+      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+      await expect(page.locator('.fridge-photo-grid')).toHaveClass(/multiple/)
+      const photoBoxes = await page.locator('.fridge-photo').evaluateAll((elements) => elements.map((element) => {
+        const box = element.getBoundingClientRect()
+        return { x: box.x, right: box.right, width: box.width }
+      }))
+      expect(photoBoxes[0].width).toBeLessThan((singleGrid?.width ?? Number.POSITIVE_INFINITY) * 0.6)
+      expect(photoBoxes[1].x).toBeGreaterThan(photoBoxes[0].x)
+      expect(Math.max(...photoBoxes.map((box) => box.right))).toBeLessThanOrEqual(viewport.width + 1)
+      expect(await page.locator('.camera-flow').evaluate((element) => ({
+        left: element.scrollLeft,
+        top: element.scrollTop,
+        overflow: element.scrollWidth - element.clientWidth,
+      }))).toEqual({ left: 0, top: 0, overflow: 0 })
+      const cameraViewport = await page.evaluate(() => {
+        const flow = document.querySelector('.camera-flow')?.getBoundingClientRect()
+        const header = document.querySelector('.camera-flow-header')?.getBoundingClientRect()
+        return { pageX: window.scrollX, pageY: window.scrollY, visualX: window.visualViewport?.offsetLeft ?? 0, visualY: window.visualViewport?.offsetTop ?? 0, flowX: flow?.x ?? -1, flowY: flow?.y ?? -1, headerX: header?.x ?? -1, headerY: header?.y ?? -1 }
+      })
+      expect(cameraViewport).toMatchObject({ pageX: 0, pageY: 0, visualX: 0, visualY: 0, flowX: 0, flowY: 0 })
+      expect(cameraViewport.headerX).toBeGreaterThanOrEqual(0)
+      expect(cameraViewport.headerY).toBeGreaterThanOrEqual(0)
+      const actionBoundsAreInside = await page.locator('.fridge-photo').evaluateAll((photos) => photos.every((photo) => {
+        const parent = photo.getBoundingClientRect()
+        return [...photo.querySelectorAll('button')].every((button) => {
+          const box = button.getBoundingClientRect()
+          return box.left >= parent.left - 1 && box.right <= parent.right + 1 && box.top >= parent.top - 1 && box.bottom <= parent.bottom + 1
+        })
+      }))
+      expect(actionBoundsAreInside).toBe(true)
+      await page.screenshot({ path: `test-results/m22/${testInfo.project.name}-${viewport.width}x${viewport.height}-fridge-four.png` })
+
+      await page.getByRole('button', { name: 'Csere' }).first().click()
+      await gallery.setInputFiles(photoFixture('fridge-replaced.svg', '#f19b8f', 'Csere'))
+      await expect(page.locator('.fridge-photo')).toHaveCount(4)
       await page.locator('.fridge-photo-remove').first().click()
-      await gallery.setInputFiles({ name: 'fridge-3.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('three') })
-      await expect(page.locator('.fridge-photo')).toHaveCount(2)
+      await expect(page.locator('.fridge-photo')).toHaveCount(3)
+      await gallery.setInputFiles(photoFixture('fridge-5.svg', '#95c6ef', '5'))
+      await expect(page.locator('.fridge-photo')).toHaveCount(4)
       expect(fridgeCalls).toBe(0)
       await page.locator('.fridge-workflow > .chef-actions .confirm-button').click()
       await expect(page.locator('.fridge-inventory-row')).toHaveCount(2)
@@ -379,6 +530,16 @@ for (const viewport of viewports) {
       await expect(page.getByLabel('Ebből cukrok / 100 g')).toHaveValue('6.1')
       await expect(page.getByLabel('Rost / 100 g')).toHaveValue('')
       await expect(page.getByRole('button', { name: 'Saját étel létrehozása' })).toBeEnabled()
+
+      await page.getByLabel('Fehérje / 100 g').fill('159')
+      await page.getByLabel('Zsír / 100 g').fill('149')
+      const warning = page.getByRole('alert')
+      await expect(warning).toContainText('Fehérje: 159 g')
+      await expect(warning).toContainText('Zsír: 149 g')
+      await expect(warning).toContainText('nem módosítottuk automatikusan')
+      await expect(page.getByLabel('Fehérje / 100 g')).toHaveValue('159')
+      await expect(page.getByLabel('Zsír / 100 g')).toHaveValue('149')
+      await expect(page.getByRole('button', { name: 'Saját étel létrehozása' })).toBeDisabled()
 
       await page.getByRole('button', { name: 'Új kép' }).click()
       await page.evaluate(() => { (window as Window & { __CHILL_NUTRITION_OCR_TEXT?: string }).__CHILL_NUTRITION_OCR_TEXT = 'not a nutrition table' })
