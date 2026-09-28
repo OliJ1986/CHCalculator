@@ -288,3 +288,9 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Egy hűtőfotó teljes szélességű, 2–4 fotó kéthasábos rácsot használ; a csere és törlés minden méreten a képen belül marad.
 - A tápérték OCR jelzi és javításig blokkolja a fizikailag lehetetlen vagy ellentmondó értékeket anélkül, hogy azokat nullára vagy becsült értékre írná át.
 - QA: backend 100 passed/7 skipped; frontend unit 36 passed; typecheck/lint/build sikeres; Playwright Chromium/WebKit 62 passed 360×667, 375×812 és 390×844 méreteken.
+
+## 2026-09-28 – Ideiglenes iPhone kamera-diagnosztika
+
+- Staging build flag mögötti, telefonon megtekinthető és másolható kamera-diagnosztikai panel készült a Safari layout/fókusz, az élő media stream/ZXing és a fényképes canvas/ZXing útvonal mérésére.
+- A panel csak helyi memóriát használ; képet, fájlnevet, teljes vagy részleges EAN-t, inputértéket, eszközazonosítót, személyes adatot és titkot nem rögzít vagy továbbít.
+- A diagnosztika még nem állapít meg gyökérokot és nem módosítja a kamera vagy a dekóder működését. A javítás a fizikai iPhone-jelentés után következhet.

@@ -437,3 +437,11 @@ Az aktív kamera egyetlen fejlécet és feladatspecifikus UI-t mutat. A hűtőfo
 Kapuk: backend `100 passed, 7 skipped, 1 warning`; frontend unit `36 passed`; typecheck/lint/build sikeres; Playwright `62 passed` Chromium és WebKit alatt, 360×667, 375×812 és 390×844 méreteken. A suite valódi ZXing EAN fixture-t, stream-életciklust, lookup hibát/sikert, permission denialt, galériát, OCR-figyelmeztetést, fotórácsot és DOM-koordinátákat ellenőriz. Részletes jelentés: `docs/M22_1_CAMERA_REGRESSION_RESULT.md`.
 
 Nyitott kapu: fizikai iPhone Safari/PWA engedély, autofókusz, forgatás és valós EAN. Élő provider, staging, push és deploy nem történt.
+
+## M22.2 – iPhone diagnosztikai átadás (2026-09-28)
+
+Az M22.1 után fizikai iPhone-on továbbra is jelentkező vízszintes elcsúszás, élő ZXing-hiba és fotós ZXing-hiba miatt ideiglenes staging diagnosztika készült. A mód kizárólag `APP_ENV=staging` és build-time `VITE_CAMERA_DIAGNOSTICS=1` együttállásakor érhető el; más környezetben a Vite build megtagadja az engedélyezést. Kikapcsolás után új build szükséges.
+
+A telefonon látható és másolható panel méri a layout/fókusz állapotot, az élő media track/video/ZXing életciklust és a helyi fényképfeldolgozás minden canvas/dekóder lépését. Legfeljebb 250 eseményt tart memóriában és semmit nem küld hálózatra. A másolt riport nem tartalmaz képet, képpontot, fájlnevet, teljes/részleges EAN-t, inputértéket, device ID-t vagy titkot.
+
+Lokális bizonyíték: frontend unit `38 passed`; typecheck, lint és alapértelmezett production build sikeres, a lintben csak a hat korábbi React-warning maradt. A staging build sikeres, az engedélyezett diagnosztikai panelt tartalmazza; az alapértelmezett bundle nem tartalmazza, a production környezetben bekapcsolt flaget pedig a build guard elutasítja. A teljes Playwright kapu `62 passed` Chromium és WebKit alatt 360/375/390 px szélességeken; az utolsó adatminimalizálási szigorítás után az érintett élő stream-diagnosztikai teszt külön `6 passed` eredménnyel futott mindkét motoron. Fizikai iPhone-adat, gyökérok és javítás még nincs; a következő lépés kizárólag a `docs/IPHONE_CAMERA_DIAGNOSTICS.md` protokoll kézi végrehajtása. Push és deploy nem történt.

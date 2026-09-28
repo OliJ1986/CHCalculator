@@ -6,6 +6,7 @@ type CameraTestWindow = Window & {
   __cameraCalls: MediaStreamConstraints[]
   __cameraStops: number
   __denyCamera: boolean
+  __copiedDiagnostics: string
   __CHILL_NUTRITION_LAST_CROP?: { x: number; y: number; width: number; height: number; sourceWidth: number; sourceHeight: number }
 }
 
@@ -53,6 +54,11 @@ async function mockCamera(page: Page) {
     testWindow.__cameraCalls = []
     testWindow.__cameraStops = 0
     testWindow.__denyCamera = false
+    testWindow.__copiedDiagnostics = ''
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async (value: string) => { testWindow.__copiedDiagnostics = value } },
+    })
     class MockMediaStream {
       private readonly tracks: Array<{ kind: string; stop: () => void; getCapabilities: () => object; getSettings: () => object; getConstraints: () => object }>
 
@@ -78,9 +84,13 @@ async function mockCamera(page: Page) {
           if (testWindow.__denyCamera) throw new DOMException('Permission denied', 'NotAllowedError')
           const track = {
             kind: 'video',
+            label: 'Back Camera',
+            readyState: 'live',
+            enabled: true,
+            muted: false,
             stop: () => { testWindow.__cameraStops += 1 },
             getCapabilities: () => ({}),
-            getSettings: () => ({}),
+            getSettings: () => ({ facingMode: 'environment', width: 1280, height: 720, frameRate: 30, deviceId: 'private-test-id' }),
             getConstraints: () => ({}),
           }
           return new MockMediaStream(track) as unknown as MediaStream
@@ -150,6 +160,18 @@ for (const viewport of viewports) {
       await page.evaluate(() => { (window as CameraTestWindow).__denyCamera = false })
       await page.getByRole('button', { name: 'Olvasás indítása' }).click()
       await expect(page.getByRole('button', { name: 'Leállítás' })).toBeVisible()
+      if (viewport.width === 360) {
+        const diagnosticLog = page.getByRole('list', { name: 'Diagnosztikai események' })
+        await expect(diagnosticLog).toContainText('barcode-live.get_user_media_succeeded')
+        await expect(diagnosticLog).toContainText('barcode-live.zxing_scanning_started')
+        await expect(diagnosticLog).toContainText('trackLabel=back_camera')
+        await expect(diagnosticLog).toContainText('settingsWidth=1280')
+        await expect(diagnosticLog).toContainText('settingsHeight=720')
+        await page.getByRole('region', { name: 'iPhone kamera diagnosztika' }).getByRole('button', { name: 'Másolás' }).click()
+        const copied = await page.evaluate(() => (window as CameraTestWindow).__copiedDiagnostics)
+        expect(copied).not.toContain('private-test-id')
+        expect(copied).not.toContain('Back Camera')
+      }
       const calls = await page.evaluate(() => (window as CameraTestWindow).__cameraCalls)
       expect(calls).toHaveLength(2)
       expect((calls[1].video as MediaTrackConstraints).facingMode).toEqual({ ideal: 'environment' })
@@ -205,6 +227,13 @@ for (const viewport of viewports) {
       expect((bounds?.x ?? 0) + (bounds?.width ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(viewport.width + 1)
       expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
       await expect(page.getByRole('tab')).toHaveCount(0)
+      if (viewport.width === 360) {
+        const diagnosticPanel = page.getByRole('region', { name: 'iPhone kamera diagnosztika' })
+        await expect(diagnosticPanel).toBeVisible()
+        await diagnosticPanel.getByRole('button', { name: 'Mérés frissítése' }).click()
+        await expect(diagnosticPanel.getByRole('list', { name: 'Diagnosztikai események' })).toContainText('innerWidth=360')
+        await expect(diagnosticPanel).toContainText('csak helyi memória')
+      }
 
       const headerBounds = await page.locator('.camera-flow-header').boundingBox()
       const startBounds = await page.getByRole('button', { name: 'Olvasás indítása' }).boundingBox()
@@ -246,6 +275,22 @@ for (const viewport of viewports) {
       for (const [filename, code] of fixtures) {
         await page.locator('input[type="file"]').setInputFiles(path.join(import.meta.dirname, 'fixtures', filename))
         await expect.poll(() => barcodeRequests, { timeout: 15_000 }).toContain(code)
+      }
+      if (viewport.width === 360) {
+        const diagnosticPanel = page.getByRole('region', { name: 'iPhone kamera diagnosztika' })
+        const diagnosticLog = diagnosticPanel.getByRole('list', { name: 'Diagnosztikai események' })
+        await expect(diagnosticLog).toContainText('barcode-photo.file_selected')
+        await expect(diagnosticLog).toContainText('mimeType=image/svg+xml')
+        await expect(diagnosticLog).toContainText('barcode-photo.image_loaded')
+        await expect(diagnosticLog).toContainText('barcode-photo.variant_created')
+        await expect(diagnosticLog).toContainText('barcode-photo.decode_result')
+        await diagnosticPanel.getByRole('button', { name: 'Másolás' }).click()
+        await expect(diagnosticPanel.getByRole('status')).toContainText('vágólapra')
+        const copied = await page.evaluate(() => (window as CameraTestWindow).__copiedDiagnostics)
+        expect(copied).toContain('CHill iPhone kamera diagnosztika')
+        expect(copied).not.toContain('4006381333931')
+        expect(copied).not.toContain('96385074')
+        expect(copied).not.toContain('ean13-4006381333931.svg')
       }
 
       const manual = page.getByLabel('Vonalkód kézzel')
@@ -522,8 +567,8 @@ for (const viewport of viewports) {
       await page.mouse.move((resetHandle?.x ?? 0) - 35, (resetHandle?.y ?? 0) - 35)
       await page.mouse.up()
       await page.getByRole('button', { name: 'Kivágás és felismerés' }).click()
+      await expect.poll(() => page.evaluate(() => (window as CameraTestWindow).__CHILL_NUTRITION_LAST_CROP)).toBeDefined()
       const cropDebug = await page.evaluate(() => (window as CameraTestWindow).__CHILL_NUTRITION_LAST_CROP)
-      expect(cropDebug).toBeDefined()
       expect(cropDebug?.width).toBeLessThan(cropDebug?.sourceWidth ?? 0)
       await expect(page.getByLabel('Élelmiszer neve')).toHaveValue("Koch's Original Majonéz")
       await expect(page.getByLabel('Szénhidrát / 100 g')).toHaveValue('7.1')

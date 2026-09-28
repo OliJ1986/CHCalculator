@@ -129,3 +129,7 @@ M21 CHill Chef is implemented on top of the existing M19/M20 boundaries. The app
 ## M22.1 current state
 
 The mobile camera is hosted in a root-level portal, independent from the Add sheet layout. Barcode lookup failures keep the scanner active, while accepted verified products close it deterministically. Camera tasks use one entry chooser instead of persistent mode tabs; fridge photos adapt between one full-width item and a two-column grid. Local nutrition OCR warns on impossible or contradictory values without changing them. Chromium/WebKit automated gates are green at 360×667, 375×812 and 390×844; physical iPhone Safari remains a manual device gate.
+
+## M22.2 diagnostic state
+
+Physical iPhone reports still show horizontal Safari displacement and no live or photo barcode decoding. A temporary build-time staging diagnostic now exposes local, copyable layout/focus, media stream/ZXing and photo/canvas/ZXing events without retaining images, barcode values, filenames, field values, device IDs or secrets. No device root cause or behavior fix is claimed until the physical report in `docs/IPHONE_CAMERA_DIAGNOSTICS.md` is completed.

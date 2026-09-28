@@ -7,6 +7,9 @@ export default defineConfig(({ mode }) => {
   if (mode === 'development' && !env.VITE_DEV_API_URL) {
     throw new Error('VITE_DEV_API_URL must be set for local development')
   }
+  if (env.VITE_CAMERA_DIAGNOSTICS === '1' && env.APP_ENV !== 'staging') {
+    throw new Error('VITE_CAMERA_DIAGNOSTICS can only be enabled when APP_ENV=staging')
+  }
   return {
     plugins: [react()],
     server: {

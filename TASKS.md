@@ -401,3 +401,17 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [ ] Fizikai iPhone Safari/PWA kameraengedély, autofókusz, orientáció és valós csomagolásos EAN továbbra is manuális eszközkapu. Élő provider, Railway, push és deploy nem futott.
 
 Részletes eredmény: `docs/M22_1_CAMERA_REGRESSION_RESULT.md`.
+
+## M22.2 – Fizikai iPhone kamera-diagnosztika (2026-09-28)
+
+Status: IMPLEMENTED LOCALLY; staging build and physical iPhone evidence pending.
+
+- [x] Build-time staging guard: a `VITE_CAMERA_DIAGNOSTICS=1` flag csak `APP_ENV=staging` mellett engedélyezett; flag nélkül a panel és az eseménytár inaktív.
+- [x] Safari layout/focus mérés: inner/document/visual viewport, scroll, kamera/body/video rect, aktív input és autofocus állapot közvetlenül a telefonon megtekinthető.
+- [x] Élő scanner mérés: getUserMedia/track/video állapot, kiválasztott kamera általános címkéje, tényleges beállítások, ZXing-init, eredményhossz és mintavételezett hibakategóriák.
+- [x] Fényképes mérés: MIME és bájtméret, eredeti képméret, képbetöltés, canvas-változatok és változatonkénti ZXing eredmény/hibakategória.
+- [x] A jelentés helyben másolható és törölhető; nincs benne kép, fájlnév, teljes/részleges EAN, mezőérték, eszközazonosító, titok vagy hálózati feltöltés.
+- [x] Determinisztikus teszt igazolja a panelt, a három diagnosztikai ágat és azt, hogy az ismert EAN-ek/fájlnevek nem kerülnek a másolt jelentésbe.
+- [x] Végső helyi kapuk: frontend unit `38 passed`; typecheck, lint és default production build sikeres; staging build sikeres; a production guard a diagnosztikai flaget elutasította; Playwright `62/62 passed` Chromium/WebKit alatt 360/375/390 px szélességeken.
+- [ ] A pontos iPhone protokoll végrehajtása és a jelentések visszaadása nyitott: `docs/IPHONE_CAMERA_DIAGNOSTICS.md`.
+- [ ] Gyökérok és javítás szándékosan nincs kijelentve a fizikai eszközadatok előtt. Deploy ebben a munkamenetben nem történik.

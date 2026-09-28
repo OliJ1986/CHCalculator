@@ -220,3 +220,9 @@ A teljes képernyős kameraréteg React portalon a gyökérszintű `#camera-root
 A `BarcodeScanner` és a termék lookup között elfogadási visszajelzés van. A scanner csak `true` eredmény után állítja le a streamet; ismeretlen termék, hiányzó ellenőrzött CH vagy kérési hiba `false`, ezért a preview és a ZXing loop aktív marad. Explicit felhasználói stop, bezárás, restart, startup hiba és unmount továbbra is determinisztikusan leállít minden tracket és leválasztja a `srcObject` értéket.
 
 A tápérték OCR továbbra is helyi és veszteségmentes. A parser/review réteg plausibility figyelmeztetést ad a 100 g/100 ml alapon 100 g feletti tápanyagra, negatív értékre, cukor–szénhidrát ellentmondásra és erősen túlméretezett fő tápanyag-összegre. A figyelmeztetés nem módosít értéket; a mentés a felhasználói javításig tiltott.
+
+## M22.2 ideiglenes iPhone diagnosztikai határ (2026-09-28)
+
+A kamera-diagnosztika kliensoldali, legfeljebb 250 elemes memóriatárat használ. A layout observer, a `BarcodeScanner` élő callbackjei és a helyi képfeldolgozás ugyanebbe a strukturált eseménytárba írnak; nincs diagnosztikai API, adatbázis, localStorage vagy hálózati export. A képernyőpanel a riportot csak közvetlen felhasználói műveletre másolja a vágólapra.
+
+A Vite konfiguráció csak `APP_ENV=staging` mellett fogadja el a build-time `VITE_CAMERA_DIAGNOSTICS=1` kapcsolót. A kapcsoló hiányában az observer, a tárolás és a panel inaktív. Az eseményséma csak geometriai adatot, állapotot, általános kameracímkét, méretet, számlálót és hibakategóriát enged; képtartalom, fájlnév, vonalkódérték, inputérték, device ID és hibaüzenet nem része a sémának.

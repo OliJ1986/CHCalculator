@@ -246,3 +246,7 @@ A mobil kameraréteg az add-sheet DOM-jától külön, gyökérszintű portalban
 ## D-M22-03 – OCR plausibility figyelmeztetés adatátírás nélkül (2026-09-28)
 
 A helyi OCR gyanús tápértéket nem javít automatikusan és nem alakít nullává. A review réteg konkrét figyelmeztetést mutat, az eredeti felismert számot szerkeszthetően megőrzi, és a saját étel mentését addig blokkolja, amíg az ellentmondás fennáll. A végleges CH továbbra is csak explicit 100 g alapú, felhasználó által jóváhagyott érték lehet.
+
+## D-M22-04 – Fizikai bizonyíték a további kamerajavítás előtt (2026-09-28)
+
+Az iPhone Safari regressziót nem desktop-emulációból és nem sikeres kézi EAN-lookupból vezetjük le. Előbb staging-only, helyi memóriás diagnosztikával külön bizonyítékot gyűjtünk a viewport/fókusz, media stream/ZXing és kép/canvas/ZXing határokról. A diagnosztika nem változtat constraints értéket, dekóder-beállítást, képtranszformációt vagy CSS layoutot. Gyökérokot és javítást csak a fizikai eszközről másolt riport után rögzítünk.
