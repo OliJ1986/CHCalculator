@@ -233,3 +233,8 @@ Only exact normalized names are merged automatically. The user can explicitly me
 ## D-M21-04 - Existing persistence boundaries remain authoritative (2026-09-27)
 
 The selected recipe is handed to the existing ChefWorkflow for catalog/custom-food matching, user quantities, recipe persistence, diary/planner integration and guest storage. Missing recipe ingredients use the existing shopping list with an unknown quantity. No parallel data model or migration was introduced.
+
+
+## D-M22-01 – Mobil felületi primitívek és műveleti integritás (2026-09-28)
+
+A M22-ben a meglévő React/React Query architektúrán belül maradunk. A közös mobil mezők és képernyőfejlécek csak prezentációs primitívek; az adatmentést továbbra is a meglévő API és vendég IndexedDB végzi. A Chef egy mentett receptet és stabil napló-idempotencia kulcsot használ, a részleges hiba csak a sikertelen műveletet ismétli. A kamera full-screen, safe-area-kompatibilis konténer, miközben a helyi kép- és provider-határok nem változnak.

@@ -269,3 +269,13 @@ Az alábbi új terv az aktuális fejlesztési irány. A korábbi fejezetekben sz
 - Reused the existing Chef catalog matching, deterministic CH calculation, recipe save, diary/planner and shopping-list flows. Missing shopping entries retain an unknown quantity.
 - Added API/provider/Vitest and Chromium/WebKit mobile regressions. Backend regression is `106 passed, 1 skipped, 2 warnings`; browser regression is `54 passed`.
 - No database migration, production database change, Railway deployment or push was performed.
+
+
+## 2026-09-28 – M22 Mobile Product Polish
+
+- Mobilon kompaktabb, egymás után ellenőrizhető Chef-összetevősorok, draft-megőrzés és befejezési állapot készült.
+- Javult a CH-bevitel (üres érték és explicit nulla), a Chef ismételt mentése, a célzott retry és a lekérdezés-frissítés.
+- A hűtőfotó-flow képcserét, képszámlálót, kézi leltár-folytatást és egyértelmű adatkezelési tájékoztatást kapott.
+- A katalógus ételek és receptek nézetre vált, a Tervező naptári másolása és bevásárlólista-mennyisége pontosabb, a navigáció akadálymentesebb.
+- A kamera mobilon teljes képernyős, safe-area-kompatibilis elrendezést használ; a lokális OCR/vonalkód útvonal változatlan.
+- QA: backend 100 passed/7 skipped; frontend unit 34 passed; Playwright Chromium/WebKit 56 passed; typecheck/build sikeres.

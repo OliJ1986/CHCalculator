@@ -207,3 +207,8 @@ The fridge endpoint validates MIME types, per-image and aggregate byte limits, r
 Recipe generation is a separate explicit text-only `/api/chef/recipes/generate` request. It uses the same provider/quota boundary and returns at most three validated `RecipeSuggestion` values (name, description, ingredients, missing ingredients, instructions, servings and notes). Nutrient, CH, calorie, gram and stock-quantity fields are intentionally absent. The selected draft is passed to the existing ChefWorkflow, where Food/custom-food selection, user grams and deterministic carbohydrate calculation remain the only path to a verified recipe, diary entry or planner item. Missing recipe ingredients use the existing shopping API/guest IndexedDB with a null quantity.
 
 No schema or Alembic migration was required. The browser suite covers the staged flow with mocked provider responses; live Gemini quality and physical iPhone Safari behavior remain separate staging gates.
+
+
+## M22 mobil UI réteg (2026-09-28)
+
+A M22 nem vezet be új adat- vagy API-réteget. A `frontend/src/components/ui.tsx` közös mező-, képernyőfejléc- és állapotüzenet-primitívei az alkalmazás meglévő állapot- és API-határait használják. A kamera full-screen nézete csak a megjelenítési réteget rendezi át; a `CameraCapture`, helyi OCR és vonalkód-feldolgozás szerződése változatlan. A Chef ugyanazokat a recept-, étkezés-, terv- és vendég IndexedDB határokat használja, miközben a kliens a sikeres műveletek után lekérdezéseket érvénytelenít.

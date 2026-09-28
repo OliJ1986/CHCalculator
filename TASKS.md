@@ -380,3 +380,11 @@ Status: IMPLEMENTED; live provider gate remains open because the single permitte
 - [x] Frontend regression: typecheck passed; Vitest `32 passed`; production build passed; lint exited 0 with existing Camera/App hook warnings.
 - [x] Browser regression: Playwright Chromium and WebKit, 360/375/390 px, `54 passed` with mocked provider responses and local camera/image fixtures.
 - [ ] A live Gemini call and physical iPhone verification were not repeated in this implementation turn. They remain explicit staging/device gates; no Railway deployment was performed.
+
+
+## M22 – Mobile Product Polish / UI-UX stabilizálás (2026-09-28)
+
+- [x] P1: üres CH/explicit nulla, Chef idempotens mentés és célzott retry, query-frissítés, draft-megőrzés, bizonytalanság, kézi leltár, naptári másnapi másolás és ismeretlen bevásárlómennyiség.
+- [x] P2: közös mobil mező- és képernyőfejlécek, 44 px érintési célok, katalógus/receptek külön nézete, `aria-current`, kamera full-screen safe-area nézet és hűtőfotó csere.
+- [x] M22 automatizált kapu: backend 100 passed/7 skipped; frontend unit 34 passed; typecheck/lint/build sikeres; Chromium/WebKit 56 passed; külön 360×667 vizuális ellenőrzés mindkét motorban.
+- [ ] Fizikai iPhone Safari, élő provider smoke és Railway staging ellenőrzés továbbra is manuális/deployment kapu.
